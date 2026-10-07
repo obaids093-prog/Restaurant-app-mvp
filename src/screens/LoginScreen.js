@@ -19,7 +19,20 @@ import { LinearGradient } from '../utils/SafeLinearGradient';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useForm } from '../hooks/useForm';
-import { mockUsers } from '../data/users';
+
+// Seeded VIP demo profiles (Question 6 & 5 specs)
+const DEMO_PROFILES = {
+  customer: {
+    email: 'zainab.malik@aurabistro.pk',
+    password: 'Password123',
+    role: 'customer',
+  },
+  manager: {
+    email: 'farhan.chef@aurabistro.pk',
+    password: 'Admin1234',
+    role: 'manager',
+  },
+};
 
 const { width } = Dimensions.get('window');
 
@@ -28,10 +41,13 @@ export default function LoginScreen({ navigation }) {
   const { colors, isDark, toggleTheme, shadows } = useTheme();
   const { login, signup } = useAuth();
 
-  // Mode state variable: 'login' or 'signup'
-  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  // Mode: 'login' | 'signup'
+  const [mode, setMode] = useState('login');
+  // Selected user role for active session context: 'customer' | 'manager'
+  const [activeRoleTab, setActiveRoleTab] = useState('customer');
+  const [rememberMe, setRememberMe] = useState(true);
 
-  // Question 9 requirement: Custom useForm hook integration
+  // Form validation using custom useForm hook
   const validateForm = useCallback(
     (vals) => {
       const newErrors = {};
@@ -40,30 +56,30 @@ export default function LoginScreen({ navigation }) {
 
       // Email validation
       if (!vals.email || !vals.email.trim()) {
-        newErrors.email = 'Email address is required.';
+        newErrors.email = 'Identity email address is required.';
       } else if (!emailRegex.test(vals.email.trim())) {
         newErrors.email = 'Please enter a valid email address.';
       }
 
       // Password validation (min 8 chars, at least 1 digit)
       if (!vals.password) {
-        newErrors.password = 'Password is required.';
+        newErrors.password = 'Passcode is required.';
       } else if (vals.password.length < 8) {
-        newErrors.password = 'Password must be at least 8 characters long.';
+        newErrors.password = 'Passcode must be at least 8 characters long.';
       } else if (!hasDigitRegex.test(vals.password)) {
-        newErrors.password = 'Password must include at least one numeric digit (0-9).';
+        newErrors.password = 'Passcode must include at least one numeric digit.';
       }
 
       // Signup-only validations
       if (mode === 'signup') {
         if (!vals.name || !vals.name.trim()) {
-          newErrors.name = 'Full name is required.';
+          newErrors.name = 'Full patron name is required.';
         }
 
         if (!vals.confirmPassword) {
-          newErrors.confirmPassword = 'Please confirm your password.';
+          newErrors.confirmPassword = 'Please verify your passcode.';
         } else if (vals.password !== vals.confirmPassword) {
-          newErrors.confirmPassword = 'Passwords do not match.';
+          newErrors.confirmPassword = 'Security passcodes do not match.';
         }
       }
 
@@ -96,56 +112,54 @@ export default function LoginScreen({ navigation }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPass, setSelectedPass] = useState(null);
 
-  // 3D Animation refs
-  const flipAnim = useRef(new Animated.Value(0)).current; // 0 for login, 1 for signup
+  // Animations
   const buttonScale = useRef(new Animated.Value(1)).current;
   const cardScale = useRef(new Animated.Value(0.96)).current;
-  const floatingAnim = useRef(new Animated.Value(0)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
+  const roleSlideAnim = useRef(new Animated.Value(0)).current; // 0: customer, 1: manager
+  const pulseAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Initial entrance spring
     Animated.spring(cardScale, {
       toValue: 1,
-      friction: 7,
+      friction: 8,
       tension: 40,
       useNativeDriver: true,
     }).start();
 
-    // Floating 3D ambient effect
     Animated.loop(
       Animated.sequence([
-        Animated.timing(floatingAnim, {
-          toValue: -8,
-          duration: 2400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatingAnim, {
-          toValue: 0,
-          duration: 2400,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    // Subtle breathing pulse for gold accents
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, {
+        Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1800,
+          duration: 2500,
           useNativeDriver: true,
         }),
-        Animated.timing(glowAnim, {
+        Animated.timing(pulseAnim, {
           toValue: 0,
-          duration: 1800,
+          duration: 2500,
           useNativeDriver: true,
         }),
       ])
     ).start();
   }, []);
 
-  // Mode toggle with 3D Flip animation
+  const handleRoleTabSwitch = (role) => {
+    setActiveRoleTab(role);
+    handleChange('role', role);
+    Animated.spring(roleSlideAnim, {
+      toValue: role === 'customer' ? 0 : 1,
+      friction: 7,
+      tension: 50,
+      useNativeDriver: false,
+    }).start();
+
+    // Auto switch to appropriate demo profile if needed
+    if (role === 'manager') {
+      autofillUser(DEMO_PROFILES.manager, 'manager');
+    } else {
+      autofillUser(DEMO_PROFILES.customer, 'diner');
+    }
+  };
+
   const handleToggleMode = (newMode) => {
     if (newMode === mode) return;
     setMode(newMode);
@@ -154,46 +168,28 @@ export default function LoginScreen({ navigation }) {
       email: values.email || '',
       password: '',
       confirmPassword: '',
-      role: 'customer',
+      role: activeRoleTab,
     });
-
-    Animated.spring(flipAnim, {
-      toValue: newMode === 'signup' ? 1 : 0,
-      friction: 8,
-      tension: 45,
-      useNativeDriver: true,
-    }).start();
   };
-
-  // Interpolated 3D transforms
-  const rotateY = flipAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
-  const cardTranslateY = flipAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, -12, 0],
-  });
 
   // Quick autofill for VIP profiles
   const autofillUser = (presetUser, passKey) => {
     setSelectedPass(passKey);
-    setMode('login');
-    setValues({
-      name: '',
-      email: presetUser.email,
-      password: presetUser.password,
-      confirmPassword: '',
-      role: presetUser.role || 'customer',
-    });
+    handleChange('email', presetUser.email);
+    handleChange('password', presetUser.password);
+    handleChange('role', presetUser.role || 'customer');
+    if (presetUser.role === 'manager') {
+      setActiveRoleTab('manager');
+      Animated.spring(roleSlideAnim, { toValue: 1, friction: 7, tension: 50, useNativeDriver: false }).start();
+    } else {
+      setActiveRoleTab('customer');
+      Animated.spring(roleSlideAnim, { toValue: 0, friction: 7, tension: 50, useNativeDriver: false }).start();
+    }
   };
 
-  // Submit Handler executing via useForm's handleSubmit
+  // Submit Handler
   const onFormValid = async (formValues) => {
     setIsSubmitting(true);
-
-    // Button press 3D bounce
     Animated.sequence([
       Animated.timing(buttonScale, { toValue: 0.94, duration: 100, useNativeDriver: true }),
       Animated.timing(buttonScale, { toValue: 1, duration: 150, useNativeDriver: true }),
@@ -212,9 +208,9 @@ export default function LoginScreen({ navigation }) {
           name: formValues.name,
           email: formValues.email,
           password: formValues.password,
-          role: formValues.role,
+          role: formValues.role || activeRoleTab,
         });
-        Alert.alert('Patron Account Created', `Welcome to AURA, ${newUser.name}! Your table is ready.`);
+        Alert.alert('Patron Account Created', `Welcome to AURA, ${newUser.name}! Your bespoke seat awaits.`);
         if (newUser.role === 'manager') {
           navigation.navigate('ManagerDashboard');
         } else {
@@ -235,23 +231,18 @@ export default function LoginScreen({ navigation }) {
     handleFormSubmit(onFormValid);
   };
 
+  const roleIndicatorTranslate = roleSlideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2, (width > 420 ? 380 : width - 48) / 2],
+  });
+
   return (
     <View style={[styles.rootContainer, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle="light-content" />
 
-      {/* Atmospheric 3D lighting orbs */}
-      <View
-        style={[
-          styles.ambientOrb1,
-          { backgroundColor: isDark ? 'rgba(13, 148, 136, 0.16)' : 'rgba(20, 184, 166, 0.10)' },
-        ]}
-      />
-      <View
-        style={[
-          styles.ambientOrb2,
-          { backgroundColor: isDark ? 'rgba(217, 119, 6, 0.12)' : 'rgba(251, 191, 36, 0.08)' },
-        ]}
-      />
+      {/* Subtle Ambient Glow Orbs from Stitch Design */}
+      <View style={styles.ambientGlowTop} />
+      <View style={styles.ambientGlowRight} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -262,535 +253,428 @@ export default function LoginScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ─── BESPOKE ARCHITECTURAL HEADER ─── */}
-          <View style={styles.heroHeader}>
-            <View style={styles.heroTopRow}>
-              {/* Grand Brand Medallion */}
-              <View style={styles.medallionWrapper}>
-                <LinearGradient
-                  colors={['#D97706', '#0D9488']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={[styles.crestOuterRing, shadows.button3D]}
-                >
-                  <View style={[styles.crestInnerCore, { backgroundColor: colors.card }]}>
-                    <Text style={[styles.crestLetter, { color: colors.primary }]}>A</Text>
-                  </View>
-                </LinearGradient>
-                <View style={styles.brandTextGroup}>
-                  <Text style={[styles.brandTitleText, { color: colors.textPrimary }]}>A U R A</Text>
-                  <Text style={[styles.brandSubtitleText, { color: colors.secondary }]}>
-                    ARTISAN KITCHEN & BOTANICA
-                  </Text>
-                </View>
-              </View>
-
-              {/* Theme Toggle Button */}
-              <TouchableOpacity
-                onPress={toggleTheme}
-                style={[
-                  styles.themeJewelBtn,
-                  { backgroundColor: colors.surface, borderColor: colors.surfaceBorder },
-                  shadows.soft,
-                ]}
-                accessibilityLabel="Toggle Theme"
-              >
-                <Ionicons
-                  name={isDark ? 'sunny-outline' : 'moon-outline'}
-                  size={20}
-                  color={isDark ? '#F59E0B' : '#0D9488'}
-                />
-              </TouchableOpacity>
+          {/* Top Bar with Theme Toggle */}
+          <View style={styles.topUtilityRow}>
+            <View style={styles.vipLiveTag}>
+              <View style={styles.liveGreenDot} />
+              <Text style={styles.vipLiveText}>PRIVATE CELLAR EDITION</Text>
             </View>
 
-            {/* Live Service Ribbon */}
-            <Animated.View
-              style={[
-                styles.serviceRibbon,
-                {
-                  backgroundColor: isDark ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.85)',
-                  borderColor: colors.cardBorder,
-                  transform: [{ translateY: floatingAnim }],
-                },
-                shadows.soft,
-              ]}
-            >
-              <View style={styles.livePulseDot} />
-              <Text style={[styles.serviceRibbonText, { color: colors.textSecondary }]}>
-                Executive Evening Service • Live Reservations Open
-              </Text>
-            </Animated.View>
-          </View>
-
-          {/* ─── SLIDING SEGMENTED FLOOR SWITCHER ─── */}
-          <View
-            style={[
-              styles.segmentTrack,
-              { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-            ]}
-          >
             <TouchableOpacity
-              onPress={() => handleToggleMode('login')}
+              onPress={toggleTheme}
               style={[
-                styles.segmentItem,
-                mode === 'login' && [
-                  styles.activeSegmentItem,
-                  { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                  shadows.medium3D,
-                ],
+                styles.themeToggleBtn,
+                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
               ]}
-              activeOpacity={0.8}
+              accessibilityLabel="Toggle Theme"
             >
               <Ionicons
-                name="key-outline"
-                size={17}
-                color={mode === 'login' ? colors.primary : colors.textMuted}
-                style={{ marginRight: 6 }}
+                name={isDark ? 'sunny-outline' : 'moon-outline'}
+                size={18}
+                color={colors.primary}
               />
-              <Text
-                style={[
-                  styles.segmentLabel,
-                  { color: mode === 'login' ? colors.textPrimary : colors.textMuted },
-                ]}
-              >
-                Patron Sign In
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => handleToggleMode('signup')}
-              style={[
-                styles.segmentItem,
-                mode === 'signup' && [
-                  styles.activeSegmentItem,
-                  { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                  shadows.medium3D,
-                ],
-              ]}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name="ribbon-outline"
-                size={17}
-                color={mode === 'signup' ? colors.primary : colors.textMuted}
-                style={{ marginRight: 6 }}
-              />
-              <Text
-                style={[
-                  styles.segmentLabel,
-                  { color: mode === 'signup' ? colors.textPrimary : colors.textMuted },
-                ]}
-              >
-                New Registration
-              </Text>
             </TouchableOpacity>
           </View>
 
-          {/* ─── 3D ELEVATED ISOMETRIC CARD ─── */}
+          {/* Hero Branding Section */}
+          <View style={styles.heroSection}>
+            <View style={styles.logoMedallionContainer}>
+              <View style={styles.logoMedallionGlow} />
+              <LinearGradient
+                colors={['#f59e0b', '#ffc174']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.logoMedallionRing}
+              >
+                <View style={styles.logoMedallionCore}>
+                  <Ionicons name="sparkles" size={26} color="#f59e0b" />
+                </View>
+              </LinearGradient>
+            </View>
+
+            <Text style={styles.brandTitle}>AURA</Text>
+            <Text style={styles.brandSubtitle}>MODERN ARTISAN KITCHEN & BOTANICA</Text>
+          </View>
+
+          {/* Role Switcher Segmented Pill */}
+          <View style={styles.roleSwitcherContainer}>
+            <View style={styles.roleSwitcherTrack}>
+              <Animated.View
+                style={[
+                  styles.roleSlidingIndicator,
+                  {
+                    transform: [{ translateX: roleIndicatorTranslate }],
+                  },
+                ]}
+              >
+                <LinearGradient
+                  colors={['#f59e0b', '#ffc174']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.roleIndicatorGradient}
+                />
+              </Animated.View>
+
+              <TouchableOpacity
+                onPress={() => handleRoleTabSwitch('customer')}
+                style={styles.roleTabButton}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.roleTabText,
+                    activeRoleTab === 'customer'
+                      ? styles.roleTabTextActive
+                      : styles.roleTabTextInactive,
+                  ]}
+                >
+                  Customer Dining
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleRoleTabSwitch('manager')}
+                style={styles.roleTabButton}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.roleTabText,
+                    activeRoleTab === 'manager'
+                      ? styles.roleTabTextActive
+                      : styles.roleTabTextInactive,
+                  ]}
+                >
+                  Restaurant Manager
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Main Login Glassmorphic Card */}
           <Animated.View
             style={[
-              styles.chassisCard,
+              styles.loginCard,
               {
-                backgroundColor: colors.card,
+                backgroundColor: colors.surface + 'EE',
                 borderColor: colors.cardBorder,
-                transform: [
-                  { scale: cardScale },
-                  { translateY: cardTranslateY },
-                  { rotateY: rotateY },
-                ],
+                transform: [{ scale: cardScale }],
               },
               shadows.deep3D,
             ]}
           >
-            {/* Card Header Line */}
-            <View style={styles.cardHeaderArea}>
-              <View style={styles.goldPillarAccent} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
-                  {mode === 'login' ? 'Patron Authentication' : 'Create Dining Membership'}
-                </Text>
-                <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
-                  {mode === 'login'
-                    ? 'Access table bookings, artisan menu tray & kitchen status.'
-                    : 'Register as an esteemed Dining Patron or Operations Manager.'}
-                </Text>
-              </View>
-            </View>
-
-            {/* FULL NAME (Signup only) */}
-            {mode === 'signup' && (
-              <View style={styles.capsuleField}>
-                <Text style={[styles.capsuleTag, { color: colors.textMuted }]}>PATRON FULL NAME</Text>
-                <View
+            {/* Mode Switcher inside card: Sign In / Register */}
+            <View style={styles.modeTabsRow}>
+              <TouchableOpacity
+                onPress={() => handleToggleMode('login')}
+                style={[
+                  styles.modeTab,
+                  mode === 'login' && styles.modeTabActive,
+                ]}
+              >
+                <Text
                   style={[
-                    styles.capsuleInputBox,
-                    {
-                      backgroundColor: colors.inputBackground,
-                      borderColor: errors.name ? colors.error : colors.inputBorder,
-                    },
+                    styles.modeTabText,
+                    mode === 'login' ? { color: colors.primary, fontWeight: '700' } : { color: colors.textMuted },
                   ]}
                 >
-                  <View style={[styles.capsuleIconPocket, { backgroundColor: colors.surfaceSubtle }]}>
-                    <Ionicons
-                      name="person-outline"
-                      size={18}
-                      color={errors.name ? colors.error : colors.primary}
+                  Keycard Sign In
+                </Text>
+                {mode === 'login' && <View style={[styles.activeTabLine, { backgroundColor: colors.primary }]} />}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleToggleMode('signup')}
+                style={[
+                  styles.modeTab,
+                  mode === 'signup' && styles.modeTabActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.modeTabText,
+                    mode === 'signup' ? { color: colors.primary, fontWeight: '700' } : { color: colors.textMuted },
+                  ]}
+                >
+                  New Membership
+                </Text>
+                {mode === 'signup' && <View style={[styles.activeTabLine, { backgroundColor: colors.primary }]} />}
+              </TouchableOpacity>
+            </View>
+
+            {/* Role Hint Text */}
+            <Text style={styles.roleHintText}>
+              {activeRoleTab === 'customer'
+                ? 'Access your bespoke reservations & tasting diary'
+                : 'Direct kitchen pass, cellar ledger & shift orchestration'}
+            </Text>
+
+            {/* Form Fields */}
+            <View style={styles.formContainer}>
+              {/* Full Name for Signup */}
+              {mode === 'signup' && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>PATRON NAME</Text>
+                  <View
+                    style={[
+                      styles.inputFieldBox,
+                      errors.name ? styles.inputFieldError : null,
+                    ]}
+                  >
+                    <Ionicons name="person-outline" size={18} color="#ffc174" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="e.g. Julianna Vance"
+                      placeholderTextColor="#a08e7a"
+                      value={values.name}
+                      onChangeText={(val) => handleChange('name', val)}
+                      autoCapitalize="words"
+                      editable={!isSubmitting}
                     />
                   </View>
+                  {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+                </View>
+              )}
+
+              {/* Email / Identity */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>IDENTITY</Text>
+                <View
+                  style={[
+                    styles.inputFieldBox,
+                    errors.email ? styles.inputFieldError : null,
+                  ]}
+                >
+                  <Ionicons name="mail-outline" size={18} color="#ffc174" style={styles.inputIcon} />
                   <TextInput
-                    style={[styles.capsuleTextInput, { color: colors.textPrimary }]}
-                    placeholder="e.g. Zainab Malik"
-                    placeholderTextColor={colors.textMuted}
-                    value={values.name}
-                    onChangeText={(val) => handleChange('name', val)}
-                    autoCapitalize="words"
+                    style={styles.textInput}
+                    placeholder={
+                      activeRoleTab === 'customer'
+                        ? 'VIP Pass ID or Email'
+                        : 'Sommelier or Executive Badge ID'
+                    }
+                    placeholderTextColor="#a08e7a"
+                    value={values.email}
+                    onChangeText={(val) => handleChange('email', val)}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
                     editable={!isSubmitting}
                   />
                 </View>
-                {errors.name && (
-                  <View style={styles.inlineErrorRow}>
-                    <Ionicons name="alert-circle" size={13} color={colors.error} />
-                    <Text style={[styles.inlineErrorText, { color: colors.error }]}>
-                      {errors.name}
-                    </Text>
-                  </View>
-                )}
+                {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
               </View>
-            )}
 
-            {/* EMAIL ADDRESS */}
-            <View style={styles.capsuleField}>
-              <Text style={[styles.capsuleTag, { color: colors.textMuted }]}>
-                REGISTERED EMAIL IDENTIFIER
-              </Text>
-              <View
-                style={[
-                  styles.capsuleInputBox,
-                  {
-                    backgroundColor: colors.inputBackground,
-                    borderColor: errors.email ? colors.error : colors.inputBorder,
-                  },
-                ]}
-              >
-                <View style={[styles.capsuleIconPocket, { backgroundColor: colors.surfaceSubtle }]}>
-                  <Ionicons
-                    name="mail-outline"
-                    size={18}
-                    color={errors.email ? colors.error : colors.primary}
-                  />
-                </View>
-                <TextInput
-                  style={[styles.capsuleTextInput, { color: colors.textPrimary }]}
-                  placeholder="e.g. zainab.malik@aurabistro.pk"
-                  placeholderTextColor={colors.textMuted}
-                  value={values.email}
-                  onChangeText={(val) => handleChange('email', val)}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!isSubmitting}
-                />
-              </View>
-              {errors.email && (
-                <View style={styles.inlineErrorRow}>
-                  <Ionicons name="alert-circle" size={13} color={colors.error} />
-                  <Text style={[styles.inlineErrorText, { color: colors.error }]}>
-                    {errors.email}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* PASSWORD */}
-            <View style={styles.capsuleField}>
-              <Text style={[styles.capsuleTag, { color: colors.textMuted }]}>
-                SECURITY CIPHER (MIN. 8 CHARS & 1 DIGIT)
-              </Text>
-              <View
-                style={[
-                  styles.capsuleInputBox,
-                  {
-                    backgroundColor: colors.inputBackground,
-                    borderColor: errors.password ? colors.error : colors.inputBorder,
-                  },
-                ]}
-              >
-                <View style={[styles.capsuleIconPocket, { backgroundColor: colors.surfaceSubtle }]}>
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={18}
-                    color={errors.password ? colors.error : colors.primary}
-                  />
-                </View>
-                <TextInput
-                  style={[styles.capsuleTextInput, { color: colors.textPrimary }]}
-                  placeholder="Enter your security cipher"
-                  placeholderTextColor={colors.textMuted}
-                  value={values.password}
-                  onChangeText={(val) => handleChange('password', val)}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  editable={!isSubmitting}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeToggleBtn}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={18}
-                    color={colors.textMuted}
-                  />
-                </TouchableOpacity>
-              </View>
-              {errors.password && (
-                <View style={styles.inlineErrorRow}>
-                  <Ionicons name="alert-circle" size={13} color={colors.error} />
-                  <Text style={[styles.inlineErrorText, { color: colors.error }]}>
-                    {errors.password}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* CONFIRM PASSWORD (Signup only) */}
-            {mode === 'signup' && (
-              <View style={styles.capsuleField}>
-                <Text style={[styles.capsuleTag, { color: colors.textMuted }]}>
-                  RE-ENTER CIPHER TO VERIFY
-                </Text>
+              {/* Passcode / Security Key */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>PASSCODE</Text>
                 <View
                   style={[
-                    styles.capsuleInputBox,
-                    {
-                      backgroundColor: colors.inputBackground,
-                      borderColor: errors.confirmPassword ? colors.error : colors.inputBorder,
-                    },
+                    styles.inputFieldBox,
+                    errors.password ? styles.inputFieldError : null,
                   ]}
                 >
-                  <View style={[styles.capsuleIconPocket, { backgroundColor: colors.surfaceSubtle }]}>
-                    <Ionicons
-                      name="shield-checkmark-outline"
-                      size={18}
-                      color={errors.confirmPassword ? colors.error : colors.primary}
-                    />
-                  </View>
+                  <Ionicons name="lock-closed-outline" size={18} color="#ffc174" style={styles.inputIcon} />
                   <TextInput
-                    style={[styles.capsuleTextInput, { color: colors.textPrimary }]}
-                    placeholder="Verify password"
-                    placeholderTextColor={colors.textMuted}
-                    value={values.confirmPassword}
-                    onChangeText={(val) => handleChange('confirmPassword', val)}
-                    secureTextEntry={!showConfirmPassword}
+                    style={[styles.textInput, { paddingRight: 40 }]}
+                    placeholder="Security Key"
+                    placeholderTextColor="#a08e7a"
+                    value={values.password}
+                    onChangeText={(val) => handleChange('password', val)}
+                    secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     editable={!isSubmitting}
                   />
                   <TouchableOpacity
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                    style={styles.eyeToggleBtn}
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeIconBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
                     <Ionicons
-                      name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                       size={18}
-                      color={colors.textMuted}
+                      color="#d8c3ad"
                     />
                   </TouchableOpacity>
                 </View>
-                {errors.confirmPassword && (
-                  <View style={styles.inlineErrorRow}>
-                    <Ionicons name="alert-circle" size={13} color={colors.error} />
-                    <Text style={[styles.inlineErrorText, { color: colors.error }]}>
-                      {errors.confirmPassword}
-                    </Text>
-                  </View>
-                )}
+                {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
               </View>
-            )}
 
-            {/* ROLE SELECTOR (Signup only) */}
-            {mode === 'signup' && (
-              <View style={styles.capsuleField}>
-                <Text style={[styles.capsuleTag, { color: colors.textMuted }]}>
-                  SELECT CREDENTIAL LEVEL
-                </Text>
-                <View style={styles.roleChoiceDeck}>
-                  {/* Customer Role */}
-                  <TouchableOpacity
-                    onPress={() => handleChange('role', 'customer')}
+              {/* Confirm Password for Signup */}
+              {mode === 'signup' && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>CONFIRM PASSCODE</Text>
+                  <View
                     style={[
-                      styles.roleChoiceCard,
-                      {
-                        backgroundColor:
-                          values.role === 'customer' ? colors.primary + '18' : colors.inputBackground,
-                        borderColor:
-                          values.role === 'customer' ? colors.primary : colors.inputBorder,
-                      },
-                      values.role === 'customer' && shadows.soft,
+                      styles.inputFieldBox,
+                      errors.confirmPassword ? styles.inputFieldError : null,
                     ]}
-                    activeOpacity={0.85}
                   >
-                    <View style={styles.roleChoiceHeader}>
-                      <Ionicons
-                        name="restaurant-outline"
-                        size={22}
-                        color={values.role === 'customer' ? colors.primary : colors.textMuted}
-                      />
-                      {values.role === 'customer' && (
-                        <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
-                      )}
-                    </View>
-                    <Text
-                      style={[
-                        styles.roleChoiceTitle,
-                        { color: values.role === 'customer' ? colors.primary : colors.textPrimary },
-                      ]}
+                    <Ionicons name="shield-checkmark-outline" size={18} color="#ffc174" style={styles.inputIcon} />
+                    <TextInput
+                      style={[styles.textInput, { paddingRight: 40 }]}
+                      placeholder="Verify Security Key"
+                      placeholderTextColor="#a08e7a"
+                      value={values.confirmPassword}
+                      onChangeText={(val) => handleChange('confirmPassword', val)}
+                      secureTextEntry={!showConfirmPassword}
+                      autoCapitalize="none"
+                      editable={!isSubmitting}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      style={styles.eyeIconBtn}
                     >
-                      Dining Patron
-                    </Text>
-                    <Text style={[styles.roleChoiceDesc, { color: colors.textMuted }]}>
-                      Reserve tables & order
-                    </Text>
+                      <Ionicons
+                        name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={18}
+                        color="#d8c3ad"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {errors.confirmPassword && (
+                    <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+                  )}
+                </View>
+              )}
+
+              {/* Meta Row: Remember Session & Forgot Key */}
+              <View style={styles.metaRow}>
+                <TouchableOpacity
+                  onPress={() => setRememberMe(!rememberMe)}
+                  style={styles.rememberMeGroup}
+                  activeOpacity={0.8}
+                >
+                  <View
+                    style={[
+                      styles.customCheckbox,
+                      rememberMe && styles.customCheckboxActive,
+                    ]}
+                  >
+                    {rememberMe && <Ionicons name="checkmark" size={12} color="#472a00" />}
+                  </View>
+                  <Text style={styles.rememberMeText}>Remember session</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() =>
+                    Alert.alert(
+                      'Security Protocol',
+                      'Please present your physical reservation card or contact the maître d\' at the sanctuary host stand.'
+                    )
+                  }
+                >
+                  <Text style={styles.forgotKeyText}>Forgot Key?</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* High-Glow Primary CTA Button */}
+              <Animated.View style={{ transform: [{ scale: buttonScale }], marginTop: 8 }}>
+                <TouchableOpacity
+                  onPress={handleSubmit}
+                  disabled={isSubmitting}
+                  activeOpacity={0.9}
+                  style={styles.ctaButtonWrapper}
+                >
+                  <LinearGradient
+                    colors={['#f59e0b', '#ffc174']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.ctaButtonGradient}
+                  >
+                    {isSubmitting ? (
+                      <View style={styles.ctaContentRow}>
+                        <ActivityIndicator size="small" color="#472a00" />
+                        <Text style={styles.ctaButtonText}>Authenticating...</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.ctaContentRow}>
+                        <Text style={styles.ctaButtonText}>
+                          {mode === 'login' ? 'Enter AURA' : 'Create Dining Membership'}
+                        </Text>
+                        <Ionicons name="arrow-forward" size={18} color="#472a00" />
+                      </View>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animated.View>
+
+              {/* Divider: Or Access Via */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR ACCESS VIA</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Social VIP Authentication Pills */}
+              <View style={styles.socialAuthGrid}>
+                <TouchableOpacity
+                  style={styles.socialPill}
+                  onPress={() => autofillUser(DEMO_PROFILES.customer, 'diner')}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="logo-apple" size={16} color="#dfe2ee" />
+                  <Text style={styles.socialPillText}>Apple VIP</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.socialPill}
+                  onPress={() => autofillUser(DEMO_PROFILES.manager, 'manager')}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="logo-google" size={16} color="#dfe2ee" />
+                  <Text style={styles.socialPillText}>Google Key</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* One-Touch VIP Fast-Pass Demo Deck */}
+              <View style={styles.fastPassSection}>
+                <View style={styles.fastPassHeader}>
+                  <Ionicons name="key" size={13} color="#ffc174" />
+                  <Text style={styles.fastPassTitle}>ONE-TOUCH VIP DEMO PASSES</Text>
+                </View>
+
+                <View style={styles.fastPassRow}>
+                  <TouchableOpacity
+                    onPress={() => autofillUser(DEMO_PROFILES.customer, 'diner')}
+                    style={[
+                      styles.fastPassCard,
+                      selectedPass === 'diner' && styles.fastPassCardActive,
+                    ]}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.passBadgeGreen}>
+                      <Text style={styles.passBadgeGreenText}>PATRON</Text>
+                    </View>
+                    <Text style={styles.passCardName}>Zainab Malik</Text>
+                    <Text style={styles.passCardRole}>Diner Access</Text>
                   </TouchableOpacity>
 
-                  {/* Manager Role */}
                   <TouchableOpacity
-                    onPress={() => handleChange('role', 'manager')}
+                    onPress={() => autofillUser(DEMO_PROFILES.manager, 'manager')}
                     style={[
-                      styles.roleChoiceCard,
-                      {
-                        backgroundColor:
-                          values.role === 'manager' ? colors.secondary + '20' : colors.inputBackground,
-                        borderColor:
-                          values.role === 'manager' ? colors.secondary : colors.inputBorder,
-                      },
-                      values.role === 'manager' && shadows.soft,
+                      styles.fastPassCard,
+                      selectedPass === 'manager' && styles.fastPassCardActive,
                     ]}
-                    activeOpacity={0.85}
+                    activeOpacity={0.8}
                   >
-                    <View style={styles.roleChoiceHeader}>
-                      <Ionicons
-                        name="shield-half-outline"
-                        size={22}
-                        color={values.role === 'manager' ? colors.primaryDark : colors.textMuted}
-                      />
-                      {values.role === 'manager' && (
-                        <Ionicons name="checkmark-circle" size={16} color={colors.secondary} />
-                      )}
+                    <View style={styles.passBadgeGold}>
+                      <Text style={styles.passBadgeGoldText}>EXECUTIVE</Text>
                     </View>
-                    <Text
-                      style={[
-                        styles.roleChoiceTitle,
-                        { color: values.role === 'manager' ? colors.primaryDark : colors.textPrimary },
-                      ]}
-                    >
-                      General Manager
-                    </Text>
-                    <Text style={[styles.roleChoiceDesc, { color: colors.textMuted }]}>
-                      Kitchen floor & menus
-                    </Text>
+                    <Text style={styles.passCardName}>Chef Farhan</Text>
+                    <Text style={styles.passCardRole}>Operations GM</Text>
                   </TouchableOpacity>
                 </View>
               </View>
-            )}
-
-            {/* 3D ACTION BUTTON */}
-            <Animated.View style={{ transform: [{ scale: buttonScale }], marginTop: 6 }}>
-              <TouchableOpacity
-                onPress={handleSubmit}
-                disabled={isSubmitting}
-                activeOpacity={0.88}
-                style={[styles.primaryActionBtn, shadows.button3D]}
-              >
-                <LinearGradient
-                  colors={[colors.gradientStart, colors.gradientEnd]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0.8 }}
-                  style={styles.actionBtnGradient}
-                >
-                  {isSubmitting ? (
-                    <View style={styles.btnLoadingRow}>
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                      <Text style={styles.btnLoadingText}>
-                        {mode === 'login' ? 'Authenticating with AURA...' : 'Issuing VIP Card...'}
-                      </Text>
-                    </View>
-                  ) : (
-                    <View style={styles.btnContentRow}>
-                      <Text style={styles.actionBtnText}>
-                        {mode === 'login' ? 'Authorize & Enter Dining' : 'Complete Registration'}
-                      </Text>
-                      <View style={styles.btnArrowDisc}>
-                        <Ionicons name="arrow-forward" size={16} color="#0D9488" />
-                      </View>
-                    </View>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            </Animated.View>
-
-            {/* ─── VIP FAST-PASS CREDENTIALS DECK ─── */}
-            <View style={styles.vipPassSection}>
-              <View style={styles.vipPassHeaderRow}>
-                <Ionicons name="flash" size={14} color={colors.secondary} />
-                <Text style={[styles.vipPassSectionTitle, { color: colors.textMuted }]}>
-                  ONE-TOUCH VIP ACCESS KEYCARDS
-                </Text>
-              </View>
-
-              <View style={styles.vipPassGrid}>
-                {/* Patron Card (Zainab Malik) */}
-                <TouchableOpacity
-                  onPress={() => autofillUser(mockUsers[0], 'diner')}
-                  style={[
-                    styles.vipPhysicalCard,
-                    {
-                      backgroundColor: colors.surfaceSubtle,
-                      borderColor: selectedPass === 'diner' ? colors.primary : colors.surfaceBorder,
-                    },
-                    selectedPass === 'diner' && shadows.soft,
-                  ]}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.vipCardTopRow}>
-                    <View style={[styles.chipGraphic, { backgroundColor: colors.secondary }]} />
-                    <Text style={[styles.vipBadgeLabel, { color: colors.primary }]}>PATRON VIP</Text>
-                  </View>
-                  <Text style={[styles.vipCardHolder, { color: colors.textPrimary }]} numberOfLines={1}>
-                    Zainab Malik
-                  </Text>
-                  <Text style={[styles.vipCardRole, { color: colors.textMuted }]}>
-                    Diner Pass • Tap to Fill
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Executive Card (Chef Farhan) */}
-                <TouchableOpacity
-                  onPress={() => autofillUser(mockUsers[1], 'manager')}
-                  style={[
-                    styles.vipPhysicalCard,
-                    {
-                      backgroundColor: colors.surfaceSubtle,
-                      borderColor: selectedPass === 'manager' ? colors.secondary : colors.surfaceBorder,
-                    },
-                    selectedPass === 'manager' && shadows.soft,
-                  ]}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.vipCardTopRow}>
-                    <View style={[styles.chipGraphic, { backgroundColor: '#F59E0B' }]} />
-                    <Text style={[styles.vipBadgeLabel, { color: colors.secondary }]}>EXECUTIVE GM</Text>
-                  </View>
-                  <Text style={[styles.vipCardHolder, { color: colors.textPrimary }]} numberOfLines={1}>
-                    Chef Farhan
-                  </Text>
-                  <Text style={[styles.vipCardRole, { color: colors.textMuted }]}>
-                    Manager Key • Tap to Fill
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </View>
           </Animated.View>
+
+          {/* Culinary Guild Charter Footer */}
+          <View style={styles.footerCharter}>
+            <Text style={styles.footerCharterText}>
+              By entering, you accept AURA Culinary Guild Privileges & Private Dining Charter.
+            </Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -801,331 +685,459 @@ const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
     alignItems: 'center',
+    backgroundColor: '#0f131c',
   },
   scrollContent: {
     width: '100%',
-    maxWidth: 480,
+    maxWidth: 440,
     alignSelf: 'center',
-    paddingHorizontal: 18,
-    paddingTop: Platform.OS === 'ios' ? 52 : 36,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 44 : 28,
     paddingBottom: 40,
   },
-  ambientOrb1: {
+
+  // Atmospheric Glows
+  ambientGlowTop: {
     position: 'absolute',
-    top: -80,
-    right: -60,
-    width: 260,
-    height: 260,
-    borderRadius: 130,
+    top: -60,
+    left: '20%',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
   },
-  ambientOrb2: {
+  ambientGlowRight: {
     position: 'absolute',
-    top: 340,
-    left: -80,
+    top: '40%',
+    right: -80,
     width: 240,
     height: 240,
     borderRadius: 120,
+    backgroundColor: 'rgba(245, 158, 11, 0.05)',
   },
 
-  // ─── HERO HEADER ───
-  heroHeader: {
-    marginBottom: 20,
-  },
-  heroTopRow: {
+  // Top Utility
+  topUtilityRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  medallionWrapper: {
-    flexDirection: 'row',
     alignItems: 'center',
-  },
-  crestOuterRing: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    padding: 2.5,
-    marginRight: 12,
-  },
-  crestInnerCore: {
-    flex: 1,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  crestLetter: {
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: -1,
-  },
-  brandTextGroup: {
-    justifyContent: 'center',
-  },
-  brandTitleText: {
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: 4,
-  },
-  brandSubtitleText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    marginTop: 2,
-  },
-  themeJewelBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  serviceRibbon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
-  },
-  livePulseDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#10B981',
-    marginRight: 8,
-  },
-  serviceRibbonText: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-
-  // ─── SEGMENT TRACK ───
-  segmentTrack: {
-    flexDirection: 'row',
-    borderRadius: 16,
-    padding: 4,
-    borderWidth: 1,
-    marginBottom: 18,
-  },
-  segmentItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 11,
-    borderRadius: 12,
-  },
-  activeSegmentItem: {
-    borderWidth: 1,
-  },
-  segmentLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-
-  // ─── CHASSIS CARD ───
-  chassisCard: {
-    borderRadius: 24,
-    padding: 22,
-    borderWidth: 1.5,
-    marginBottom: 20,
-  },
-  cardHeaderArea: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  goldPillarAccent: {
-    width: 4,
-    height: 38,
-    borderRadius: 2,
-    backgroundColor: '#D97706',
-    marginRight: 12,
-    marginTop: 2,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  cardSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 3,
-  },
-
-  // ─── CAPSULE INPUTS ───
-  capsuleField: {
     marginBottom: 16,
   },
-  capsuleTag: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-    paddingLeft: 2,
-  },
-  capsuleInputBox: {
+  vipLiveTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderRadius: 14,
-    paddingHorizontal: 8,
-    height: 52,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(28, 32, 40, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 116, 0.15)',
   },
-  capsuleIconPocket: {
+  liveGreenDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4edea3',
+    marginRight: 6,
+  },
+  vipLiveText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#ffc174',
+    letterSpacing: 1.5,
+  },
+  themeToggleBtn: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
-  },
-  capsuleTextInput: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  eyeToggleBtn: {
-    padding: 8,
-  },
-  inlineErrorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-    paddingLeft: 4,
-  },
-  inlineErrorText: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 6,
+    borderWidth: 1,
   },
 
-  // ─── ROLE SELECTOR ───
-  roleChoiceDeck: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  roleChoiceCard: {
-    flex: 1,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    padding: 12,
-  },
-  roleChoiceHeader: {
-    flexDirection: 'row',
+  // Hero Section
+  heroSection: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: 20,
   },
-  roleChoiceTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  roleChoiceDesc: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-
-  // ─── 3D ACTION BUTTON ───
-  primaryActionBtn: {
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  actionBtnGradient: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnContentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-    marginRight: 12,
-  },
-  btnArrowDisc: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnLoadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  btnLoadingText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-    marginLeft: 10,
-  },
-
-  // ─── VIP PASS DECK ───
-  vipPassSection: {
-    marginTop: 22,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(150, 150, 150, 0.15)',
-  },
-  vipPassHeaderRow: {
-    flexDirection: 'row',
+  logoMedallionContainer: {
+    width: 72,
+    height: 72,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
-    gap: 6,
   },
-  vipPassSectionTitle: {
+  logoMedallionGlow: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(245, 158, 11, 0.25)',
+  },
+  logoMedallionRing: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    padding: 2.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoMedallionCore: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
+    backgroundColor: '#1c2028',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandTitle: {
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#ffc174',
+    letterSpacing: 3,
+  },
+  brandSubtitle: {
     fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.9,
+    fontWeight: '600',
+    color: '#d8c3ad',
+    letterSpacing: 2.5,
+    marginTop: 4,
+    textAlign: 'center',
   },
-  vipPassGrid: {
+
+  // Role Switcher Segmented Pill
+  roleSwitcherContainer: {
+    width: '100%',
+    marginBottom: 18,
+  },
+  roleSwitcherTrack: {
+    width: '100%',
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: '#181c24',
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+    padding: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 116, 0.1)',
+  },
+  roleSlidingIndicator: {
+    position: 'absolute',
+    top: 2,
+    bottom: 2,
+    width: '50%',
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  roleIndicatorGradient: {
+    flex: 1,
+    borderRadius: 999,
+  },
+  roleTabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    height: '100%',
+  },
+  roleTabText: {
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
+  roleTabTextActive: {
+    color: '#472a00',
+    fontWeight: '700',
+  },
+  roleTabTextInactive: {
+    color: '#d8c3ad',
+    fontWeight: '500',
+  },
+
+  // Main Card
+  loginCard: {
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  modeTabsRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#262a33',
+    marginBottom: 12,
+  },
+  modeTab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  modeTabActive: {},
+  modeTabText: {
+    fontSize: 13,
+    letterSpacing: 0.3,
+  },
+  activeTabLine: {
+    position: 'absolute',
+    bottom: -1,
+    left: '20%',
+    right: '20%',
+    height: 2.5,
+    borderRadius: 2,
+  },
+  roleHintText: {
+    fontSize: 12,
+    color: '#d8c3ad',
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+
+  // Form Fields
+  formContainer: {
+    gap: 12,
+  },
+  inputGroup: {
+    gap: 4,
+  },
+  inputLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#d8c3ad',
+    letterSpacing: 1.2,
+    paddingLeft: 4,
+  },
+  inputFieldBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#0a0e16',
+    borderWidth: 1,
+    borderColor: '#31353e',
+    paddingHorizontal: 12,
+  },
+  inputFieldError: {
+    borderColor: '#ffb4ab',
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  textInput: {
+    flex: 1,
+    color: '#dfe2ee',
+    fontSize: 14,
+    height: '100%',
+  },
+  eyeIconBtn: {
+    position: 'absolute',
+    right: 12,
+    padding: 6,
+  },
+  errorText: {
+    fontSize: 11,
+    color: '#ffb4ab',
+    paddingLeft: 4,
+    marginTop: 2,
+  },
+
+  // Meta Row
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  rememberMeGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  customCheckbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    backgroundColor: '#0a0e16',
+    borderWidth: 1,
+    borderColor: '#31353e',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customCheckboxActive: {
+    backgroundColor: '#ffc174',
+    borderColor: '#ffc174',
+  },
+  rememberMeText: {
+    fontSize: 12,
+    color: '#d8c3ad',
+  },
+  forgotKeyText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#ffc174',
+  },
+
+  // Primary CTA Button
+  ctaButtonWrapper: {
+    borderRadius: 999,
+    overflow: 'hidden',
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+  ctaButtonGradient: {
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  ctaContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  ctaButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#472a00',
+    letterSpacing: 0.3,
+  },
+
+  // Divider
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#262a33',
+  },
+  dividerText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#ffc174',
+    letterSpacing: 1.5,
+  },
+
+  // Social Auth Pills
+  socialAuthGrid: {
     flexDirection: 'row',
     gap: 10,
   },
-  vipPhysicalCard: {
+  socialPill: {
     flex: 1,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    padding: 12,
-  },
-  vipCardTopRow: {
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: '#181c24',
+    borderWidth: 1,
+    borderColor: '#262a33',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    justifyContent: 'center',
+    gap: 8,
   },
-  chipGraphic: {
-    width: 22,
-    height: 16,
-    borderRadius: 3,
-    opacity: 0.9,
+  socialPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#dfe2ee',
   },
-  vipBadgeLabel: {
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.5,
+
+  // One-Touch VIP Fast-Pass Demo
+  fastPassSection: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#262a33',
   },
-  vipCardHolder: {
-    fontSize: 13,
-    fontWeight: '800',
+  fastPassHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
   },
-  vipCardRole: {
+  fastPassTitle: {
     fontSize: 10,
+    fontWeight: '700',
+    color: '#d8c3ad',
+    letterSpacing: 1.2,
+  },
+  fastPassRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  fastPassCard: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: '#181c24',
+    borderWidth: 1,
+    borderColor: '#262a33',
+  },
+  fastPassCardActive: {
+    borderColor: '#ffc174',
+    backgroundColor: 'rgba(255, 193, 116, 0.08)',
+  },
+  passBadgeGreen: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(78, 222, 163, 0.15)',
+    marginBottom: 4,
+  },
+  passBadgeGreenText: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#4edea3',
+    letterSpacing: 1,
+  },
+  passBadgeGold: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    marginBottom: 4,
+  },
+  passBadgeGoldText: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#ffc174',
+    letterSpacing: 1,
+  },
+  passCardName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#dfe2ee',
+  },
+  passCardRole: {
+    fontSize: 10,
+    color: '#a08e7a',
     marginTop: 2,
+  },
+
+  // Footer Charter
+  footerCharter: {
+    marginTop: 18,
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  footerCharterText: {
+    fontSize: 11,
+    color: 'rgba(216, 195, 173, 0.7)',
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });

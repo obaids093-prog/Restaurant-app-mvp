@@ -141,13 +141,13 @@ const MenuItemCard = React.memo(function MenuItemCard({
           >
             {isAvailable ? (
               <LinearGradient
-                colors={['#0D9488', '#0F766E']}
+                colors={['#f59e0b', '#ffc174']}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                end={{ x: 1, y: 0 }}
                 style={styles.addButtonGradient}
               >
-                <Ionicons name="add" size={17} color="#FFFFFF" />
-                <Text style={styles.addButtonText}>Add to Tray</Text>
+                <Ionicons name="add" size={17} color="#472a00" />
+                <Text style={[styles.addButtonText, { color: '#472a00' }]}>Add</Text>
               </LinearGradient>
             ) : (
               <View style={[styles.soldOutButton, { backgroundColor: colors.inputBorder }]}>

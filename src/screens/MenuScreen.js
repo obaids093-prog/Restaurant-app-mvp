@@ -13,15 +13,17 @@ import {
   Platform,
   Alert,
   Animated,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from '../utils/SafeLinearGradient';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useMenu } from '../context/MenuContext';
 import MenuItemCard from '../components/MenuItemCard';
 import { useDebounce } from '../hooks/useDebounce';
-import { mockMenuItems } from '../data/menu';
+import { useApi } from '../hooks/useApi';
 
 const { width } = Dimensions.get('window');
 const CATEGORIES = ['All', 'Starters', 'Mains', 'Desserts', 'Drinks'];
@@ -52,11 +54,35 @@ const SORT_OPTIONS = [
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+const MenuHeaderRight = ({ renderCount, role, colors }) => (
+  <View style={styles.headerRightContainer}>
+    {/* Debug Render Count Label */}
+    <View style={[styles.renderBadge, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
+      <Text style={[styles.renderBadgeText, { color: colors.textMuted }]}>
+        r:{renderCount}
+      </Text>
+    </View>
+
+    {/* Role Pill */}
+    <View style={[styles.customerRolePill, { backgroundColor: colors.badge }]}>
+      <Ionicons name="sparkles" size={12} color={colors.primary} />
+      <Text style={[styles.customerRoleText, { color: colors.badgeText }]}>
+        {role === 'manager' ? 'MANAGER' : 'GUEST'}
+      </Text>
+    </View>
+  </View>
+);
+
 export default function MenuScreen({ navigation }) {
   const { colors, isDark, shadows } = useTheme();
   const { user } = useAuth();
-  const { addItem, totalItemCount } = useCart();
+  const { addItem, totalItemCount, cartState } = useCart();
   const { menuItems: contextMenuItems } = useMenu();
+
+  const cartTotal = useMemo(
+    () => (cartState?.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [cartState?.items]
+  );
 
   // Task 3: Render count tracker using useRef
   const renderCountRef = useRef(0);
@@ -64,8 +90,6 @@ export default function MenuScreen({ navigation }) {
 
   // Base state
   const [menuItems, setMenuItems] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedSort, setSelectedSort] = useState('default');
@@ -83,47 +107,27 @@ export default function MenuScreen({ navigation }) {
 
   const searchInputRef = useRef(null);
   const flatListRef = useRef(null);
-  const loadTimerRef = useRef(null);
   const backToTopAnim = useRef(new Animated.Value(0)).current;
 
-  // Initial Menu Fetch (1.5s simulated Promise with unmount cleanup)
-  const loadMenuData = (isPullToRefresh = false) => {
-    if (isPullToRefresh) {
-      setRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
-    setError(null);
+  // Question 6 Requirement: Use custom useApi hook for data fetching
+  const {
+    data: rawMenuData,
+    loading: isLoading,
+    error,
+    refetch: refetchMenu,
+  } = useApi('/api/menu');
 
-    if (loadTimerRef.current) {
-      clearTimeout(loadTimerRef.current);
-    }
-
-    const fetchPromise = new Promise((resolve) => {
-      loadTimerRef.current = setTimeout(() => {
-        resolve(contextMenuItems && contextMenuItems.length > 0 ? contextMenuItems : mockMenuItems);
-      }, 1500);
-    });
-
-    fetchPromise
-      .then((data) => {
-        setMenuItems(data);
-        setIsLoading(false);
-        setRefreshing(false);
-      })
-      .catch((err) => {
-        setError(err.message || 'Failed to fetch menu items.');
-        setIsLoading(false);
-        setRefreshing(false);
-      });
-  };
-
+  // Synchronize server menu data into component state
   useEffect(() => {
-    loadMenuData();
-    return () => {
-      if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
-    };
-  }, []);
+    if (rawMenuData && Array.isArray(rawMenuData)) {
+      const normalized = rawMenuData.map((item) => ({
+        ...item,
+        id: item._id || item.id,
+        _id: item._id || item.id,
+      }));
+      setMenuItems(normalized);
+    }
+  }, [rawMenuData]);
 
   // Synchronize live menu modifications made in Manager Dashboard
   useEffect(() => {
@@ -131,6 +135,18 @@ export default function MenuScreen({ navigation }) {
       setMenuItems(contextMenuItems);
     }
   }, [contextMenuItems, isLoading]);
+
+  // Handle pull-to-refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetchMenu();
+    } catch {
+      // Error handled by useApi
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Update recent searches whenever debouncedQuery changes and has length > 1
   useEffect(() => {
@@ -229,30 +245,24 @@ export default function MenuScreen({ navigation }) {
     );
   }, []);
 
+  const renderHeaderRight = useCallback(
+    () => (
+      <MenuHeaderRight
+        renderCount={renderCountRef.current}
+        role={user?.role}
+        colors={colors}
+      />
+    ),
+    [colors, user?.role]
+  );
+
   // Update Navigation Header Title with dynamic count
   useEffect(() => {
     navigation.setOptions({
       title: `AURA Kitchen (${displayedItems.length})`,
-      headerRight: () => (
-        <View style={styles.headerRightContainer}>
-          {/* Debug Render Count Label */}
-          <View style={[styles.renderBadge, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
-            <Text style={[styles.renderBadgeText, { color: colors.textMuted }]}>
-              r:{renderCountRef.current}
-            </Text>
-          </View>
-
-          {/* Role Pill */}
-          <View style={[styles.customerRolePill, { backgroundColor: colors.badge }]}>
-            <Ionicons name="sparkles" size={12} color={colors.primary} />
-            <Text style={[styles.customerRoleText, { color: colors.badgeText }]}>
-              {user?.role === 'manager' ? 'MANAGER' : 'GUEST'}
-            </Text>
-          </View>
-        </View>
-      ),
+      headerRight: renderHeaderRight,
     });
-  }, [displayedItems.length, navigation, colors, user]);
+  }, [displayedItems.length, navigation, renderHeaderRight]);
 
   // Scroll Handler for Back-to-Top Button
   const handleScroll = (event) => {
@@ -274,6 +284,14 @@ export default function MenuScreen({ navigation }) {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
 
+  const CATEGORY_ICONS = {
+    All: 'restaurant',
+    Starters: 'flame',
+    Mains: 'restaurant-outline',
+    Desserts: 'ice-cream-outline',
+    Drinks: 'wine-outline',
+  };
+
   // Category Chip Component
   const renderCategoryChip = (cat) => {
     const isSelected = selectedCategory === cat;
@@ -289,17 +307,23 @@ export default function MenuScreen({ navigation }) {
         style={[
           styles.categoryChip,
           {
-            backgroundColor: isSelected ? colors.primary : colors.surface,
-            borderColor: isSelected ? colors.primary : colors.surfaceBorder,
+            backgroundColor: isSelected ? '#f59e0b' : colors.surface,
+            borderColor: isSelected ? '#ffc174' : colors.surfaceBorder,
           },
           isSelected && shadows.button3D,
         ]}
         activeOpacity={0.8}
       >
+        <Ionicons
+          name={CATEGORY_ICONS[cat] || 'restaurant'}
+          size={14}
+          color={isSelected ? '#472a00' : colors.textMuted}
+          style={{ marginRight: 6 }}
+        />
         <Text
           style={[
             styles.categoryChipText,
-            { color: isSelected ? '#FFFFFF' : colors.textSecondary },
+            { color: isSelected ? '#472a00' : colors.textSecondary, fontWeight: isSelected ? '700' : '600' },
           ]}
         >
           {cat}
@@ -309,7 +333,7 @@ export default function MenuScreen({ navigation }) {
             styles.chipBadge,
             {
               backgroundColor: isSelected
-                ? 'rgba(255, 255, 255, 0.25)'
+                ? 'rgba(71, 42, 0, 0.18)'
                 : colors.surfaceSubtle,
             },
           ]}
@@ -317,7 +341,7 @@ export default function MenuScreen({ navigation }) {
           <Text
             style={[
               styles.chipBadgeText,
-              { color: isSelected ? '#FFFFFF' : colors.textMuted },
+              { color: isSelected ? '#472a00' : colors.textMuted },
             ]}
           >
             {count}
@@ -372,7 +396,7 @@ export default function MenuScreen({ navigation }) {
           </Text>
           <Text style={[styles.stateSubheading, { color: colors.textSecondary }]}>{error}</Text>
           <TouchableOpacity
-            onPress={() => loadMenuData()}
+            onPress={() => refetchMenu()}
             style={[styles.retryBtn, { backgroundColor: colors.primary }, shadows.button3D]}
           >
             <Ionicons name="refresh" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
@@ -400,41 +424,42 @@ export default function MenuScreen({ navigation }) {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => loadMenuData(true)}
+            onRefresh={handleRefresh}
             colors={[colors.primary]}
             tintColor={colors.primary}
           />
         }
         ListHeaderComponent={
           <View style={styles.listHeaderWrapper}>
-            {/* Architectural Culinary Header */}
-            <View style={[styles.bannerRow, { borderBottomColor: colors.surfaceBorder }]}>
-              <View style={styles.bannerBadgeRow}>
-                <View style={[styles.halalBadge, { backgroundColor: colors.primary + '18', borderColor: colors.primary }]}>
-                  <Ionicons name="shield-checkmark" size={11} color={colors.primary} />
-                  <Text style={[styles.halalBadgeText, { color: colors.primary }]}>100% HALAL ARTISAN</Text>
+            {/* Header Greeting & Loyalty Status from Stitch Design */}
+            <View style={styles.bannerRow}>
+              <View style={styles.cellarHeaderRow}>
+                <View style={styles.cellarTag}>
+                  <Ionicons name="moon-outline" size={12} color="#ffc174" />
+                  <Text style={styles.cellarTagText}>PRIVATE CELLAR EDITION</Text>
                 </View>
-                <View style={[styles.halalBadge, { backgroundColor: colors.secondary + '18', borderColor: colors.secondary }]}>
-                  <Ionicons name="sparkles" size={11} color={colors.secondary} />
-                  <Text style={[styles.halalBadgeText, { color: colors.secondary }]}>CHEF CURATED</Text>
+
+                <View style={styles.loyaltyPill}>
+                  <Ionicons name="sparkles" size={12} color="#f59e0b" />
+                  <Text style={styles.loyaltyPillText}>AURA Gold • 1,420 Pts</Text>
                 </View>
               </View>
 
               <Text style={[styles.welcomeGreeting, { color: colors.textPrimary }]}>
-                {user?.name ? `AURA Kitchen • ${user.name.split(' ')[0]}` : 'AURA • Artisan Gastronomy'}
+                {user?.name ? `Good Evening, ${user.name.split(' ')[0]}` : 'Good Evening, Esteemed Patron'}
               </Text>
               <Text style={[styles.welcomeSubtext, { color: colors.textSecondary }]}>
-                Woodfired Specialties • Botanical Infusions • Lahore Flagship Lounge
+                Wood-Fired Gastronomy • Rare Botanicals • Lahore Sanctuary
               </Text>
             </View>
 
-            {/* SEARCH BAR (Task 3) */}
+            {/* SEARCH BAR with Micro-actions */}
             <View
               style={[
                 styles.searchBarWrapper,
                 {
-                  backgroundColor: colors.inputBackground,
-                  borderColor: isSearchFocused ? colors.primary : colors.inputBorder,
+                  backgroundColor: '#181c24',
+                  borderColor: isSearchFocused ? '#ffc174' : '#262a33',
                 },
               ]}
             >
@@ -444,17 +469,17 @@ export default function MenuScreen({ navigation }) {
                 style={styles.searchIconBtn}
               >
                 <Ionicons
-                  name="search-outline"
-                  size={20}
-                  color={isSearchFocused ? colors.primary : colors.textMuted}
+                  name="search"
+                  size={18}
+                  color={isSearchFocused ? '#ffc174' : '#a08e7a'}
                 />
               </TouchableOpacity>
 
               <TextInput
                 ref={searchInputRef}
                 style={[styles.searchInput, { color: colors.textPrimary }]}
-                placeholder="Search scallops, tenderloin, lobster, matcha..."
-                placeholderTextColor={colors.textMuted}
+                placeholder="Search infusions, wood-fired cuts, pairings..."
+                placeholderTextColor="#a08e7a"
                 value={searchQuery}
                 onChangeText={handleSearchTextChange}
                 onFocus={() => setIsSearchFocused(true)}
@@ -462,16 +487,99 @@ export default function MenuScreen({ navigation }) {
                 returnKeyType="search"
               />
 
-              {searchQuery.length > 0 && (
+              {searchQuery.length > 0 ? (
                 <TouchableOpacity
                   onPress={handleClearSearch}
                   style={styles.clearBtn}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                  <Ionicons name="close-circle" size={18} color="#a08e7a" />
                 </TouchableOpacity>
+              ) : (
+                <View style={styles.searchMicroActions}>
+                  <TouchableOpacity
+                    style={styles.searchMicroBtn}
+                    onPress={() => Alert.alert('AURA Voice Search', 'Listening for culinary pairing requests...')}
+                  >
+                    <Ionicons name="mic-outline" size={17} color="#a08e7a" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.searchMicroBtn, styles.searchTuneBtn]}
+                    onPress={() => setShowSortDropdown(!showSortDropdown)}
+                  >
+                    <Ionicons name="options-outline" size={15} color="#ffc174" />
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
+
+            {/* FEATURED SPOTLIGHT HERO CARD */}
+            {!searchQuery && selectedCategory === 'All' && (
+              <View style={styles.heroCardContainer}>
+                <View style={[styles.heroCard, shadows.deep3D]}>
+                  <View style={styles.heroImageWrapper}>
+                    <Image
+                      source={{
+                        uri: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80',
+                      }}
+                      style={styles.heroImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.heroImageGradient} />
+                    <View style={styles.heroBadgeTopLeft}>
+                      <Ionicons name="sparkles" size={12} color="#ffc174" />
+                      <Text style={styles.heroBadgeTopLeftText}>SIGNATURE CHEF TASTING</Text>
+                    </View>
+                    <View style={styles.heroBadgeTopRight}>
+                      <Ionicons name="leaf" size={11} color="#4edea3" />
+                      <Text style={styles.heroBadgeTopRightText}>A5 Miyazaki</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.heroContent}>
+                    <View style={styles.heroTitleRow}>
+                      <Text style={styles.heroTitle}>Truffle Glazed Wagyu Ribeye</Text>
+                      <Text style={styles.heroPrice}>Rs. 8,800</Text>
+                    </View>
+                    <Text style={styles.heroDescription} numberOfLines={2}>
+                      Charred Bincho-tan oak, summer black truffle nectar, flaked sea salt, and edible 24k botanical gold leaf.
+                    </Text>
+                    <View style={styles.heroFooter}>
+                      <View style={styles.heroMetaRow}>
+                        <View style={styles.heroMetaChip}>
+                          <Text style={styles.heroMetaChipText}>Wine Pairing No. 4</Text>
+                        </View>
+                        <Text style={styles.heroPrepText}>• 8 min prep</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.heroExploreBtn}
+                        onPress={() => {
+                          const wagyu = menuItems.find((m) => m.id === 'art_m1') || {
+                            id: 'art_m1',
+                            name: 'Truffle Glazed Wagyu Ribeye',
+                            price: 8800,
+                            category: 'Mains',
+                            isAvailable: true,
+                          };
+                          handleAddToCart(wagyu);
+                        }}
+                        activeOpacity={0.88}
+                      >
+                        <LinearGradient
+                          colors={['#f59e0b', '#ffc174']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.heroExploreGradient}
+                        >
+                          <Text style={styles.heroExploreText}>Explore Dish</Text>
+                          <Ionicons name="arrow-forward" size={13} color="#472a00" />
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
 
             {/* RECENT SEARCH SUGGESTIONS */}
             {isSearchFocused && !searchQuery && recentSearches.length > 0 && (
@@ -480,9 +588,9 @@ export default function MenuScreen({ navigation }) {
                   RECENT CULINARY SEARCHES
                 </Text>
                 <View style={styles.recentChipsRow}>
-                  {recentSearches.map((term, idx) => (
+                  {recentSearches.map((term) => (
                     <TouchableOpacity
-                      key={idx}
+                      key={term}
                       onPress={() => handleSelectRecentSearch(term)}
                       style={[
                         styles.recentChip,
@@ -605,6 +713,33 @@ export default function MenuScreen({ navigation }) {
           </View>
         }
       />
+
+      {/* FLOATING GLASS ORDER CART PILL */}
+      {totalItemCount > 0 && (
+        <View style={styles.floatingCartWrapper} pointerEvents="box-none">
+          <TouchableOpacity
+            style={[styles.floatingCartPill, shadows.goldGlow || shadows.button3D]}
+            onPress={() => navigation.navigate('Cart')}
+            activeOpacity={0.9}
+          >
+            <View style={styles.cartPillBag}>
+              <Ionicons name="bag-handle" size={17} color="#472a00" />
+              <View style={styles.cartCountBadge}>
+                <Text style={styles.cartCountBadgeText}>{totalItemCount}</Text>
+              </View>
+            </View>
+            <View style={styles.cartPillTextGroup}>
+              <Text style={styles.cartPillItemsLabel}>
+                {totalItemCount} {totalItemCount === 1 ? 'item' : 'items'} selected
+              </Text>
+              <Text style={styles.cartPillTotalLabel}>
+                Rs. {cartTotal.toLocaleString()}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#a08e7a" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* FLOATING "BACK TO TOP" BUTTON */}
       <Animated.View
@@ -914,5 +1049,243 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // Stitch AI Header elements
+  cellarHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  cellarTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  cellarTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#ffc174',
+    letterSpacing: 1.5,
+  },
+  loyaltyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 3,
+    paddingHorizontal: 9,
+    borderRadius: 999,
+    backgroundColor: '#262a33',
+    gap: 4,
+  },
+  loyaltyPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#ffc174',
+  },
+  searchMicroActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  searchMicroBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchTuneBtn: {
+    backgroundColor: '#262a33',
+  },
+
+  // Featured Hero Card
+  heroCardContainer: {
+    marginBottom: 16,
+  },
+  heroCard: {
+    borderRadius: 20,
+    backgroundColor: '#1c2028',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 116, 0.1)',
+  },
+  heroImageWrapper: {
+    height: 180,
+    width: '100%',
+    position: 'relative',
+    backgroundColor: '#0a0e16',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroImageGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 19, 28, 0.25)',
+  },
+  heroBadgeTopLeft: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(10, 14, 22, 0.8)',
+  },
+  heroBadgeTopLeftText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#ffc174',
+    letterSpacing: 1,
+  },
+  heroBadgeTopRight: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(10, 14, 22, 0.8)',
+  },
+  heroBadgeTopRightText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#4edea3',
+  },
+  heroContent: {
+    padding: 14,
+  },
+  heroTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 4,
+  },
+  heroTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#dfe2ee',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  heroPrice: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#ffc174',
+  },
+  heroDescription: {
+    fontSize: 12,
+    color: '#d8c3ad',
+    lineHeight: 16,
+    marginBottom: 10,
+  },
+  heroFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  heroMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroMetaChip: {
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    borderRadius: 6,
+    backgroundColor: '#262a33',
+  },
+  heroMetaChipText: {
+    fontSize: 10,
+    color: '#d8c3ad',
+    fontWeight: '600',
+  },
+  heroPrepText: {
+    fontSize: 10,
+    color: '#a08e7a',
+  },
+  heroExploreBtn: {
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  heroExploreGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    gap: 5,
+  },
+  heroExploreText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#472a00',
+  },
+
+  // Floating Order Cart Pill
+  floatingCartWrapper: {
+    position: 'absolute',
+    bottom: 24,
+    left: 20,
+    right: 20,
+    alignItems: 'flex-end',
+  },
+  floatingCartPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 10,
+    paddingRight: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#262a33',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 116, 0.25)',
+    gap: 10,
+  },
+  cartPillBag: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f59e0b',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  cartCountBadge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#ff938c',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cartCountBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#68000a',
+  },
+  cartPillTextGroup: {
+    alignItems: 'flex-start',
+  },
+  cartPillItemsLabel: {
+    fontSize: 10,
+    color: '#d8c3ad',
+  },
+  cartPillTotalLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#ffc174',
   },
 });

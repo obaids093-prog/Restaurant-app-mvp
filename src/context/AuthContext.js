@@ -1,30 +1,43 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import safeStorage from '../utils/safeStorage';
-import { mockUsers } from '../data/users';
+import { apiClient, TOKEN_KEY } from '../api/client';
 
 export const AuthContext = createContext(null);
 
-const AUTH_USER_KEY = '@restaurant_app_auth_user';
-const USERS_REGISTRY_KEY = '@restaurant_app_registered_users';
+export const AUTH_USER_KEY = '@restaurant_app_auth_user';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [registeredUsers, setRegisteredUsers] = useState(mockUsers);
+  const [token, setToken] = useState(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
-  // Restore existing session and registered users on app startup
+  // Restore existing session and verify token on startup
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        const storedUsers = await safeStorage.getItem(USERS_REGISTRY_KEY);
-        if (storedUsers) {
-          const parsed = JSON.parse(storedUsers);
-          setRegisteredUsers([...mockUsers, ...parsed]);
-        }
-
+        const storedToken = await safeStorage.getItem(TOKEN_KEY);
         const storedUser = await safeStorage.getItem(AUTH_USER_KEY);
-        if (storedUser) {
+
+        if (storedToken && storedUser) {
+          setToken(storedToken);
           setUser(JSON.parse(storedUser));
+
+          // Optionally verify with server in the background
+          try {
+            const profile = await apiClient('/api/auth/me', { token: storedToken });
+            if (profile && profile.user) {
+              setUser(profile.user);
+              await safeStorage.setItem(AUTH_USER_KEY, JSON.stringify(profile.user));
+            }
+          } catch (serverErr) {
+            // If token expired, clear session
+            if (serverErr.status === 401) {
+              await safeStorage.removeItem(TOKEN_KEY);
+              await safeStorage.removeItem(AUTH_USER_KEY);
+              setUser(null);
+              setToken(null);
+            }
+          }
         }
       } catch (e) {
         console.warn('Failed to restore auth session:', e);
@@ -36,84 +49,73 @@ export const AuthProvider = ({ children }) => {
     restoreSession();
   }, []);
 
+  /**
+   * Login user via backend API /api/auth/login
+   */
   const login = async (email, password) => {
-    // 1000ms network delay simulation
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
     const cleanEmail = email.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    const matchedUser = registeredUsers.find(
-      (u) =>
-        (u.email.toLowerCase() === cleanEmail ||
-          (u.alternateEmail && u.alternateEmail.toLowerCase() === cleanEmail)) &&
-        u.password === cleanPass
-    );
+    try {
+      const response = await apiClient('/api/auth/login', {
+        method: 'POST',
+        body: { email: cleanEmail, password: cleanPass },
+      });
 
-    if (!matchedUser) {
-      throw new Error('Invalid email or password. Please verify your credentials.');
+      const { token: receivedToken, user: receivedUser } = response;
+
+      setToken(receivedToken);
+      setUser(receivedUser);
+
+      // Persist token and user profile in AsyncStorage
+      await safeStorage.setItem(TOKEN_KEY, receivedToken);
+      await safeStorage.setItem(AUTH_USER_KEY, JSON.stringify(receivedUser));
+
+      return receivedUser;
+    } catch (error) {
+      throw new Error(error.message || 'Login failed. Please verify your credentials.');
     }
-
-    // Never store plain password in active user session
-    const safeUser = {
-      id: matchedUser.id,
-      name: matchedUser.name,
-      email: matchedUser.email,
-      role: matchedUser.role,
-      phone: matchedUser.phone || '',
-      avatar: matchedUser.avatar || null,
-    };
-
-    setUser(safeUser);
-    await safeStorage.setItem(AUTH_USER_KEY, JSON.stringify(safeUser));
-    return safeUser;
   };
 
+  /**
+   * Register user via backend API /api/auth/register
+   */
   const signup = async ({ name, email, password, role, phone }) => {
-    // 1000ms network delay simulation
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const response = await apiClient('/api/auth/register', {
+        method: 'POST',
+        body: {
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password: password.trim(),
+          role: role || 'customer',
+          phone: phone ? phone.trim() : '',
+        },
+      });
 
-    const cleanEmail = email.trim().toLowerCase();
-    const existing = registeredUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+      const { token: receivedToken, user: receivedUser } = response;
 
-    if (existing) {
-      throw new Error('An account with this email already exists.');
+      setToken(receivedToken);
+      setUser(receivedUser);
+
+      // Persist token and user in AsyncStorage
+      await safeStorage.setItem(TOKEN_KEY, receivedToken);
+      await safeStorage.setItem(AUTH_USER_KEY, JSON.stringify(receivedUser));
+
+      return receivedUser;
+    } catch (error) {
+      throw new Error(error.message || 'Signup failed.');
     }
-
-    const newUser = {
-      id: `u_${Date.now()}`,
-      name: name.trim(),
-      email: cleanEmail,
-      password: password.trim(),
-      role: role || 'customer',
-      phone: phone ? phone.trim() : '0300-0000000',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-    };
-
-    const updatedRegistry = [...registeredUsers, newUser];
-    setRegisteredUsers(updatedRegistry);
-
-    // Save extra registered users to safeStorage
-    const customUsers = updatedRegistry.filter((u) => !mockUsers.some((mu) => mu.id === u.id));
-    await safeStorage.setItem(USERS_REGISTRY_KEY, JSON.stringify(customUsers));
-
-    const safeUser = {
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-      phone: newUser.phone,
-      avatar: newUser.avatar,
-    };
-
-    setUser(safeUser);
-    await safeStorage.setItem(AUTH_USER_KEY, JSON.stringify(safeUser));
-    return safeUser;
   };
 
+  /**
+   * Logout user and wipe credentials from AsyncStorage
+   */
   const logout = async () => {
     setUser(null);
+    setToken(null);
     try {
+      await safeStorage.removeItem(TOKEN_KEY);
       await safeStorage.removeItem(AUTH_USER_KEY);
     } catch (e) {
       console.warn('Failed to clear auth session:', e);
@@ -124,11 +126,11 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
+        token,
         isLoadingAuth,
         login,
         signup,
         logout,
-        registeredUsers,
       }}
     >
       {children}
