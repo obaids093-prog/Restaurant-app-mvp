@@ -28,7 +28,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
     calculations,
   } = route.params || {};
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     try {
       const orderPayload = {
         customerId: user?.id || 'guest',
@@ -48,11 +48,11 @@ export default function OrderSummaryScreen({ route, navigation }) {
         discountPercent: cartState.discountPercent,
       };
 
-      const newOrder = createOrder(orderPayload);
+      const newOrder = await createOrder(orderPayload);
       clearCart();
 
       // Navigate to live Order Tracking
-      navigation.navigate('OrderTracking', { orderId: newOrder.id });
+      navigation.navigate('OrderTracking', { orderId: newOrder.id || newOrder._id });
     } catch (err) {
       Alert.alert('Order Failed', err.message || 'Unable to place order at this time.');
     }
@@ -210,8 +210,15 @@ export default function OrderSummaryScreen({ route, navigation }) {
               end={{ x: 1, y: 1 }}
               style={styles.gradientBtn}
             >
-              <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-              <Text style={styles.placeBtnText}>Confirm & Dispatch to Kitchen</Text>
+              <Ionicons
+                name="checkmark-circle"
+                size={20}
+                color={isDark ? '#472a00' : '#FFFFFF'}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={[styles.placeBtnText, { color: isDark ? '#472a00' : '#FFFFFF' }]}>
+                Confirm & Dispatch to Kitchen
+              </Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>

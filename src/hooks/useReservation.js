@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import apiClient from '../api/client';
 import safeStorage from '../utils/safeStorage';
 import { mockTables } from '../data/tables';
 import { mockReservations } from '../data/reservations';
@@ -11,9 +12,24 @@ export const TIME_SLOTS = [
 ];
 
 /**
- * Task 7: useReservation hook
+ * Normalizes backend reservation object to UI format
+ */
+const normalizeReservation = (r) => ({
+  ...r,
+  id: r._id || r.id,
+  _id: r._id || r.id,
+  partySize: r.guests !== undefined ? r.guests : r.partySize || 2,
+  timeSlot: r.time || r.timeSlot || '19:00',
+  tableName: r.table
+    ? `Table ${r.table.tableNumber} (${r.table.location || r.table.zone || 'Dining Area'})`
+    : r.tableName || 'Reserved Table',
+  tableId: r.table?._id || r.table?.id || r.table || r.tableId,
+});
+
+/**
+ * Question 7: useReservation hook connected to Express & MongoDB backend
  * Encapsulates all business logic for dining table reservations, slot checks,
- * Pakistani phone validation, and persistence. Contains NO JSX.
+ * Pakistani phone validation, server sync, and collision handling.
  */
 export function useReservation(currentUser) {
   // Get today's date formatted as YYYY-MM-DD
@@ -23,45 +39,70 @@ export function useReservation(currentUser) {
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('19:00');
   const [partySize, setPartySize] = useState(2);
+  const [tablesList, setTablesList] = useState(mockTables);
   const [selectedTable, setSelectedTable] = useState(null);
   const [contactName, setContactName] = useState(currentUser?.name || 'Zainab Malik');
   const [contactPhone, setContactPhone] = useState(currentUser?.phone || '0302-8877665');
   const [specialRequests, setSpecialRequests] = useState('');
-  const [reservationsList, setReservationsList] = useState(mockReservations);
+  const [reservationsList, setReservationsList] = useState(mockReservations.map(normalizeReservation));
   const [validationErrors, setValidationErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Restore reservations from AsyncStorage on initial mount
-  useEffect(() => {
-    (async () => {
-      try {
-        const stored = await safeStorage.getItem(RESERVATIONS_STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setReservationsList(parsed);
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to load reservations:', e);
+  // 1. Fetch live tables from backend GET /api/tables
+  const loadTables = useCallback(async () => {
+    try {
+      const data = await apiClient('/api/tables');
+      if (Array.isArray(data) && data.length > 0) {
+        const normalizedTables = data.map((t) => ({
+          ...t,
+          id: t._id || t.id,
+          _id: t._id || t.id,
+        }));
+        setTablesList(normalizedTables);
       }
-    })();
+    } catch (e) {
+      console.warn('[useReservation] Could not fetch live tables, using fallback:', e.message);
+    }
   }, []);
 
-  // Persist reservations whenever updated
-  const persistReservations = async (updatedList) => {
+  // 2. Fetch customer's live bookings from backend GET /api/reservations/my
+  const loadReservations = useCallback(async () => {
     try {
-      await safeStorage.setItem(RESERVATIONS_STORAGE_KEY, JSON.stringify(updatedList));
+      setIsLoading(true);
+      const data = await apiClient('/api/reservations/my');
+      if (Array.isArray(data)) {
+        const normalized = data.map(normalizeReservation);
+        setReservationsList(normalized);
+        await safeStorage.setItem(RESERVATIONS_STORAGE_KEY, JSON.stringify(normalized));
+      }
     } catch (e) {
-      console.warn('Failed to persist reservations:', e);
+      // If offline, restore from AsyncStorage cache
+      try {
+        const cached = await safeStorage.getItem(RESERVATIONS_STORAGE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setReservationsList(parsed.map(normalizeReservation));
+          }
+        }
+      } catch (cacheErr) {
+        console.warn('[useReservation] Cache restore error:', cacheErr.message);
+      }
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadTables();
+    loadReservations();
+  }, [loadTables, loadReservations]);
 
   /**
    * Helper: Check which tables are free for a given date & time slot
    */
   const getAvailableTablesForSlot = useCallback(
     (date, slot, size) => {
-      // Find occupied table IDs at that exact date and time
       const bookedTableIds = reservationsList
         .filter(
           (r) =>
@@ -72,12 +113,11 @@ export function useReservation(currentUser) {
         )
         .map((r) => r.tableId);
 
-      // Return tables that have enough capacity AND are not booked
-      return mockTables.filter(
-        (table) => table.seats >= size && !bookedTableIds.includes(table.id)
+      return tablesList.filter(
+        (table) => table.seats >= size && !bookedTableIds.includes(table.id) && !bookedTableIds.includes(table._id)
       );
     },
-    [reservationsList]
+    [reservationsList, tablesList]
   );
 
   /**
@@ -97,7 +137,6 @@ export function useReservation(currentUser) {
   useEffect(() => {
     const availableTables = getAvailableTablesForSlot(selectedDate, selectedTimeSlot, partySize);
     if (availableTables.length > 0) {
-      // Pick the closest matching capacity to minimize waste
       const sortedByFit = [...availableTables].sort((a, b) => a.seats - b.seats);
       setSelectedTable(sortedByFit[0]);
     } else {
@@ -106,7 +145,7 @@ export function useReservation(currentUser) {
   }, [selectedDate, selectedTimeSlot, partySize, getAvailableTablesForSlot]);
 
   /**
-   * Comprehensive Form Validation (Task 7 Specs)
+   * Comprehensive Form Validation
    */
   const validateReservation = useCallback(() => {
     const errors = {};
@@ -158,61 +197,77 @@ export function useReservation(currentUser) {
   }, [selectedDate, selectedTimeSlot, partySize, contactPhone, contactName, selectedTable]);
 
   /**
-   * Create Reservation action
+   * Create Reservation action (Question 7 Requirement: POST /api/reservations)
    */
-  const createReservation = useCallback(() => {
+  const createReservation = useCallback(async () => {
     if (!validateReservation()) {
       throw new Error('Please correct the highlighted validation errors.');
     }
 
-    const newReservation = {
-      id: `RES-${Math.floor(100 + Math.random() * 900)}`,
-      customerId: currentUser?.id || 'guest',
+    const payload = {
+      tableId: selectedTable._id || selectedTable.id,
+      date: selectedDate,
+      time: selectedTimeSlot,
+      guests: Number(partySize),
+      specialRequests: specialRequests.trim(),
       customerName: contactName.trim(),
       phone: contactPhone.trim(),
-      date: selectedDate,
-      timeSlot: selectedTimeSlot,
-      partySize: Number(partySize),
-      tableId: selectedTable.id,
-      tableName: `${selectedTable.tableNumber} (${selectedTable.location})`,
-      specialRequests: specialRequests.trim(),
-      status: 'Confirmed',
-      createdAt: Date.now(),
     };
 
-    const updatedList = [newReservation, ...reservationsList];
-    setReservationsList(updatedList);
-    persistReservations(updatedList);
+    // Calls backend POST /api/reservations (throws error on 409 Conflict if double booked)
+    const serverResult = await apiClient('/api/reservations', {
+      method: 'POST',
+      body: payload,
+    });
+
+    const newReservation = normalizeReservation(serverResult);
+    setReservationsList((prev) => [newReservation, ...prev]);
+
+    // Persist cache
+    try {
+      const currentStored = await safeStorage.getItem(RESERVATIONS_STORAGE_KEY);
+      const parsed = currentStored ? JSON.parse(currentStored) : [];
+      await safeStorage.setItem(
+        RESERVATIONS_STORAGE_KEY,
+        JSON.stringify([newReservation, ...parsed])
+      );
+    } catch (e) {
+      // cache write error ignored
+    }
+
     return newReservation;
   }, [
     validateReservation,
-    currentUser,
-    contactName,
-    contactPhone,
+    selectedTable,
     selectedDate,
     selectedTimeSlot,
     partySize,
-    selectedTable,
     specialRequests,
-    reservationsList,
+    contactName,
+    contactPhone,
   ]);
 
   /**
    * Cancel Reservation action
    */
-  const cancelReservation = useCallback(
-    (reservationId) => {
-      const updatedList = reservationsList.map((res) => {
-        if (res.id === reservationId) {
-          return { ...res, status: 'Cancelled' };
-        }
-        return res;
+  const cancelReservation = useCallback(async (reservationId) => {
+    try {
+      await apiClient(`/api/reservations/${reservationId}`, {
+        method: 'PATCH',
+        body: { status: 'Cancelled' },
       });
-      setReservationsList(updatedList);
-      persistReservations(updatedList);
-    },
-    [reservationsList]
-  );
+    } catch (e) {
+      console.warn('[useReservation] Backend cancel sync notice:', e.message);
+    }
+
+    setReservationsList((prev) =>
+      prev.map((res) =>
+        res.id === reservationId || res._id === reservationId
+          ? { ...res, status: 'Cancelled' }
+          : res
+      )
+    );
+  }, []);
 
   return {
     // States
@@ -233,6 +288,7 @@ export function useReservation(currentUser) {
     reservationsList,
     validationErrors,
     availableTablesCount: getAvailableTablesForSlot(selectedDate, selectedTimeSlot, partySize).length,
+    isLoading,
 
     // Actions & Helpers
     isSlotAvailable,
@@ -240,6 +296,7 @@ export function useReservation(currentUser) {
     validateReservation,
     createReservation,
     cancelReservation,
+    refetchReservations: loadReservations,
   };
 }
 

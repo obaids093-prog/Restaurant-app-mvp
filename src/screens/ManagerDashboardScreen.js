@@ -17,14 +17,48 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useOrders } from '../context/OrdersContext';
 import { useMenu } from '../context/MenuContext';
-import { useReservation } from '../hooks/useReservation';
+import { useApi } from '../hooks/useApi';
+import apiClient from '../api/client';
+
+const getOrderStatusBg = (status, colors) => {
+  if (status === 'Served') return colors.successBackground;
+  if (status === 'Ready') return '#E0F2FE';
+  if (status === 'Preparing') return '#FEF3C7';
+  return colors.badge;
+};
+
+const getOrderStatusColor = (status, colors) => {
+  if (status === 'Served') return colors.success;
+  if (status === 'Ready') return '#0284C7';
+  if (status === 'Preparing') return '#D97706';
+  return colors.badgeText;
+};
+
+const getReservationStatusBg = (status, colors) => {
+  if (status === 'Confirmed') return colors.successBackground;
+  if (status === 'Declined' || status === 'Cancelled') return colors.errorBackground;
+  return colors.badge;
+};
+
+const getReservationStatusColor = (status, colors) => {
+  if (status === 'Confirmed') return colors.success;
+  if (status === 'Declined' || status === 'Cancelled') return colors.error;
+  return colors.badgeText;
+};
 
 export default function ManagerDashboardScreen({ navigation }) {
   const { user, logout } = useAuth();
   const { colors, isDark, shadows } = useTheme();
   const { orders, updateOrderStatus, cancelOrder } = useOrders();
   const { menuItems, toggleAvailability, updatePrice, addMenuItem } = useMenu();
-  const { reservationsList } = useReservation(user);
+
+  // Question 6 & 7: Fetch real reservations from server using useApi
+  const {
+    data: reservationsData,
+    refetch: refetchReservations,
+  } = useApi('/api/reservations');
+
+  const reservationsList = Array.isArray(reservationsData) ? reservationsData : [];
 
   // Active Manager Tab
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'reservations' | 'menu'
@@ -41,16 +75,13 @@ export default function ManagerDashboardScreen({ navigation }) {
   const [newItemCat, setNewItemCat] = useState('Mains');
   const [newItemSpecial, setNewItemSpecial] = useState(false);
 
-  // Local state for manager reservations actions
-  const [localReservations, setLocalReservations] = useState(reservationsList);
-
   const handleUpdateStatus = (orderId, nextStatus) => {
     updateOrderStatus(orderId, nextStatus);
     Alert.alert('Status Updated', `Order ${orderId} marked as "${nextStatus}".`);
   };
 
   const handlePriceSave = (itemId) => {
-    if (!tempPrice || isNaN(tempPrice) || Number(tempPrice) <= 0) {
+    if (!tempPrice || Number.isNaN(Number(tempPrice)) || Number(tempPrice) <= 0) {
       Alert.alert('Invalid Price', 'Please enter a valid numeric price.');
       return;
     }
@@ -61,7 +92,7 @@ export default function ManagerDashboardScreen({ navigation }) {
   };
 
   const handleAddNewItem = () => {
-    if (!newItemName.trim() || !newItemPrice || isNaN(newItemPrice)) {
+    if (!newItemName.trim() || !newItemPrice || Number.isNaN(Number(newItemPrice))) {
       Alert.alert('Incomplete Data', 'Please provide a valid dish name and price.');
       return;
     }
@@ -78,14 +109,22 @@ export default function ManagerDashboardScreen({ navigation }) {
     setNewItemName('');
     setNewItemDesc('');
     setNewItemPrice('');
+    setNewItemSpecial(false);
     Alert.alert('Dish Added', `${newItemName} is now live on the customer menu!`);
   };
 
-  const handleReservationAction = (id, newStatus) => {
-    setLocalReservations((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
-    );
-    Alert.alert('Reservation Updated', `Booking ${id} has been marked as ${newStatus}.`);
+  // Question 7: Manager accepts or declines bookings via PATCH /api/reservations/:id
+  const handleReservationAction = async (id, newStatus) => {
+    try {
+      await apiClient(`/api/reservations/${id}`, {
+        method: 'PATCH',
+        body: { status: newStatus },
+      });
+      await refetchReservations();
+      Alert.alert('Reservation Updated', `Booking has been marked as ${newStatus}.`);
+    } catch (err) {
+      Alert.alert('Update Failed', err.message || 'Could not update reservation status.');
+    }
   };
 
   return (
@@ -110,18 +149,33 @@ export default function ManagerDashboardScreen({ navigation }) {
             </Text>
           </View>
 
-          <TouchableOpacity
-            onPress={() => navigation.navigate('CustomerApp', { screen: 'Menu' })}
-            style={[
-              styles.switchViewBtn,
-              { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-            ]}
-          >
-            <Ionicons name="eye-outline" size={16} color={colors.textPrimary} />
-            <Text style={[styles.switchViewText, { color: colors.textPrimary }]}>
-              View Menu
-            </Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('CustomerApp', { screen: 'Menu' })}
+              style={[
+                styles.switchViewBtn,
+                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
+              ]}
+            >
+              <Ionicons name="eye-outline" size={16} color={colors.textPrimary} />
+              <Text style={[styles.switchViewText, { color: colors.textPrimary }]}>
+                View Menu
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={logout}
+              style={[
+                styles.switchViewBtn,
+                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder, marginLeft: 8 },
+              ]}
+            >
+              <Ionicons name="log-out-outline" size={16} color={colors.error} />
+              <Text style={[styles.switchViewText, { color: colors.error }]}>
+                Logout
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 3 MANAGER TABS (Task 8 requirement) */}
@@ -221,7 +275,6 @@ export default function ManagerDashboardScreen({ navigation }) {
             const isPending = order.status === 'Pending';
             const isPrep = order.status === 'Preparing';
             const isReady = order.status === 'Ready';
-            const isServed = order.status === 'Served';
 
             return (
               <View
@@ -248,29 +301,13 @@ export default function ManagerDashboardScreen({ navigation }) {
                   <View
                     style={[
                       styles.statusPill,
-                      {
-                        backgroundColor: isServed
-                          ? colors.successBackground
-                          : isReady
-                          ? '#E0F2FE'
-                          : isPrep
-                          ? '#FEF3C7'
-                          : colors.badge,
-                      },
+                      { backgroundColor: getOrderStatusBg(order.status, colors) },
                     ]}
                   >
                     <Text
                       style={[
                         styles.statusPillText,
-                        {
-                          color: isServed
-                            ? colors.success
-                            : isReady
-                            ? '#0284C7'
-                            : isPrep
-                            ? '#D97706'
-                            : colors.badgeText,
-                        },
+                        { color: getOrderStatusColor(order.status, colors) },
                       ]}
                     >
                       {order.status}
@@ -281,7 +318,10 @@ export default function ManagerDashboardScreen({ navigation }) {
                 {/* Items in order */}
                 <View style={[styles.itemsBox, { backgroundColor: colors.surfaceSubtle }]}>
                   {order.items.map((item, idx) => (
-                    <Text key={idx} style={[styles.itemLine, { color: colors.textPrimary }]}>
+                    <Text
+                      key={item.id || item._id || item.menuItem || `${item.name}-${idx}`}
+                      style={[styles.itemLine, { color: colors.textPrimary }]}
+                    >
                       • {item.quantity}x {item.name}{' '}
                       {item.note ? `(Note: "${item.note}")` : ''}
                     </Text>
@@ -342,80 +382,93 @@ export default function ManagerDashboardScreen({ navigation }) {
           contentContainerStyle={styles.scrollList}
           showsVerticalScrollIndicator={false}
         >
-          {localReservations.map((booking) => (
-            <View
-              key={booking.id}
-              style={[
-                styles.cardItem,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                shadows.soft,
-              ]}
-            >
-              <View style={styles.cardHeaderRow}>
-                <View>
-                  <Text style={[styles.orderRef, { color: colors.primary }]}>{booking.id}</Text>
-                  <Text style={[styles.customerRef, { color: colors.textPrimary }]}>
-                    {booking.customerName} ({booking.phone})
-                  </Text>
-                  <Text style={[styles.orderTypeDesc, { color: colors.textSecondary }]}>
-                    {booking.date} at {booking.timeSlot} • {booking.partySize} Guests
-                  </Text>
-                  <Text style={[styles.orderTypeDesc, { color: colors.textPrimary }]}>
-                    Table: {booking.tableName}
-                  </Text>
-                </View>
+          {reservationsList.length === 0 ? (
+            <View style={[styles.cardItem, { backgroundColor: colors.card, alignItems: 'center', padding: 24 }]}>
+              <Ionicons name="calendar-outline" size={40} color={colors.textMuted} />
+              <Text style={{ color: colors.textPrimary, fontWeight: '700', marginTop: 12 }}>
+                No Table Bookings Found
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 4 }}>
+                Customer reservations from the app will appear here in real time.
+              </Text>
+            </View>
+          ) : (
+            reservationsList.map((booking) => {
+              const bookingId = booking._id || booking.id;
+              const tableName = booking.table
+                ? `Table ${booking.table.tableNumber} (${booking.table.zone || 'Dining Area'})`
+                : booking.tableName || 'Assigned Table';
+              const timeSlot = booking.time || booking.timeSlot || '19:00';
+              const guestsCount = booking.guests || booking.partySize || 2;
 
+              return (
                 <View
+                  key={bookingId}
                   style={[
-                    styles.statusPill,
-                    {
-                      backgroundColor:
-                        booking.status === 'Confirmed'
-                          ? colors.successBackground
-                          : colors.errorBackground,
-                    },
+                    styles.cardItem,
+                    { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                    shadows.soft,
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.statusPillText,
-                      {
-                        color:
-                          booking.status === 'Confirmed' ? colors.success : colors.error,
-                      },
-                    ]}
-                  >
-                    {booking.status}
-                  </Text>
+                  <View style={styles.cardHeaderRow}>
+                    <View>
+                      <Text style={[styles.orderRef, { color: colors.primary }]}>{bookingId}</Text>
+                      <Text style={[styles.customerRef, { color: colors.textPrimary }]}>
+                        {booking.customerName} ({booking.phone || 'No phone'})
+                      </Text>
+                      <Text style={[styles.orderTypeDesc, { color: colors.textSecondary }]}>
+                        {booking.date} at {timeSlot} • {guestsCount} Guests
+                      </Text>
+                      <Text style={[styles.orderTypeDesc, { color: colors.textPrimary }]}>
+                        {tableName}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.statusPill,
+                        { backgroundColor: getReservationStatusBg(booking.status, colors) },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.statusPillText,
+                          { color: getReservationStatusColor(booking.status, colors) },
+                        ]}
+                      >
+                        {booking.status}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {booking.specialRequests ? (
+                    <Text style={[styles.specialReqNote, { color: colors.textMuted }]}>
+                      Special Note: "{booking.specialRequests}"
+                    </Text>
+                  ) : null}
+
+                  {/* Accept / Decline actions */}
+                  <View style={styles.orderActionsRow}>
+                    <TouchableOpacity
+                      onPress={() => handleReservationAction(bookingId, 'Confirmed')}
+                      style={[styles.actionBtn, { backgroundColor: colors.success }]}
+                    >
+                      <Ionicons name="checkmark" size={14} color="#FFF" />
+                      <Text style={styles.actionBtnText}>Confirm Table</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => handleReservationAction(bookingId, 'Declined')}
+                      style={[styles.actionBtn, { backgroundColor: colors.error }]}
+                    >
+                      <Ionicons name="close" size={14} color="#FFF" />
+                      <Text style={styles.actionBtnText}>Decline</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-
-              {booking.specialRequests ? (
-                <Text style={[styles.specialReqNote, { color: colors.textMuted }]}>
-                  Special Note: "{booking.specialRequests}"
-                </Text>
-              ) : null}
-
-              {/* Accept / Decline actions */}
-              <View style={styles.orderActionsRow}>
-                <TouchableOpacity
-                  onPress={() => handleReservationAction(booking.id, 'Confirmed')}
-                  style={[styles.actionBtn, { backgroundColor: colors.success }]}
-                >
-                  <Ionicons name="checkmark" size={14} color="#FFF" />
-                  <Text style={styles.actionBtnText}>Confirm Table</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => handleReservationAction(booking.id, 'Declined')}
-                  style={[styles.actionBtn, { backgroundColor: colors.error }]}
-                >
-                  <Ionicons name="close" size={14} color="#FFF" />
-                  <Text style={styles.actionBtnText}>Decline</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
+              );
+            })
+          )}
         </ScrollView>
       )}
 
@@ -638,6 +691,18 @@ export default function ManagerDashboardScreen({ navigation }) {
                   </Text>
                 </TouchableOpacity>
               ))}
+            </View>
+
+            {/* Featured Special Toggle */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 12, paddingHorizontal: 4 }}>
+              <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 14 }}>
+                Featured Chef's Special
+              </Text>
+              <Switch
+                value={newItemSpecial}
+                onValueChange={setNewItemSpecial}
+                trackColor={{ false: colors.surfaceBorder, true: colors.primary }}
+              />
             </View>
 
             <View style={styles.modalActions}>

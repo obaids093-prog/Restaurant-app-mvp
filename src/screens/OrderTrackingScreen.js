@@ -22,7 +22,7 @@ const STAGES = [
 
 export default function OrderTrackingScreen({ route, navigation }) {
   const { colors, isDark, shadows } = useTheme();
-  const { orders, updateOrderStatus } = useOrders();
+  const { orders, updateOrderStatus, fetchOrders } = useOrders();
 
   const { orderId } = route.params || {};
 
@@ -61,23 +61,26 @@ export default function OrderTrackingScreen({ route, navigation }) {
   }, []);
 
   /**
-   * Task 8 Specification:
-   * Auto-advances status:
-   * Pending -> Preparing (10s)
-   * Preparing -> Ready (20s)
-   * Ready -> Served (30s)
+   * Question 7 Specification:
+   * Remove fake timer from A1. Instead, use useEffect with setInterval
+   * to call GET /api/orders/my every 10 seconds, so customer sees live status updates
+   * as the manager modifies it. Clear interval in cleanup function.
    */
   useEffect(() => {
-    if (!activeOrder) return;
-
-    if (activeOrder.status === 'Pending' && elapsedSeconds >= 10) {
-      updateOrderStatus(activeOrder.id, 'Preparing');
-    } else if (activeOrder.status === 'Preparing' && elapsedSeconds >= 20) {
-      updateOrderStatus(activeOrder.id, 'Ready');
-    } else if (activeOrder.status === 'Ready' && elapsedSeconds >= 30) {
-      updateOrderStatus(activeOrder.id, 'Served');
+    if (fetchOrders) {
+      fetchOrders().catch(() => {});
     }
-  }, [elapsedSeconds, activeOrder, updateOrderStatus]);
+
+    const pollingInterval = setInterval(() => {
+      if (fetchOrders) {
+        fetchOrders().catch(() => {});
+      }
+    }, 10000);
+
+    return () => {
+      clearInterval(pollingInterval);
+    };
+  }, [fetchOrders]);
 
   // Format seconds to MM:SS
   const formatTime = (totalSeconds) => {
@@ -189,13 +192,13 @@ export default function OrderTrackingScreen({ route, navigation }) {
                     style={[
                       styles.stepCircle,
                       {
-                        backgroundColor: colors.primary,
+                        backgroundColor: '#f59e0b',
                         transform: [{ scale: pulseAnim }],
                       },
                       shadows.button3D,
                     ]}
                   >
-                    <Ionicons name={stage.icon} size={18} color="#FFFFFF" />
+                    <Ionicons name={stage.icon} size={18} color="#472a00" />
                   </Animated.View>
                 ) : (
                   <View
@@ -292,8 +295,8 @@ export default function OrderTrackingScreen({ route, navigation }) {
             end={{ x: 1, y: 1 }}
             style={styles.gradientBtn}
           >
-            <Ionicons name="fast-food-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-            <Text style={styles.returnBtnText}>Return to Gourmet Menu</Text>
+            <Ionicons name="fast-food-outline" size={18} color="#472a00" style={{ marginRight: 8 }} />
+            <Text style={[styles.returnBtnText, { color: '#472a00' }]}>Return to Gourmet Menu</Text>
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,6 +10,8 @@ import {
   Alert,
   StatusBar,
   FlatList,
+  Image,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
@@ -49,9 +51,58 @@ export default function ReservationScreen() {
     cancelReservation,
   } = useReservation(user);
 
-  // Local UI-only state: Confirmation Modal visibility
+  // Local UI-only state: Confirmation Modal visibility & active tab
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [activeTab, setActiveTab] = useState('book'); // 'book' | 'history'
+  const [selectedZone, setSelectedZone] = useState('glasshouse');
+
+  // Upcoming 7 Days Ribbon
+  const upcomingDates = useMemo(() => {
+    const dates = [];
+    const baseDate = new Date();
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const statuses = ['Prime', '3 tables', 'Limited', '5 tables', 'Prime', 'Dark', 'Prime'];
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(baseDate);
+      d.setDate(baseDate.getDate() + i);
+      const iso = d.toISOString().split('T')[0];
+      dates.push({
+        iso,
+        dayName: days[d.getDay()],
+        dayNum: d.getDate(),
+        status: statuses[i % statuses.length],
+      });
+    }
+    return dates;
+  }, []);
+
+  const SANCTUARY_ZONES = [
+    {
+      id: 'glasshouse',
+      name: 'Botanical Glasshouse',
+      desc: 'Surrounded by cascading rare orchids, humid misting intervals, and gentle glass canopy acoustics.',
+      badge: 'Best Seller',
+      capacity: '2-4 Guests',
+      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&auto=format&fit=crop&q=80',
+    },
+    {
+      id: 'courtyard',
+      name: 'Olive Tree Courtyard',
+      desc: 'Open-air sheltered garden under ancient olive trees, ambient bronze fire lanterns and twilight breeze.',
+      badge: 'Al Fresco',
+      capacity: '2-6 Guests',
+      image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&auto=format&fit=crop&q=80',
+    },
+    {
+      id: 'counter',
+      name: 'Sommelier Hearth Counter',
+      desc: 'Front-row vantage point facing our Bincho-tan oak hearth grill with bespoke sommelier pairings.',
+      badge: 'Chef Experience',
+      capacity: '1-2 Guests',
+      image: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=500&auto=format&fit=crop&q=80',
+    },
+  ];
 
   // User presses "Review Booking"
   const handleOpenReview = () => {
@@ -63,32 +114,33 @@ export default function ReservationScreen() {
   };
 
   // Final confirm in modal
-  const handleConfirmBooking = () => {
+  const handleConfirmBooking = async () => {
     try {
-      const res = createReservation();
+      const res = await createReservation();
       setShowConfirmModal(false);
       Alert.alert(
         'Reservation Confirmed!',
-        `Your table has been reserved under booking ID: ${res.id}. A confirmation SMS has been dispatched to ${res.phone}.`
+        `Your table has been reserved under booking ID: ${res.id || res._id}. A confirmation notification has been dispatched to ${res.phone || contactPhone}.`
       );
       setActiveTab('history');
     } catch (err) {
-      Alert.alert('Booking Error', err.message);
+      Alert.alert('Booking Error', err.message || 'Could not complete reservation.');
     }
   };
 
   // Cancel reservation with Alert confirmation
   const handleCancelPress = (booking) => {
+    const bookingId = booking.id || booking._id;
     Alert.alert(
       'Cancel Table Reservation',
-      `Are you sure you wish to cancel reservation ${booking.id} for ${booking.partySize} guests at ${booking.timeSlot}?`,
+      `Are you sure you wish to cancel reservation ${bookingId} for ${booking.partySize} guests at ${booking.timeSlot}?`,
       [
         { text: 'Keep Booking', style: 'cancel' },
         {
           text: 'Yes, Cancel',
           style: 'destructive',
-          onPress: () => {
-            cancelReservation(booking.id);
+          onPress: async () => {
+            await cancelReservation(bookingId);
             Alert.alert('Cancelled', 'Your reservation has been cancelled.');
           },
         },
@@ -167,112 +219,155 @@ export default function ReservationScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header Card */}
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: colors.card, borderColor: colors.cardBorder },
-              shadows.soft,
-            ]}
-          >
-            <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>
-              Table Seating Details
+          {/* Sanctuary Booking Intro Header (from Stitch AI) */}
+          <View style={styles.sanctuaryHeader}>
+            <View style={styles.sanctuaryTagRow}>
+              <Ionicons name="sparkles" size={14} color="#ffc174" />
+              <Text style={styles.sanctuaryTagText}>SANCTUARY BOOKING</Text>
+            </View>
+            <Text style={styles.sanctuaryTitle}>Reserve Your Experience</Text>
+            <Text style={styles.sanctuarySubtitle}>
+              Intimate dining under the botanical glasshouse and starlit courtyard.
             </Text>
-            <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
-              Reserve an exclusive table in our Glasshouse Atrium, Botanica Garden, or Penthouse Lounge.
-            </Text>
+          </View>
 
-            {/* DATE INPUT */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                Reservation Date (YYYY-MM-DD)
+          {/* DATE SELECTION CAROUSEL RIBBON (from Stitch AI) */}
+          <View style={styles.dateRibbonSection}>
+            <View style={styles.dateRibbonHeader}>
+              <View style={styles.dateMonthRow}>
+                <Text style={styles.dateMonthText}>SELECT DINING DATE</Text>
+                <View style={styles.greenPulseDot} />
+              </View>
+              <Text style={styles.calendarHintText}>Next 7 Days Available</Text>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.dateRibbonScroll}
+            >
+              {upcomingDates.map((d) => {
+                const isSelected = selectedDate === d.iso;
+                return (
+                  <TouchableOpacity
+                    key={d.iso}
+                    onPress={() => setSelectedDate(d.iso)}
+                    style={[
+                      styles.dateChip,
+                      isSelected && styles.dateChipActive,
+                      isSelected && (shadows.goldGlow || shadows.button3D),
+                    ]}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.dateChipDay,
+                        isSelected && styles.dateChipDayActive,
+                      ]}
+                    >
+                      {d.dayName}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.dateChipNum,
+                        isSelected && styles.dateChipNumActive,
+                      ]}
+                    >
+                      {d.dayNum}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.dateChipStatus,
+                        isSelected && styles.dateChipStatusActive,
+                      ]}
+                    >
+                      {d.status}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            {validationErrors.date && (
+              <Text style={[styles.errorMsg, { color: colors.error }]}>
+                {validationErrors.date}
               </Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  {
-                    backgroundColor: colors.inputBackground,
-                    borderColor: validationErrors.date ? colors.error : colors.inputBorder,
-                  },
-                ]}
+            )}
+          </View>
+
+          {/* PARTY SIZE STEPPER (from Stitch AI) */}
+          <View style={[styles.partyStepperCard, shadows.soft]}>
+            <View style={styles.partyStepperLeft}>
+              <View style={styles.partyIconCircle}>
+                <Ionicons name="people" size={20} color="#ffc174" />
+              </View>
+              <View>
+                <Text style={styles.partyStepperLabel}>PARTY SIZE</Text>
+                <Text style={styles.partyStepperCount}>
+                  {partySize} {partySize === 1 ? 'Discerning Guest' : 'Discerning Guests'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.partyStepperControls}>
+              <TouchableOpacity
+                onPress={() => setPartySize((p) => Math.max(1, p - 1))}
+                style={styles.partyStepBtn}
+                disabled={partySize <= 1}
               >
-                <Ionicons name="calendar-clear-outline" size={18} color={colors.textMuted} />
-                <TextInput
-                  style={[styles.textInput, { color: colors.textPrimary }]}
-                  value={selectedDate}
-                  onChangeText={setSelectedDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={colors.textMuted}
+                <Ionicons
+                  name="remove"
+                  size={16}
+                  color={partySize <= 1 ? '#a08e7a' : '#dfe2ee'}
                 />
-              </View>
-              {validationErrors.date && (
-                <Text style={[styles.errorMsg, { color: colors.error }]}>
-                  {validationErrors.date}
-                </Text>
-              )}
-            </View>
-
-            {/* PARTY SIZE STEPPER (1 - 12 guests) */}
-            <View style={styles.inputGroup}>
-              <View style={styles.labelWithCounterRow}>
-                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                  Party Size (Guests)
-                </Text>
-                <Text style={[styles.counterNumber, { color: colors.primary }]}>
-                  {partySize} {partySize === 1 ? 'Guest' : 'Guests'}
-                </Text>
-              </View>
-
-              <View
-                style={[
-                  styles.stepperContainer,
-                  { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-                ]}
+              </TouchableOpacity>
+              <Text style={styles.partyStepNum}>{partySize}</Text>
+              <TouchableOpacity
+                onPress={() => setPartySize((p) => Math.min(12, p + 1))}
+                style={styles.partyStepBtn}
+                disabled={partySize >= 12}
               >
-                <TouchableOpacity
-                  onPress={() => setPartySize((p) => Math.max(1, p - 1))}
-                  style={styles.stepperBtn}
-                  disabled={partySize <= 1}
-                >
-                  <Ionicons
-                    name="remove"
-                    size={20}
-                    color={partySize <= 1 ? colors.textMuted : colors.primary}
-                  />
-                </TouchableOpacity>
+                <Ionicons
+                  name="add"
+                  size={16}
+                  color={partySize >= 12 ? '#a08e7a' : '#dfe2ee'}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+          {validationErrors.partySize && (
+            <Text style={[styles.errorMsg, { color: colors.error, marginLeft: 4 }]}>
+              {validationErrors.partySize}
+            </Text>
+          )}
 
-                <Text style={[styles.stepperDisplay, { color: colors.textPrimary }]}>
-                  {partySize}
-                </Text>
-
-                <TouchableOpacity
-                  onPress={() => setPartySize((p) => Math.min(12, p + 1))}
-                  style={styles.stepperBtn}
-                  disabled={partySize >= 12}
-                >
-                  <Ionicons
-                    name="add"
-                    size={20}
-                    color={partySize >= 12 ? colors.textMuted : colors.primary}
-                  />
-                </TouchableOpacity>
+          {/* DINING TIME SLOTS (Twilight Dinner vs Late Botanica) */}
+          <View style={styles.timeSlotsSection}>
+            <View style={styles.timeSlotsHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="time-outline" size={16} color="#ffc174" />
+                <Text style={styles.timeSlotsTitle}>SELECT SEATING SLOT</Text>
               </View>
-              {validationErrors.partySize && (
-                <Text style={[styles.errorMsg, { color: colors.error }]}>
-                  {validationErrors.partySize}
-                </Text>
-              )}
+              <Text style={styles.timeSlotActiveBadge}>
+                {selectedTimeSlot} Service
+              </Text>
             </View>
 
-            {/* HOURLY TIME SLOTS (12:00 - 22:00) */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                Select Hourly Dining Slot (12:00 to 22:00)
-              </Text>
+            {/* Group 1: Twilight Dinner */}
+            <View style={styles.slotGroupWrapper}>
+              <View style={styles.slotGroupHeader}>
+                <Text style={styles.slotGroupName}>Twilight Dinner</Text>
+                <Text style={styles.slotGroupSub}>• Golden hour candlelit cycle</Text>
+              </View>
               <View style={styles.slotsGrid}>
-                {TIME_SLOTS.map((slot) => {
+                {['17:00', '18:00', '19:00', '20:00'].map((slot) => {
                   const isAvailable = isSlotAvailable(slot);
                   const isSelected = selectedTimeSlot === slot;
+                  const tags = {
+                    '17:00': 'Sunset',
+                    '18:00': 'Aura',
+                    '19:00': 'Prime',
+                    '20:00': 'Bloom',
+                  };
 
                   return (
                     <TouchableOpacity
@@ -280,127 +375,238 @@ export default function ReservationScreen() {
                       onPress={() => setSelectedTimeSlot(slot)}
                       disabled={!isAvailable}
                       style={[
-                        styles.slotChip,
-                        {
-                          backgroundColor: isSelected
-                            ? colors.primary
-                            : isAvailable
-                            ? colors.surfaceSubtle
-                            : colors.inputBackground,
-                          borderColor: isSelected
-                            ? colors.primary
-                            : isAvailable
-                            ? colors.surfaceBorder
-                            : 'transparent',
-                          opacity: isAvailable ? 1 : 0.4,
-                        },
-                        isSelected && shadows.button3D,
+                        styles.slotCard,
+                        isSelected && styles.slotCardActive,
+                        !isAvailable && styles.slotCardDisabled,
+                        isSelected && (shadows.goldGlow || shadows.button3D),
                       ]}
+                      activeOpacity={0.8}
                     >
-                      <Ionicons
-                        name="time-outline"
-                        size={12}
-                        color={isSelected ? '#FFFFFF' : colors.textMuted}
-                        style={{ marginRight: 4 }}
-                      />
                       <Text
                         style={[
-                          styles.slotChipText,
-                          {
-                            color: isSelected
-                              ? '#FFFFFF'
-                              : isAvailable
-                              ? colors.textPrimary
-                              : colors.textMuted,
-                          },
+                          styles.slotTimeText,
+                          isSelected && styles.slotTimeTextActive,
+                          !isAvailable && styles.slotTimeTextDisabled,
                         ]}
                       >
                         {slot}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.slotTagText,
+                          isSelected && styles.slotTagTextActive,
+                        ]}
+                      >
+                        {isAvailable ? tags[slot] : 'Full'}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
-              {validationErrors.timeSlot && (
-                <Text style={[styles.errorMsg, { color: colors.error }]}>
-                  {validationErrors.timeSlot}
-                </Text>
-              )}
             </View>
 
-            {/* ASSIGNED TABLE PREVIEW CARD */}
-            <View
-              style={[
-                styles.tableAssignCard,
-                {
-                  backgroundColor: selectedTable
-                    ? colors.primary + '12'
-                    : colors.errorBackground,
-                  borderColor: selectedTable ? colors.primary : colors.error,
-                },
-              ]}
-            >
-              <Ionicons
-                name={selectedTable ? 'restaurant' : 'alert-circle'}
-                size={22}
-                color={selectedTable ? colors.primary : colors.error}
-              />
-              <View style={{ marginLeft: 12, flex: 1 }}>
-                <Text
-                  style={[
-                    styles.tableAssignTitle,
-                    { color: selectedTable ? colors.primary : colors.error },
-                  ]}
-                >
-                  {selectedTable
-                    ? `Assigned: ${selectedTable.tableNumber} • Capacity: ${selectedTable.seats} Seats`
-                    : 'No Table Available'}
-                </Text>
-                <Text style={[styles.tableAssignSub, { color: colors.textSecondary }]}>
-                  {selectedTable
-                    ? `Location: ${selectedTable.location} (${availableTablesCount} table(s) free)`
-                    : 'Please select a different hour or decrease party size.'}
-                </Text>
+            {/* Group 2: Late Botanica */}
+            <View style={[styles.slotGroupWrapper, { marginTop: 12 }]}>
+              <View style={styles.slotGroupHeader}>
+                <Text style={styles.slotGroupName}>Late Botanica</Text>
+                <Text style={styles.slotGroupSub}>• Dim lights & acoustic jazz</Text>
+              </View>
+              <View style={styles.slotsGrid}>
+                {['21:00', '22:00'].map((slot) => {
+                  const isAvailable = isSlotAvailable(slot);
+                  const isSelected = selectedTimeSlot === slot;
+                  const tags = {
+                    '21:00': 'Sommelier',
+                    '22:00': 'Digestif',
+                  };
+
+                  return (
+                    <TouchableOpacity
+                      key={slot}
+                      onPress={() => setSelectedTimeSlot(slot)}
+                      disabled={!isAvailable}
+                      style={[
+                        styles.slotCard,
+                        isSelected && styles.slotCardActive,
+                        !isAvailable && styles.slotCardDisabled,
+                        isSelected && (shadows.goldGlow || shadows.button3D),
+                      ]}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.slotTimeText,
+                          isSelected && styles.slotTimeTextActive,
+                          !isAvailable && styles.slotTimeTextDisabled,
+                        ]}
+                      >
+                        {slot}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.slotTagText,
+                          isSelected && styles.slotTagTextActive,
+                        ]}
+                      >
+                        {isAvailable ? tags[slot] : 'Closed'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
-            {validationErrors.table && (
+            {validationErrors.timeSlot && (
               <Text style={[styles.errorMsg, { color: colors.error }]}>
-                {validationErrors.table}
+                {validationErrors.timeSlot}
               </Text>
             )}
           </View>
 
-          {/* CONTACT INFO CARD */}
+          {/* INTERACTIVE SANCTUARY ZONES (from Stitch AI) */}
+          <View style={styles.zonesSection}>
+            <View style={styles.zonesHeader}>
+              <View>
+                <Text style={styles.zonesTitle}>SANCTUARY ZONE</Text>
+                <Text style={styles.zonesSub}>Atmospheric seating arrangement</Text>
+              </View>
+              <View style={styles.zonesCountBadge}>
+                <Text style={styles.zonesCountBadgeText}>3 SPACES</Text>
+              </View>
+            </View>
+
+            <View style={styles.zonesList}>
+              {SANCTUARY_ZONES.map((zone) => {
+                const isSelected = selectedZone === zone.id;
+                return (
+                  <TouchableOpacity
+                    key={zone.id}
+                    onPress={() => {
+                      setSelectedZone(zone.id);
+                      if (!specialRequests.includes(zone.name)) {
+                        setSpecialRequests(`Seating preference: ${zone.name}`);
+                      }
+                    }}
+                    style={[
+                      styles.zoneCard,
+                      isSelected && styles.zoneCardActive,
+                      shadows.soft,
+                    ]}
+                    activeOpacity={0.88}
+                  >
+                    <View style={styles.zoneThumbWrapper}>
+                      <Image
+                        source={{ uri: zone.image }}
+                        style={styles.zoneThumb}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.zoneBadgeTop}>
+                        <Text style={styles.zoneBadgeTopText}>{zone.badge}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.zoneInfo}>
+                      <View style={styles.zoneTitleRow}>
+                        <Text
+                          style={[
+                            styles.zoneTitle,
+                            isSelected && { color: '#ffc174' },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {zone.name}
+                        </Text>
+                        <View
+                          style={[
+                            styles.zoneRadio,
+                            isSelected && styles.zoneRadioActive,
+                          ]}
+                        >
+                          {isSelected && (
+                            <Ionicons name="checkmark" size={13} color="#472a00" />
+                          )}
+                        </View>
+                      </View>
+                      <Text style={styles.zoneDesc} numberOfLines={2}>
+                        {zone.desc}
+                      </Text>
+                      <View style={styles.zoneCapacityRow}>
+                        <Ionicons name="people-outline" size={12} color="#4edea3" />
+                        <Text style={styles.zoneCapacityText}>{zone.capacity}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* ASSIGNED TABLE STATUS PREVIEW */}
+          <View
+            style={[
+              styles.tableAssignCard,
+              {
+                backgroundColor: selectedTable
+                  ? 'rgba(78, 222, 163, 0.08)'
+                  : 'rgba(255, 180, 171, 0.12)',
+                borderColor: selectedTable ? '#4edea3' : '#ffb4ab',
+              },
+            ]}
+          >
+            <Ionicons
+              name={selectedTable ? 'restaurant' : 'alert-circle'}
+              size={22}
+              color={selectedTable ? '#4edea3' : '#ffb4ab'}
+            />
+            <View style={{ marginLeft: 12, flex: 1 }}>
+              <Text
+                style={[
+                  styles.tableAssignTitle,
+                  { color: selectedTable ? '#4edea3' : '#ffb4ab' },
+                ]}
+              >
+                {selectedTable
+                  ? `Assigned: ${selectedTable.tableNumber} • Capacity: ${selectedTable.seats} Seats`
+                  : 'No Table Available'}
+              </Text>
+              <Text style={styles.tableAssignSub}>
+                {selectedTable
+                  ? `Location: ${selectedTable.location} (${availableTablesCount} table(s) free)`
+                  : 'Please choose a different hour or adjust party size.'}
+              </Text>
+            </View>
+          </View>
+          {validationErrors.table && (
+            <Text style={[styles.errorMsg, { color: colors.error }]}>
+              {validationErrors.table}
+            </Text>
+          )}
+
+          {/* GUEST CONTACT CARD */}
           <View
             style={[
               styles.card,
-              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+              { backgroundColor: '#1c2028', borderColor: 'rgba(255, 193, 116, 0.1)' },
               shadows.soft,
             ]}
           >
-            <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>
-              Guest Verification Contact
-            </Text>
+            <Text style={styles.sectionHeading}>GUEST VERIFICATION CONTACT</Text>
 
             {/* FULL NAME */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Full Name</Text>
+              <Text style={styles.fieldLabel}>FULL NAME</Text>
               <View
                 style={[
                   styles.inputWrapper,
-                  {
-                    backgroundColor: colors.inputBackground,
-                    borderColor: validationErrors.name ? colors.error : colors.inputBorder,
-                  },
+                  validationErrors.name && styles.inputWrapperError,
                 ]}
               >
-                <Ionicons name="person-outline" size={18} color={colors.textMuted} />
+                <Ionicons name="person-outline" size={18} color="#ffc174" />
                 <TextInput
-                  style={[styles.textInput, { color: colors.textPrimary }]}
+                  style={styles.textInput}
                   value={contactName}
                   onChangeText={setContactName}
                   placeholder="e.g. Zainab Malik"
-                  placeholderTextColor={colors.textMuted}
+                  placeholderTextColor="#a08e7a"
                 />
               </View>
               {validationErrors.name && (
@@ -410,27 +616,22 @@ export default function ReservationScreen() {
               )}
             </View>
 
-            {/* PAKISTANI PHONE (03XX-XXXXXXX) */}
+            {/* PAKISTANI PHONE */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                Pakistani Mobile Number (03XX-XXXXXXX)
-              </Text>
+              <Text style={styles.fieldLabel}>MOBILE NUMBER (03XX-XXXXXXX)</Text>
               <View
                 style={[
                   styles.inputWrapper,
-                  {
-                    backgroundColor: colors.inputBackground,
-                    borderColor: validationErrors.phone ? colors.error : colors.inputBorder,
-                  },
+                  validationErrors.phone && styles.inputWrapperError,
                 ]}
               >
-                <Ionicons name="call-outline" size={18} color={colors.textMuted} />
+                <Ionicons name="call-outline" size={18} color="#ffc174" />
                 <TextInput
-                  style={[styles.textInput, { color: colors.textPrimary }]}
+                  style={styles.textInput}
                   value={contactPhone}
                   onChangeText={setContactPhone}
-                  placeholder="0300-1234567"
-                  placeholderTextColor={colors.textMuted}
+                  placeholder="0302-8877665"
+                  placeholderTextColor="#a08e7a"
                   keyboardType="phone-pad"
                 />
               </View>
@@ -443,21 +644,14 @@ export default function ReservationScreen() {
 
             {/* SPECIAL REQUESTS */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                Special Dining Requests (Optional)
-              </Text>
-              <View
-                style={[
-                  styles.textAreaWrapper,
-                  { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
-                ]}
-              >
+              <Text style={styles.fieldLabel}>SPECIAL OCCASION / DIETARY NOTES (OPTIONAL)</Text>
+              <View style={styles.textAreaWrapper}>
                 <TextInput
-                  style={[styles.textArea, { color: colors.textPrimary }]}
+                  style={styles.textArea}
                   value={specialRequests}
                   onChangeText={setSpecialRequests}
-                  placeholder="e.g. Window side, birthday celebration, high chair required..."
-                  placeholderTextColor={colors.textMuted}
+                  placeholder="e.g. Anniversary celebration, botanical pairing, gluten free..."
+                  placeholderTextColor="#a08e7a"
                   multiline
                   numberOfLines={3}
                 />
@@ -467,17 +661,17 @@ export default function ReservationScreen() {
             {/* REVIEW RESERVATION BUTTON */}
             <TouchableOpacity
               onPress={handleOpenReview}
-              style={[styles.reviewBtn, shadows.button3D]}
+              style={[styles.reviewBtn, shadows.goldGlow || shadows.button3D]}
               activeOpacity={0.88}
             >
               <LinearGradient
-                colors={[colors.gradientStart, colors.gradientEnd]}
+                colors={['#f59e0b', '#ffc174']}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                end={{ x: 1, y: 0 }}
                 style={styles.reviewGradient}
               >
-                <Text style={styles.reviewBtnText}>Review & Confirm Reservation</Text>
-                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                <Text style={styles.reviewBtnText}>Review Sanctuary Booking</Text>
+                <Ionicons name="arrow-forward" size={18} color="#472a00" style={{ marginLeft: 8 }} />
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -730,6 +924,387 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  // Sanctuary Header
+  sanctuaryHeader: {
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  sanctuaryTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  sanctuaryTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#ffc174',
+    letterSpacing: 1.5,
+  },
+  sanctuaryTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#dfe2ee',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  sanctuarySubtitle: {
+    fontSize: 12,
+    color: '#d8c3ad',
+    marginTop: 4,
+    lineHeight: 16,
+  },
+
+  // Date Ribbon Section
+  dateRibbonSection: {
+    marginBottom: 16,
+  },
+  dateRibbonHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  dateMonthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dateMonthText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#d8c3ad',
+    letterSpacing: 1,
+  },
+  greenPulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4edea3',
+  },
+  calendarHintText: {
+    fontSize: 11,
+    color: '#ffc174',
+    fontWeight: '600',
+  },
+  dateRibbonScroll: {
+    gap: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  dateChip: {
+    width: 62,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: '#1c2028',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#262a33',
+  },
+  dateChipActive: {
+    backgroundColor: '#f59e0b',
+    borderColor: '#ffc174',
+  },
+  dateChipDay: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#d8c3ad',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  dateChipDayActive: {
+    color: '#472a00',
+  },
+  dateChipNum: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#dfe2ee',
+    marginVertical: 2,
+  },
+  dateChipNumActive: {
+    color: '#472a00',
+  },
+  dateChipStatus: {
+    fontSize: 9,
+    color: '#4edea3',
+    fontWeight: '700',
+  },
+  dateChipStatusActive: {
+    color: '#472a00',
+  },
+
+  // Party Size Stepper
+  partyStepperCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#181c24',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 116, 0.08)',
+  },
+  partyStepperLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  partyIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#262a33',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  partyStepperLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#a08e7a',
+    letterSpacing: 1,
+  },
+  partyStepperCount: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#dfe2ee',
+    marginTop: 2,
+  },
+  partyStepperControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#262a33',
+    borderRadius: 999,
+    padding: 4,
+    gap: 8,
+  },
+  partyStepBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#1c2028',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  partyStepNum: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#ffc174',
+    minWidth: 20,
+    textAlign: 'center',
+  },
+
+  // Time Slots Section
+  timeSlotsSection: {
+    marginBottom: 18,
+  },
+  timeSlotsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  timeSlotsTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#d8c3ad',
+    letterSpacing: 1,
+  },
+  timeSlotActiveBadge: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#4edea3',
+  },
+  slotGroupWrapper: {
+    backgroundColor: '#1c2028',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#262a33',
+  },
+  slotGroupHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    marginBottom: 10,
+  },
+  slotGroupName: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#dfe2ee',
+    letterSpacing: 0.5,
+  },
+  slotGroupSub: {
+    fontSize: 10,
+    color: '#a08e7a',
+  },
+  slotCard: {
+    flex: 1,
+    minWidth: 70,
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+    borderRadius: 12,
+    backgroundColor: '#181c24',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#262a33',
+  },
+  slotCardActive: {
+    backgroundColor: '#f59e0b',
+    borderColor: '#ffc174',
+  },
+  slotCardDisabled: {
+    opacity: 0.35,
+  },
+  slotTimeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#dfe2ee',
+  },
+  slotTimeTextActive: {
+    color: '#472a00',
+  },
+  slotTimeTextDisabled: {
+    color: '#a08e7a',
+  },
+  slotTagText: {
+    fontSize: 9,
+    color: '#d8c3ad',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  slotTagTextActive: {
+    color: '#472a00',
+    fontWeight: '800',
+  },
+
+  // Interactive Sanctuary Zones
+  zonesSection: {
+    marginBottom: 18,
+  },
+  zonesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  zonesTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#d8c3ad',
+    letterSpacing: 1,
+  },
+  zonesSub: {
+    fontSize: 11,
+    color: '#a08e7a',
+    marginTop: 1,
+  },
+  zonesCountBadge: {
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+  },
+  zonesCountBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#ffc174',
+    letterSpacing: 1,
+  },
+  zonesList: {
+    gap: 10,
+  },
+  zoneCard: {
+    flexDirection: 'row',
+    borderRadius: 16,
+    backgroundColor: '#1c2028',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#262a33',
+    gap: 12,
+  },
+  zoneCardActive: {
+    borderColor: '#ffc174',
+    backgroundColor: '#262a33',
+  },
+  zoneThumbWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#0a0e16',
+  },
+  zoneThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  zoneBadgeTop: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 5,
+    borderRadius: 4,
+    backgroundColor: 'rgba(15, 19, 28, 0.85)',
+  },
+  zoneBadgeTopText: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#ffc174',
+    textTransform: 'uppercase',
+  },
+  zoneInfo: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  zoneTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  zoneTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#dfe2ee',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    flex: 1,
+  },
+  zoneRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#a08e7a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  zoneRadioActive: {
+    backgroundColor: '#ffc174',
+    borderColor: '#ffc174',
+  },
+  zoneDesc: {
+    fontSize: 11,
+    color: '#d8c3ad',
+    lineHeight: 15,
+    marginVertical: 4,
+  },
+  zoneCapacityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  zoneCapacityText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#4edea3',
+  },
+
   card: {
     borderRadius: 20,
     borderWidth: 1,
@@ -737,9 +1312,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionHeading: {
-    fontSize: 18,
+    fontSize: 11,
     fontWeight: '800',
-    letterSpacing: -0.2,
+    color: '#d8c3ad',
+    letterSpacing: 1,
+    marginBottom: 14,
   },
   sectionSubtitle: {
     fontSize: 13,
@@ -750,32 +1327,43 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   fieldLabel: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#d8c3ad',
+    letterSpacing: 1,
     marginBottom: 6,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
+    borderColor: '#31353e',
+    backgroundColor: '#0a0e16',
     paddingHorizontal: 12,
     height: 48,
+  },
+  inputWrapperError: {
+    borderColor: '#ffb4ab',
   },
   textInput: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
+    color: '#dfe2ee',
     marginLeft: 8,
   },
   textAreaWrapper: {
     borderRadius: 12,
     borderWidth: 1,
+    borderColor: '#31353e',
+    backgroundColor: '#0a0e16',
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   textArea: {
     fontSize: 13,
+    color: '#dfe2ee',
     minHeight: 60,
     textAlignVertical: 'top',
   },
@@ -820,36 +1408,25 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
-  slotChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1.5,
-  },
-  slotChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
   tableAssignCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
     borderRadius: 14,
     borderWidth: 1,
-    marginTop: 6,
+    marginBottom: 16,
   },
   tableAssignTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
   },
   tableAssignSub: {
-    fontSize: 12,
+    fontSize: 11,
+    color: '#d8c3ad',
     marginTop: 2,
   },
   reviewBtn: {
-    borderRadius: 16,
+    borderRadius: 999,
     overflow: 'hidden',
     marginTop: 10,
   },
@@ -857,12 +1434,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
+    paddingVertical: 14,
   },
   reviewBtnText: {
-    color: '#FFFFFF',
+    color: '#472a00',
     fontSize: 15,
     fontWeight: '800',
+    letterSpacing: 0.3,
   },
   bookingCard: {
     borderRadius: 16,

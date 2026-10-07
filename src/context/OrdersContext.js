@@ -1,129 +1,121 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import safeStorage from '../utils/safeStorage';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import apiClient from '../api/client';
+import { useAuth } from './AuthContext';
 
 export const OrdersContext = createContext(null);
 
-const ORDERS_STORAGE_KEY = '@aura_orders_registry';
-
-// Initial sample orders for immediate manager and tracking demonstration
-const initialOrders = [
-  {
-    id: 'ORD-8419',
-    customerId: 'usr_c1',
-    customerName: 'Zainab Malik',
-    type: 'Dine-in',
-    tableNumber: 'Table A-01 (Atrium Glasshouse Window)',
-    pickupTime: '',
-    items: [
-      { id: 'art_m1', name: 'Prime Black Angus Tenderloin', price: 3650, quantity: 1, note: 'Medium Rare' },
-      { id: 'art_b1', name: 'Botanical Yuzu & Elderflower Spritz', price: 680, quantity: 2, note: 'Extra ice' },
-    ],
-    total: 5010,
-    status: 'Preparing', // 'Pending' | 'Preparing' | 'Ready' | 'Served'
-    timestamp: '7:45 PM',
-    createdAt: Date.now() - 15000,
-  },
-  {
-    id: 'ORD-9104',
-    customerId: 'usr_c2',
-    customerName: 'Zayn Ahmed',
-    type: 'Takeaway',
-    tableNumber: '',
-    pickupTime: 'In 20 minutes',
-    items: [
-      { id: 'art_d1', name: 'Valrhona Grand Cru Fondant', price: 1100, quantity: 2, note: 'Warm gelato separate' },
-    ],
-    total: 2530,
-    status: 'Pending',
-    timestamp: '7:58 PM',
-    createdAt: Date.now() - 5000,
-  }
-];
-
-function ordersReducer(state, action) {
-  switch (action.type) {
-    case 'SET_ORDERS':
-      return action.payload;
-
-    case 'CREATE_ORDER': {
-      const newOrder = action.payload;
-      return [newOrder, ...state];
-    }
-
-    case 'UPDATE_STATUS': {
-      const { orderId, nextStatus } = action.payload;
-      return state.map((order) => {
-        if (order.id === orderId) {
-          return { ...order, status: nextStatus };
-        }
-        return order;
-      });
-    }
-
-    case 'CANCEL_ORDER': {
-      const { orderId } = action.payload;
-      return state.filter((order) => order.id !== orderId);
-    }
-
-    default:
-      return state;
-  }
-}
-
 export const OrdersProvider = ({ children }) => {
-  const [orders, dispatch] = useReducer(ordersReducer, initialOrders);
-  const [isLoaded, setIsLoaded] = React.useState(false);
+  const { user } = useAuth();
+  const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Restore orders from storage on launch
-  useEffect(() => {
-    (async () => {
-      try {
-        const stored = await safeStorage.getItem(ORDERS_STORAGE_KEY);
-        if (stored) {
-          dispatch({ type: 'SET_ORDERS', payload: JSON.parse(stored) });
-        }
-      } catch (e) {
-        console.warn('Failed to load orders', e);
-      } finally {
-        setIsLoaded(true);
-      }
-    })();
-  }, []);
+  // Helper to normalize backend order format with UI expectations
+  const normalizeOrder = (o) => ({
+    ...o,
+    id: o._id || o.id,
+    _id: o._id || o.id,
+    total: o.totalAmount !== undefined ? o.totalAmount : o.total,
+    customerId: o.user?._id || o.user || o.customerId,
+    customerName: o.customerName || o.user?.name || 'Valued Patron',
+    type: o.orderType || 'Dine-in',
+    timestamp: o.createdAt
+      ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : 'Just now',
+  });
 
-  // Persist orders on state change
-  useEffect(() => {
-    if (isLoaded) {
-      safeStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders)).catch((e) =>
-        console.warn('Failed to persist orders', e)
-      );
+  // Fetch orders (Customer calls /my, Manager calls /)
+  const fetchOrders = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const endpoint = user.role === 'manager' ? '/api/orders' : '/api/orders/my';
+      const data = await apiClient(endpoint);
+      const normalized = (Array.isArray(data) ? data : []).map(normalizeOrder);
+      setOrders(normalized);
+      return normalized;
+    } catch (err) {
+      console.warn('Failed to fetch orders from server:', err.message);
+      setError(err.message || 'Failed to fetch orders');
+    } finally {
+      setIsLoading(false);
     }
-  }, [orders, isLoaded]);
+  }, [user]);
 
-  const createOrder = (orderData) => {
-    const id = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
-    const newOrder = {
-      id,
-      ...orderData,
-      status: 'Pending',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      createdAt: Date.now(),
-    };
-    dispatch({ type: 'CREATE_ORDER', payload: newOrder });
-    return newOrder;
+  // Initial fetch when user logs in or role changes
+  useEffect(() => {
+    if (user) {
+      fetchOrders().catch(() => {});
+    } else {
+      setOrders([]);
+    }
+  }, [user, fetchOrders]);
+
+  /**
+   * Place an order via POST /api/orders (Question 7 requirement)
+   * Server recalculates total and validates item availability.
+   */
+  const createOrder = async (orderData) => {
+    try {
+      const payload = {
+        items: (orderData.items || []).map((item) => ({
+          menuItem: item.menuItem || item.id || item._id,
+          quantity: item.quantity || 1,
+          specialInstructions: item.specialInstructions || item.note || '',
+        })),
+        orderType: orderData.orderType || orderData.type || 'Dine-in',
+        tableNumber: orderData.tableNumber || '',
+        notes: orderData.notes || '',
+      };
+
+      const created = await apiClient('/api/orders', {
+        method: 'POST',
+        body: payload,
+      });
+
+      const normalized = normalizeOrder(created);
+      setOrders((prev) => [normalized, ...prev]);
+      return normalized;
+    } catch (err) {
+      console.error('Failed to place order:', err);
+      throw err;
+    }
   };
 
-  const updateOrderStatus = (orderId, nextStatus) => {
-    dispatch({ type: 'UPDATE_STATUS', payload: { orderId, nextStatus } });
+  /**
+   * Update status via PATCH /api/orders/:id/status (Question 7 requirement)
+   */
+  const updateOrderStatus = async (orderId, nextStatus) => {
+    try {
+      const updated = await apiClient(`/api/orders/${orderId}/status`, {
+        method: 'PATCH',
+        body: { status: nextStatus },
+      });
+
+      const normalized = normalizeOrder(updated);
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId || o._id === orderId ? normalized : o))
+      );
+      return normalized;
+    } catch (err) {
+      console.error('Failed to update order status:', err);
+      throw err;
+    }
   };
 
-  const cancelOrder = (orderId) => {
-    dispatch({ type: 'CANCEL_ORDER', payload: { orderId } });
+  const cancelOrder = async (orderId) => {
+    return updateOrderStatus(orderId, 'Cancelled');
   };
 
   return (
     <OrdersContext.Provider
       value={{
         orders,
+        isLoading,
+        error,
+        fetchOrders,
         createOrder,
         updateOrderStatus,
         cancelOrder,

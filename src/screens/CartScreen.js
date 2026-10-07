@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
@@ -38,13 +39,14 @@ export default function CartScreen({ navigation }) {
   const [promoError, setPromoError] = useState('');
 
   // Dining preference state (Task 8 requirement)
-  const [orderType, setOrderType] = useState('Dine-in'); // 'Dine-in' | 'Takeaway'
-  const [tableNumber, setTableNumber] = useState('Table A-01 (Atrium Glasshouse)');
+  const [orderType, setOrderType] = useState('Dine-In Table'); // 'Dine-In Table' | 'Curbside' | 'Priority'
+  const [tableNumber, setTableNumber] = useState('Table #07 · Courtyard Garden');
   const [pickupTime, setPickupTime] = useState('In 25 minutes');
+  const [selectedTip, setSelectedTip] = useState(15); // 10%, 15%, 20%
 
   /**
    * Task 6: Financial Calculations computed with useMemo
-   * Depends strictly on [cartState.items, cartState.discountPercent]
+   * Depends strictly on [cartState.items, cartState.discountPercent, selectedTip]
    */
   const calculations = useMemo(() => {
     const subtotal = cartState.items.reduce(
@@ -57,7 +59,8 @@ export default function CartScreen({ navigation }) {
 
     const serviceCharge = discountedSubtotal * SERVICE_CHARGE_RATE;
     const salesTax = discountedSubtotal * SALES_TAX_RATE;
-    const grandTotal = discountedSubtotal + serviceCharge + salesTax;
+    const tipAmount = discountedSubtotal * (selectedTip / 100);
+    const grandTotal = discountedSubtotal + serviceCharge + salesTax + tipAmount;
 
     return {
       subtotal,
@@ -65,9 +68,11 @@ export default function CartScreen({ navigation }) {
       discountedSubtotal,
       serviceCharge,
       salesTax,
+      tipAmount,
+      selectedTip,
       grandTotal,
     };
-  }, [cartState.items, cartState.discountPercent]);
+  }, [cartState.items, cartState.discountPercent, selectedTip]);
 
   // Handle promo code submission
   const handleApplyPromo = () => {
@@ -211,13 +216,61 @@ export default function CartScreen({ navigation }) {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header Bar */}
+          {/* Table Service Header Banner (from Stitch AI) */}
+          <View style={[styles.liveServiceBanner, shadows.medium3D]}>
+            <View style={styles.liveServiceBannerGlow} />
+            <View style={styles.liveServiceBannerContent}>
+              <View>
+                <View style={styles.liveSeatingRow}>
+                  <View style={styles.liveSeatingDot} />
+                  <Text style={styles.liveSeatingTag}>LIVE SEATING</Text>
+                </View>
+                <Text style={styles.liveSeatingTitle}>Your Curated Selection</Text>
+                <View style={styles.liveSeatingSubRow}>
+                  <Ionicons name="restaurant-outline" size={13} color="#ffc174" />
+                  <Text style={styles.liveSeatingTableText}>{tableNumber}</Text>
+                </View>
+              </View>
+              <View style={styles.liveSeatingIconCircle}>
+                <Ionicons name="notifications-outline" size={20} color="#ffc174" />
+              </View>
+            </View>
+          </View>
+
+          {/* Dining Type Segmented Switch (from Stitch AI) */}
+          <View style={styles.diningTypePillContainer}>
+            {['Dine-In Table', 'Curbside', 'Priority'].map((type) => {
+              const isSelected = orderType === type;
+              return (
+                <TouchableOpacity
+                  key={type}
+                  onPress={() => setOrderType(type)}
+                  style={[
+                    styles.diningTypePillBtn,
+                    isSelected && styles.diningTypePillBtnActive,
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.diningTypePillText,
+                      isSelected && styles.diningTypePillTextActive,
+                    ]}
+                  >
+                    {type}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Cart Header Bar with item count and clear tray */}
           <View style={styles.cartHeaderBar}>
             <Text style={[styles.cartHeading, { color: colors.textPrimary }]}>
-              Culinary Tray ({cartState.items.length} dishes)
+              Selected Dishes ({cartState.items.length})
             </Text>
             <TouchableOpacity onPress={clearCart}>
-              <Text style={[styles.clearCartText, { color: colors.error }]}>Clear Tray</Text>
+              <Text style={styles.clearCartText}>Clear Tray</Text>
             </TouchableOpacity>
           </View>
 
@@ -229,138 +282,45 @@ export default function CartScreen({ navigation }) {
             scrollEnabled={false}
           />
 
-          {/* DINING TYPE SELECTION (Dine-in vs Takeaway) */}
-          <View
-            style={[
-              styles.sectionCard,
-              { backgroundColor: colors.card, borderColor: colors.cardBorder },
-              shadows.soft,
-            ]}
-          >
-            <Text style={[styles.sectionHeading, { color: colors.textMuted }]}>
-              DINING EXPERIENCE TYPE
-            </Text>
-
-            <View style={styles.diningTypeRow}>
-              <TouchableOpacity
-                onPress={() => setOrderType('Dine-in')}
-                style={[
-                  styles.diningTypeBtn,
-                  {
-                    backgroundColor:
-                      orderType === 'Dine-in' ? colors.primary + '18' : colors.surfaceSubtle,
-                    borderColor: orderType === 'Dine-in' ? colors.primary : colors.surfaceBorder,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="restaurant"
-                  size={18}
-                  color={orderType === 'Dine-in' ? colors.primary : colors.textMuted}
-                />
-                <Text
-                  style={[
-                    styles.diningTypeText,
-                    { color: orderType === 'Dine-in' ? colors.primary : colors.textSecondary },
-                  ]}
-                >
-                  Dine-In
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setOrderType('Takeaway')}
-                style={[
-                  styles.diningTypeBtn,
-                  {
-                    backgroundColor:
-                      orderType === 'Takeaway' ? colors.primary + '18' : colors.surfaceSubtle,
-                    borderColor: orderType === 'Takeaway' ? colors.primary : colors.surfaceBorder,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="bag-handle"
-                  size={18}
-                  color={orderType === 'Takeaway' ? colors.primary : colors.textMuted}
-                />
-                <Text
-                  style={[
-                    styles.diningTypeText,
-                    { color: orderType === 'Takeaway' ? colors.primary : colors.textSecondary },
-                  ]}
-                >
-                  Takeaway
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {orderType === 'Dine-in' ? (
-              <View style={styles.detailRow}>
-                <Ionicons name="location-outline" size={16} color={colors.primary} />
-                <Text style={[styles.detailText, { color: colors.textPrimary }]}>
-                  Serving at: <Text style={{ fontWeight: '700' }}>{tableNumber}</Text>
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.detailRow}>
-                <Ionicons name="time-outline" size={16} color={colors.secondary} />
-                <Text style={[styles.detailText, { color: colors.textPrimary }]}>
-                  Estimated pickup: <Text style={{ fontWeight: '700' }}>{pickupTime}</Text>
-                </Text>
-              </View>
-            )}
-          </View>
-
           {/* VOUCHER / PROMO CODE SECTION */}
           <View
             style={[
               styles.sectionCard,
-              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+              { backgroundColor: '#1c2028', borderColor: 'rgba(255, 193, 116, 0.1)' },
               shadows.soft,
             ]}
           >
-            <Text style={[styles.sectionHeading, { color: colors.textMuted }]}>
-              PROMOTIONAL VOUCHER
-            </Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeading}>PATRON PRIVILEGE & VOUCHERS</Text>
+            </View>
 
             {cartState.promoCode ? (
-              <View
-                style={[
-                  styles.activePromoBadge,
-                  { backgroundColor: colors.successBackground, borderColor: colors.success },
-                ]}
-              >
+              <View style={styles.activePromoBadge}>
                 <View style={styles.activePromoLeft}>
-                  <Ionicons name="pricetag" size={16} color={colors.success} />
-                  <View style={{ marginLeft: 8 }}>
-                    <Text style={[styles.activePromoText, { color: colors.success }]}>
-                      {cartState.promoCode} ({cartState.discountPercent}% OFF)
+                  <View style={styles.promoCheckCircle}>
+                    <Ionicons name="checkmark" size={12} color="#00311f" />
+                  </View>
+                  <View style={{ marginLeft: 10 }}>
+                    <Text style={styles.activePromoText}>
+                      {cartState.promoCode} Applied
                     </Text>
-                    <Text style={[styles.activePromoSub, { color: colors.success }]}>
-                      Applied to current order
+                    <Text style={styles.activePromoSub}>
+                      {cartState.discountPercent}% Patron Privilege Active
                     </Text>
                   </View>
                 </View>
 
                 <TouchableOpacity onPress={removePromo} style={styles.removePromoBtn}>
-                  <Text style={[styles.removePromoText, { color: colors.error }]}>Remove</Text>
+                  <Text style={styles.removePromoText}>Remove</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <View>
                 <View style={styles.promoInputRow}>
                   <TextInput
-                    style={[
-                      styles.promoTextInput,
-                      {
-                        backgroundColor: colors.inputBackground,
-                        borderColor: promoError ? colors.error : colors.inputBorder,
-                        color: colors.textPrimary,
-                      },
-                    ]}
-                    placeholder="Enter voucher: WELCOME10, FEAST20, AURA30"
-                    placeholderTextColor={colors.textMuted}
+                    style={styles.promoTextInput}
+                    placeholder="Enter voucher: AURA_VIP15, AURA30"
+                    placeholderTextColor="#a08e7a"
                     value={promoInput}
                     onChangeText={(val) => {
                       setPromoInput(val);
@@ -370,121 +330,154 @@ export default function CartScreen({ navigation }) {
                   />
                   <TouchableOpacity
                     onPress={handleApplyPromo}
-                    style={[styles.applyPromoBtn, { backgroundColor: colors.primary }]}
+                    style={styles.applyPromoBtn}
                   >
-                    <Text style={styles.applyPromoText}>Apply</Text>
+                    <LinearGradient
+                      colors={['#f59e0b', '#ffc174']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.applyPromoGradient}
+                    >
+                      <Text style={styles.applyPromoText}>Apply</Text>
+                    </LinearGradient>
                   </TouchableOpacity>
                 </View>
 
                 {promoError ? (
-                  <Text style={[styles.promoErrorText, { color: colors.error }]}>
-                    {promoError}
-                  </Text>
+                  <Text style={styles.promoErrorText}>{promoError}</Text>
                 ) : null}
 
                 {/* Quick Hint Chips */}
                 <View style={styles.promoHintsRow}>
                   <TouchableOpacity
                     onPress={() => setPromoInput('WELCOME10')}
-                    style={[styles.hintChip, { backgroundColor: colors.surfaceSubtle }]}
+                    style={styles.hintChip}
                   >
-                    <Text style={[styles.hintText, { color: colors.textMuted }]}>WELCOME10 (10%)</Text>
+                    <Text style={styles.hintText}>WELCOME10 (10%)</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setPromoInput('FEAST20')}
-                    style={[styles.hintChip, { backgroundColor: colors.surfaceSubtle }]}
+                    style={styles.hintChip}
                   >
-                    <Text style={[styles.hintText, { color: colors.textMuted }]}>FEAST20 (20%)</Text>
+                    <Text style={styles.hintText}>FEAST20 (20%)</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setPromoInput('AURA30')}
-                    style={[styles.hintChip, { backgroundColor: colors.surfaceSubtle }]}
+                    style={[styles.hintChip, styles.hintChipGold]}
                   >
-                    <Text style={[styles.hintText, { color: colors.primary }]}>AURA30 (30% VIP)</Text>
+                    <Text style={styles.hintTextGold}>AURA30 (30% VIP)</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             )}
           </View>
 
-          {/* BILL SUMMARY & CALCULATIONS */}
+          {/* BILL SUMMARY & CALCULATIONS (from Stitch AI) */}
           <View
             style={[
               styles.sectionCard,
-              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+              { backgroundColor: '#1c2028', borderColor: 'rgba(255, 193, 116, 0.1)' },
               shadows.medium3D,
             ]}
           >
-            <Text style={[styles.sectionHeading, { color: colors.textMuted }]}>
-              ORDER FINANCIAL BREAKDOWN
-            </Text>
+            <Text style={styles.sectionHeading}>BILL BREAKDOWN</Text>
 
             <View style={styles.billRow}>
-              <Text style={[styles.billLabel, { color: colors.textSecondary }]}>Subtotal</Text>
-              <Text style={[styles.billValue, { color: colors.textPrimary }]}>
+              <Text style={styles.billLabel}>Subtotal</Text>
+              <Text style={styles.billValue}>
                 Rs. {calculations.subtotal.toLocaleString()}
               </Text>
             </View>
 
             {cartState.discountPercent > 0 && (
               <View style={styles.billRow}>
-                <Text style={[styles.billLabel, { color: colors.success }]}>
-                  Promo Discount ({cartState.discountPercent}%)
+                <Text style={[styles.billLabel, { color: '#4edea3' }]}>
+                  Privilege Savings ({cartState.discountPercent}%)
                 </Text>
-                <Text style={[styles.billValue, { color: colors.success }]}>
+                <Text style={[styles.billValue, { color: '#4edea3', fontWeight: '700' }]}>
                   - Rs. {calculations.discountAmount.toFixed(0)}
                 </Text>
               </View>
             )}
 
             <View style={styles.billRow}>
-              <Text style={[styles.billLabel, { color: colors.textSecondary }]}>
-                Service Charge (5%)
-              </Text>
-              <Text style={[styles.billValue, { color: colors.textPrimary }]}>
+              <Text style={styles.billLabel}>Hospitality Service (5%)</Text>
+              <Text style={styles.billValue}>
                 Rs. {calculations.serviceCharge.toFixed(0)}
               </Text>
             </View>
 
             <View style={styles.billRow}>
-              <Text style={[styles.billLabel, { color: colors.textSecondary }]}>
-                Sales Tax (15%)
-              </Text>
-              <Text style={[styles.billValue, { color: colors.textPrimary }]}>
+              <Text style={styles.billLabel}>State & Hospitality Tax (15%)</Text>
+              <Text style={styles.billValue}>
                 Rs. {calculations.salesTax.toFixed(0)}
               </Text>
             </View>
 
-            <View style={[styles.totalDivider, { borderTopColor: colors.surfaceBorder }]} />
-
-            <View style={styles.grandTotalRow}>
-              <View>
-                <Text style={[styles.grandTotalLabel, { color: colors.textPrimary }]}>
-                  Grand Total
-                </Text>
-                <Text style={[styles.grandTotalSub, { color: colors.textMuted }]}>
-                  All duties & taxes included
+            {/* Gratuity / Sommelier Tip Chips */}
+            <View style={styles.tipSection}>
+              <View style={styles.tipHeaderRow}>
+                <Text style={styles.tipLabel}>Gratuity / Sommelier Tip</Text>
+                <Text style={styles.tipAmountText}>
+                  Rs. {calculations.tipAmount.toFixed(0)} ({selectedTip}%)
                 </Text>
               </View>
-              <Text style={[styles.grandTotalAmount, { color: colors.primary }]}>
+              <View style={styles.tipChipsRow}>
+                {[10, 15, 20].map((tip) => {
+                  const isSelected = selectedTip === tip;
+                  return (
+                    <TouchableOpacity
+                      key={tip}
+                      onPress={() => setSelectedTip(tip)}
+                      style={[
+                        styles.tipChipBtn,
+                        isSelected && styles.tipChipBtnActive,
+                      ]}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.tipChipText,
+                          isSelected && styles.tipChipTextActive,
+                        ]}
+                      >
+                        {tip}%
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.totalDivider} />
+
+            {/* Final Total Area */}
+            <View style={styles.grandTotalContainer}>
+              <View>
+                <Text style={styles.grandTotalLabel}>Final Total</Text>
+                <Text style={styles.grandTotalSub}>
+                  Inclusive of curated pairings & duties
+                </Text>
+              </View>
+              <Text style={styles.grandTotalAmount}>
                 Rs. {calculations.grandTotal.toFixed(0)}
               </Text>
             </View>
 
-            {/* CHECKOUT BUTTON */}
+            {/* HIGH-GLOW ORDER CONFIRMATION BUTTON */}
             <TouchableOpacity
               onPress={handleProceedToSummary}
-              style={[styles.checkoutBtn, shadows.button3D]}
-              activeOpacity={0.88}
+              style={[styles.checkoutBtn, shadows.goldGlow || shadows.button3D]}
+              activeOpacity={0.9}
             >
               <LinearGradient
-                colors={[colors.gradientStart, colors.gradientEnd]}
+                colors={['#f59e0b', '#ffc174']}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                end={{ x: 1, y: 0 }}
                 style={styles.checkoutGradient}
               >
-                <Text style={styles.checkoutBtnText}>Proceed to Order Summary</Text>
-                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                <Text style={styles.checkoutBtnText}>Confirm & Proceed to Summary</Text>
+                <Ionicons name="arrow-forward" size={18} color="#472a00" style={{ marginLeft: 8 }} />
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -625,73 +618,163 @@ const styles = StyleSheet.create({
     minWidth: 24,
     textAlign: 'center',
   },
+  // Table Service Header Banner
+  liveServiceBanner: {
+    borderRadius: 18,
+    backgroundColor: '#1c2028',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 116, 0.15)',
+    padding: 16,
+    marginBottom: 14,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  liveServiceBannerGlow: {
+    position: 'absolute',
+    top: -20,
+    right: -20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+  },
+  liveServiceBannerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    position: 'relative',
+    zIndex: 2,
+  },
+  liveSeatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  liveSeatingDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#4edea3',
+  },
+  liveSeatingTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#4edea3',
+    letterSpacing: 1.2,
+  },
+  liveSeatingTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#dfe2ee',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  liveSeatingSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  liveSeatingTableText: {
+    fontSize: 12,
+    color: '#d8c3ad',
+  },
+  liveSeatingIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#262a33',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Dining Type Segmented Switch
+  diningTypePillContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#181c24',
+    borderRadius: 999,
+    padding: 3,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 116, 0.08)',
+  },
+  diningTypePillBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+  },
+  diningTypePillBtnActive: {
+    backgroundColor: '#f59e0b',
+  },
+  diningTypePillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#d8c3ad',
+  },
+  diningTypePillTextActive: {
+    color: '#472a00',
+    fontWeight: '700',
+  },
+
+  // Section Cards
   sectionCard: {
     borderRadius: 18,
     borderWidth: 1,
     padding: 16,
     marginBottom: 14,
   },
+  sectionHeaderRow: {
+    marginBottom: 10,
+  },
   sectionHeading: {
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 0.6,
-    marginBottom: 12,
-  },
-  diningTypeRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 12,
-  },
-  diningTypeBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    gap: 6,
-  },
-  diningTypeText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingTop: 4,
-  },
-  detailText: {
-    fontSize: 13,
+    color: '#d8c3ad',
+    letterSpacing: 1,
+    marginBottom: 10,
   },
   activePromoBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 12,
+    backgroundColor: 'rgba(0, 165, 114, 0.12)',
     borderWidth: 1,
+    borderColor: '#4edea3',
   },
   activePromoLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  promoCheckCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#4edea3',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   activePromoText: {
     fontSize: 13,
     fontWeight: '800',
+    color: '#4edea3',
   },
   activePromoSub: {
     fontSize: 11,
-    marginTop: 1,
+    color: '#d8c3ad',
+    marginTop: 2,
   },
   removePromoBtn: {
-    padding: 4,
+    padding: 6,
   },
   removePromoText: {
     fontSize: 12,
     fontWeight: '700',
+    color: '#ffb4ab',
   },
   promoInputRow: {
     flexDirection: 'row',
@@ -702,23 +785,31 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 12,
     borderWidth: 1,
+    borderColor: '#31353e',
+    backgroundColor: '#0a0e16',
     paddingHorizontal: 12,
     fontSize: 13,
     fontWeight: '600',
+    color: '#dfe2ee',
   },
   applyPromoBtn: {
-    paddingHorizontal: 18,
     borderRadius: 12,
+    overflow: 'hidden',
+  },
+  applyPromoGradient: {
+    paddingHorizontal: 18,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   applyPromoText: {
-    color: '#FFFFFF',
+    color: '#472a00',
     fontSize: 13,
     fontWeight: '800',
   },
   promoErrorText: {
-    fontSize: 12,
+    fontSize: 11,
+    color: '#ffb4ab',
     fontWeight: '600',
     marginTop: 6,
   },
@@ -728,61 +819,139 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   hintChip: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
     borderRadius: 8,
+    backgroundColor: '#262a33',
+  },
+  hintChipGold: {
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 116, 0.3)',
   },
   hintText: {
     fontSize: 11,
     fontWeight: '600',
+    color: '#d8c3ad',
   },
+  hintTextGold: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#ffc174',
+  },
+
+  // Bill Breakdown
   billRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 5,
   },
   billLabel: {
     fontSize: 13,
+    color: '#d8c3ad',
   },
   billValue: {
     fontSize: 13,
     fontWeight: '600',
+    color: '#dfe2ee',
   },
-  totalDivider: {
+
+  // Gratuity / Sommelier Tip
+  tipSection: {
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: 1,
-    marginVertical: 10,
+    borderTopColor: '#262a33',
   },
-  grandTotalRow: {
+  tipHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  tipLabel: {
+    fontSize: 12,
+    color: '#d8c3ad',
+  },
+  tipAmountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffc174',
+  },
+  tipChipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  tipChipBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#262a33',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tipChipBtnActive: {
+    backgroundColor: '#ffc174',
+  },
+  tipChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#d8c3ad',
+  },
+  tipChipTextActive: {
+    color: '#472a00',
+    fontWeight: '800',
+  },
+
+  totalDivider: {
+    borderTopWidth: 1,
+    borderTopColor: '#31353e',
+    marginVertical: 12,
+  },
+
+  // Final Total
+  grandTotalContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    backgroundColor: 'rgba(49, 53, 62, 0.4)',
+    padding: 12,
+    borderRadius: 12,
     marginBottom: 16,
   },
   grandTotalLabel: {
     fontSize: 16,
     fontWeight: '800',
+    color: '#dfe2ee',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   grandTotalSub: {
-    fontSize: 11,
+    fontSize: 10,
+    color: '#a08e7a',
+    marginTop: 2,
   },
   grandTotalAmount: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
+    color: '#ffc174',
   },
+
+  // Checkout Button
   checkoutBtn: {
-    borderRadius: 14,
+    borderRadius: 999,
     overflow: 'hidden',
   },
   checkoutGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
+    paddingVertical: 14,
   },
   checkoutBtnText: {
-    color: '#FFFFFF',
+    color: '#472a00',
     fontSize: 15,
     fontWeight: '800',
+    letterSpacing: 0.3,
   },
 });
