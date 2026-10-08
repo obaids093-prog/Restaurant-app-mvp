@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
+import apiClient from '../api/client';
 import { useOrders } from '../context/OrdersContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -151,10 +152,15 @@ export default function OrderTrackingScreen({ route, navigation }) {
 
   // --- Handle Cancel Order ---
   const handleCancelOrder = async () => {
+    const orderIdToCancel = activeOrder?.id || activeOrder?._id;
+    if (!orderIdToCancel) return;
+
     const msg = 'Are you sure you want to cancel this order? This cannot be undone.';
 
     if (Platform.OS === 'web') {
-      if (!window.confirm(msg)) return;
+      if (typeof window !== 'undefined' && window.confirm && !window.confirm(msg)) {
+        return;
+      }
     } else {
       const confirmed = await new Promise((resolve) => {
         Alert.alert('Cancel Order', msg, [
@@ -167,9 +173,14 @@ export default function OrderTrackingScreen({ route, navigation }) {
 
     setIsCancelling(true);
     try {
-      await cancelOrder(activeOrder.id || activeOrder._id);
-      // Immediately refresh to show Cancelled status
-      if (fetchOrders) await fetchOrders();
+      await apiClient(`/api/orders/${orderIdToCancel}/status`, {
+        method: 'PATCH',
+        body: { status: 'Cancelled' },
+      });
+      // Refresh the order after success
+      if (fetchOrders) {
+        await fetchOrders();
+      }
       showAlert('Order Cancelled', 'Your order has been cancelled successfully.');
     } catch (err) {
       showAlert('Cancel Failed', err.message || 'Could not cancel the order.');
@@ -279,47 +290,34 @@ export default function OrderTrackingScreen({ route, navigation }) {
           </Text>
         </View>
 
-        {/* CANCEL ORDER BUTTON — only when Pending and inside cancel window */}
+        {/* CANCEL ORDER BUTTON — only when order status is Pending */}
         {activeOrder?.status === 'Pending' && (
           <View
             style={[
               styles.cancelSection,
-              { backgroundColor: colors.card, borderColor: canCancel ? '#ef444440' : colors.cardBorder },
+              { backgroundColor: colors.card, borderColor: colors.error + '40' },
               shadows.soft,
             ]}
           >
-            {canCancel ? (
-              <>
-                <TouchableOpacity
-                  onPress={handleCancelOrder}
-                  disabled={isCancelling}
-                  style={[
-                    styles.cancelOrderBtn,
-                    isCancelling && { opacity: 0.5 },
-                  ]}
-                  activeOpacity={0.75}
-                >
-                  {isCancelling ? (
-                    <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
-                  ) : (
-                    <Ionicons name="close-circle" size={18} color="#fff" style={{ marginRight: 8 }} />
-                  )}
-                  <Text style={styles.cancelOrderBtnText}>
-                    {isCancelling ? 'Cancelling...' : 'Cancel Order'}
-                  </Text>
-                </TouchableOpacity>
-
-                {CANCEL_WINDOW_MINUTES > 0 && cancelRemaining < Infinity && (
-                  <Text style={[styles.cancelCountdown, { color: colors.textMuted }]}>
-                    Cancel available for {formatTime(cancelRemaining)}
-                  </Text>
-                )}
-              </>
-            ) : (
-              <Text style={[styles.cancelExpiredText, { color: colors.textMuted }]}>
-                Cancellation window expired
+            <TouchableOpacity
+              onPress={handleCancelOrder}
+              disabled={isCancelling}
+              style={[
+                styles.cancelOrderBtn,
+                { backgroundColor: colors.error },
+                isCancelling && { opacity: 0.6 },
+              ]}
+              activeOpacity={0.75}
+            >
+              {isCancelling ? (
+                <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+              ) : (
+                <Ionicons name="close-circle-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+              )}
+              <Text style={styles.cancelOrderBtnText}>
+                {isCancelling ? 'Cancelling Order...' : 'Cancel Order'}
               </Text>
-            )}
+            </TouchableOpacity>
           </View>
         )}
 
