@@ -9,11 +9,16 @@
 
 const express = require('express');
 const router = express.Router();
-const { register, login, getMe } = require('../controllers/authController');
-const { protect } = require('../middleware/auth');
+const { register, login, getMe, updateProfile, deleteAccount, createStaffAccount } = require('../controllers/authController');
+const { protect, managerOnly } = require('../middleware/auth');
 
 router.post('/register', register);
 router.post('/login', login);
 router.get('/me', protect, getMe);
+router.put('/profile', protect, updateProfile);
+router.delete('/profile', protect, deleteAccount);
+
+// Manager-only: create a new staff/manager account
+router.post('/staff', protect, managerOnly, createStaffAccount);
 
 module.exports = router;

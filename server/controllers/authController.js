@@ -23,18 +23,35 @@ const generateToken = (id) => {
 // @access  Public
 const register = async (req, res) => {
   try {
-    const { name, email, password, phone, role } = req.body;
+    const { name, email, password, phone } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Please provide name, email, and password' });
+    if (!name || typeof name !== 'string' || !email || typeof email !== 'string' || !password || typeof password !== 'string') {
+      return res.status(400).json({ message: 'Please provide valid name, email, and password' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    const cleanName = name.trim();
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanPhone = typeof phone === 'string' ? phone.trim().slice(0, 30) : '';
+
+    if (cleanName.length < 2 || cleanName.length > 100) {
+      return res.status(400).json({ message: 'Name must be between 2 and 100 characters' });
+    }
+
+    if (password.length < 8 || password.length > 128) {
+      return res.status(400).json({ message: 'Password must be between 8 and 128 characters' });
+    }
+
+    if (!/\d/.test(password)) {
+      return res.status(400).json({ message: 'Password must contain at least one digit' });
+    }
+
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(cleanEmail) || cleanEmail.length > 100) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    const existingUser = await User.findOne({ email: cleanEmail });
     if (existingUser) {
       return res.status(409).json({ message: 'An account with this email already exists' });
     }
@@ -43,13 +60,14 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user (default to 'customer' unless explicitly set)
+    // SECURITY (S2-A): Public registration is ALWAYS 'customer'.
+    // Manager accounts cannot be self-assigned by clients.
     const user = await User.create({
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
+      name: cleanName,
+      email: cleanEmail,
       password: hashedPassword,
-      phone: phone ? phone.trim() : '',
-      role: role === 'manager' ? 'manager' : 'customer',
+      phone: cleanPhone,
+      role: 'customer',
     });
 
     const token = generateToken(user._id);
@@ -64,13 +82,14 @@ const register = async (req, res) => {
         email: user.email,
         role: user.role,
         phone: user.phone,
+        dob: user.dob || '',
         membership: user.membership,
         avatar: user.avatar,
       },
     });
   } catch (error) {
     console.error('Registration Error:', error);
-    res.status(500).json({ message: 'Server error during registration', error: error.message });
+    res.status(500).json({ message: 'Server error during registration' });
   }
 };
 
@@ -109,13 +128,14 @@ const login = async (req, res) => {
         email: user.email,
         role: user.role,
         phone: user.phone,
+        dob: user.dob || '',
         membership: user.membership,
         avatar: user.avatar,
       },
     });
   } catch (error) {
     console.error('Login Error:', error);
-    res.status(500).json({ message: 'Server error during login', error: error.message });
+    res.status(500).json({ message: 'Server error during login' });
   }
 };
 
@@ -132,12 +152,167 @@ const getMe = async (req, res) => {
         email: req.user.email,
         role: req.user.role,
         phone: req.user.phone,
+        dob: req.user.dob || '',
         membership: req.user.membership,
         avatar: req.user.avatar,
       },
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Get Profile Error:', error);
+    res.status(500).json({ message: 'Server error retrieving profile' });
+  }
+};
+
+// @desc    Update user profile (Name, Email, Phone, DOB, Avatar)
+// @route   PUT /api/auth/profile
+// @access  Private
+const updateProfile = async (req, res) => {
+  try {
+    const { name, email, phone, dob, avatar } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // If changing email, check if another account already has it
+    if (email && typeof email === 'string' && email.toLowerCase().trim() !== user.email) {
+      const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+      const cleanEmail = email.toLowerCase().trim();
+      if (!emailRegex.test(cleanEmail) || cleanEmail.length > 100) {
+        return res.status(400).json({ message: 'Please provide a valid email address' });
+      }
+
+      const existingUser = await User.findOne({
+        email: cleanEmail,
+        _id: { $ne: user._id },
+      });
+      if (existingUser) {
+        return res.status(409).json({ message: 'Email is already taken by another account' });
+      }
+      user.email = cleanEmail;
+    }
+
+    if (name && typeof name === 'string') user.name = name.trim().slice(0, 100);
+    if (phone !== undefined && typeof phone === 'string') user.phone = phone.trim().slice(0, 30);
+    if (dob !== undefined && typeof dob === 'string') user.dob = dob.trim().slice(0, 30);
+    
+    // SECURITY (S10-A): Only allow http(s) URLs or base64 data URLs for avatar
+    if (avatar !== undefined && typeof avatar === 'string') {
+      const isHttpUrl = /^https?:\/\//i.test(avatar);
+      const isDataUrl = /^data:image\/[a-zA-Z]+;base64,/i.test(avatar);
+      if (isHttpUrl || isDataUrl || avatar === '') {
+        user.avatar = avatar;
+      }
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        dob: user.dob || '',
+        membership: user.membership,
+        avatar: user.avatar,
+      },
+    });
+  } catch (error) {
+    console.error('Update Profile Error:', error);
+    res.status(500).json({ message: 'Failed to update profile' });
+  }
+};
+
+// @desc    Delete user account permanently from database
+// @route   DELETE /api/auth/profile
+// @access  Private
+const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Permanently remove user from MongoDB database
+    const deletedUser = await User.findByIdAndDelete(userId);
+
+    if (!deletedUser) {
+      return res.status(404).json({ message: 'User account not found' });
+    }
+
+    console.log(`[AUTH] Permanently deleted user ${deletedUser.email} (${userId}) from database.`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Your account has been permanently deleted from the database.',
+    });
+  } catch (error) {
+    console.error('Delete Account Error:', error);
+    res.status(500).json({ message: 'Failed to delete account' });
+  }
+};
+
+// @desc    Create a new staff/manager account (by a manager)
+// @route   POST /api/auth/staff
+// @access  Private/Manager
+const createStaffAccount = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || typeof name !== 'string' || !email || typeof email !== 'string' || !password || typeof password !== 'string') {
+      return res.status(400).json({ message: 'Please provide valid name, email, and password' });
+    }
+
+    const cleanName = name.trim();
+    const cleanEmail = email.toLowerCase().trim();
+
+    if (cleanName.length < 2 || cleanName.length > 100) {
+      return res.status(400).json({ message: 'Name must be between 2 and 100 characters' });
+    }
+
+    if (password.length < 8 || password.length > 128) {
+      return res.status(400).json({ message: 'Password must be between 8 and 128 characters' });
+    }
+
+    if (!/\d/.test(password)) {
+      return res.status(400).json({ message: 'Password must contain at least one digit' });
+    }
+
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(cleanEmail) || cleanEmail.length > 100) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+
+    const existingUser = await User.findOne({ email: cleanEmail });
+    if (existingUser) {
+      return res.status(409).json({ message: 'An account with this email already exists' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const staffUser = await User.create({
+      name: cleanName,
+      email: cleanEmail,
+      password: hashedPassword,
+      role: 'manager',
+    });
+
+    // Return 201 without the password
+    res.status(201).json({
+      user: {
+        id: staffUser._id,
+        _id: staffUser._id,
+        name: staffUser.name,
+        email: staffUser.email,
+        role: staffUser.role,
+      },
+    });
+  } catch (error) {
+    console.error('Create Staff Error:', error);
+    res.status(500).json({ message: 'Server error creating staff account' });
   }
 };
 
@@ -145,4 +320,7 @@ module.exports = {
   register,
   login,
   getMe,
+  updateProfile,
+  deleteAccount,
+  createStaffAccount,
 };
