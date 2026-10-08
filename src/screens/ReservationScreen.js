@@ -13,12 +13,49 @@ import {
   Image,
   Platform,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useReservation, TIME_SLOTS } from '../hooks/useReservation';
+
+const DINING_SLOT_GROUPS = [
+  {
+    title: 'Afternoon & High Tea',
+    sub: '• Sunlight dining & midday service',
+    slots: ['12:00', '13:00', '14:00', '15:00', '16:00'],
+    tags: {
+      '12:00': 'Lunch',
+      '13:00': 'Prime',
+      '14:00': 'Matinee',
+      '15:00': 'Tea',
+      '16:00': 'Garden',
+    },
+  },
+  {
+    title: 'Twilight Dinner',
+    sub: '• Golden hour candlelit cycle',
+    slots: ['17:00', '18:00', '19:00', '20:00'],
+    tags: {
+      '17:00': 'Sunset',
+      '18:00': 'Aura',
+      '19:00': 'Prime',
+      '20:00': 'Bloom',
+    },
+  },
+  {
+    title: 'Late Botanica',
+    sub: '• Dim lights & acoustic jazz',
+    slots: ['21:00', '22:00'],
+    tags: {
+      '21:00': 'Sommelier',
+      '22:00': 'Digestif',
+    },
+  },
+];
 
 /**
  * Task 7: ReservationScreen
@@ -56,6 +93,23 @@ export default function ReservationScreen() {
     loadTables,
     refetchReservations,
   } = useReservation(user);
+
+  const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+
+  // Responsive slot width calculation:
+  // scrollContent maxWidth 580, padding 16*2 = 32, slotGroupWrapper padding 14*2 = 28
+  const slotGap = 8;
+  const containerContentWidth = Math.min(windowWidth, 580) - 32 - 28;
+  // 4 columns on standard screens (>= 280px available), 3 columns on narrow screens
+  const numSlotCols = containerContentWidth >= 280 ? 4 : 3;
+  const slotWidth = Math.floor((containerContentWidth - (numSlotCols - 1) * slotGap) / numSlotCols);
+
+  // Dynamic bottom padding so the last card and submit button are never clipped by the tab bar
+  const scrollContentStyle = useMemo(() => [
+    styles.scrollContent,
+    { paddingBottom: Math.max(insets.bottom, 16) + 90 },
+  ], [insets.bottom]);
 
   // Local UI-only state: Confirmation Modal visibility & active tab
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -280,7 +334,7 @@ export default function ReservationScreen() {
           </View>
         ) : (
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={scrollContentStyle}
             showsVerticalScrollIndicator={false}
           >
           {/* Sanctuary Booking Intro Header (from Stitch AI) */}
@@ -416,163 +470,61 @@ export default function ReservationScreen() {
               </Text>
             </View>
 
-            {/* Group 0: Afternoon & High Tea */}
-            <View style={styles.slotGroupWrapper}>
-              <View style={styles.slotGroupHeader}>
-                <Text style={styles.slotGroupName}>Afternoon & High Tea</Text>
-                <Text style={styles.slotGroupSub}>• Sunlight dining & midday service</Text>
-              </View>
-              <View style={styles.slotsGrid}>
-                {['12:00', '13:00', '14:00', '15:00', '16:00'].map((slot) => {
-                  const isAvailable = isSlotAvailable(slot);
-                  const isSelected = selectedTimeSlot === slot;
-                  const tags = {
-                    '12:00': 'Lunch',
-                    '13:00': 'Prime',
-                    '14:00': 'Matinee',
-                    '15:00': 'Tea',
-                    '16:00': 'Garden',
-                  };
+            {DINING_SLOT_GROUPS.map((group, groupIdx) => (
+              <View
+                key={group.title}
+                style={[
+                  styles.slotGroupWrapper,
+                  groupIdx > 0 && { marginTop: 12 },
+                ]}
+              >
+                <View style={styles.slotGroupHeader}>
+                  <Text style={styles.slotGroupName}>{group.title}</Text>
+                  <Text style={styles.slotGroupSub}>{group.sub}</Text>
+                </View>
+                <View style={styles.slotsGrid}>
+                  {group.slots.map((slot) => {
+                    const isAvailable = isSlotAvailable(slot);
+                    const isSelected = selectedTimeSlot === slot;
+                    const tagLabel = isAvailable ? (group.tags[slot] || 'Open') : 'Full';
 
-                  return (
-                    <TouchableOpacity
-                      key={slot}
-                      onPress={() => setSelectedTimeSlot(slot)}
-                      disabled={!isAvailable}
-                      style={[
-                        styles.slotCard,
-                        isSelected && styles.slotCardActive,
-                        !isAvailable && styles.slotCardDisabled,
-                        isSelected && (shadows.goldGlow || shadows.button3D),
-                      ]}
-                      activeOpacity={0.8}
-                    >
-                      <Text
+                    return (
+                      <TouchableOpacity
+                        key={slot}
+                        onPress={() => setSelectedTimeSlot(slot)}
+                        disabled={!isAvailable}
                         style={[
-                          styles.slotTimeText,
-                          isSelected && styles.slotTimeTextActive,
-                          !isAvailable && styles.slotTimeTextDisabled,
+                          styles.slotCard,
+                          { width: slotWidth },
+                          isSelected && styles.slotCardActive,
+                          !isAvailable && styles.slotCardDisabled,
+                          isSelected && (shadows.goldGlow || shadows.button3D),
                         ]}
+                        activeOpacity={0.8}
                       >
-                        {slot}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.slotTagText,
-                          isSelected && styles.slotTagTextActive,
-                        ]}
-                      >
-                        {isAvailable ? tags[slot] : 'Full'}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                        <Text
+                          style={[
+                            styles.slotTimeText,
+                            isSelected && styles.slotTimeTextActive,
+                            !isAvailable && styles.slotTimeTextDisabled,
+                          ]}
+                        >
+                          {slot}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.slotTagText,
+                            isSelected && styles.slotTagTextActive,
+                          ]}
+                        >
+                          {tagLabel}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
-
-            {/* Group 1: Twilight Dinner */}
-            <View style={[styles.slotGroupWrapper, { marginTop: 12 }]}>
-              <View style={styles.slotGroupHeader}>
-                <Text style={styles.slotGroupName}>Twilight Dinner</Text>
-                <Text style={styles.slotGroupSub}>• Golden hour candlelit cycle</Text>
-              </View>
-              <View style={styles.slotsGrid}>
-                {['17:00', '18:00', '19:00', '20:00'].map((slot) => {
-                  const isAvailable = isSlotAvailable(slot);
-                  const isSelected = selectedTimeSlot === slot;
-                  const tags = {
-                    '17:00': 'Sunset',
-                    '18:00': 'Aura',
-                    '19:00': 'Prime',
-                    '20:00': 'Bloom',
-                  };
-
-                  return (
-                    <TouchableOpacity
-                      key={slot}
-                      onPress={() => setSelectedTimeSlot(slot)}
-                      disabled={!isAvailable}
-                      style={[
-                        styles.slotCard,
-                        isSelected && styles.slotCardActive,
-                        !isAvailable && styles.slotCardDisabled,
-                        isSelected && (shadows.goldGlow || shadows.button3D),
-                      ]}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.slotTimeText,
-                          isSelected && styles.slotTimeTextActive,
-                          !isAvailable && styles.slotTimeTextDisabled,
-                        ]}
-                      >
-                        {slot}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.slotTagText,
-                          isSelected && styles.slotTagTextActive,
-                        ]}
-                      >
-                        {isAvailable ? tags[slot] : 'Full'}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Group 2: Late Botanica */}
-            <View style={[styles.slotGroupWrapper, { marginTop: 12 }]}>
-              <View style={styles.slotGroupHeader}>
-                <Text style={styles.slotGroupName}>Late Botanica</Text>
-                <Text style={styles.slotGroupSub}>• Dim lights & acoustic jazz</Text>
-              </View>
-              <View style={styles.slotsGrid}>
-                {['21:00', '22:00'].map((slot) => {
-                  const isAvailable = isSlotAvailable(slot);
-                  const isSelected = selectedTimeSlot === slot;
-                  const tags = {
-                    '21:00': 'Sommelier',
-                    '22:00': 'Digestif',
-                  };
-
-                  return (
-                    <TouchableOpacity
-                      key={slot}
-                      onPress={() => setSelectedTimeSlot(slot)}
-                      disabled={!isAvailable}
-                      style={[
-                        styles.slotCard,
-                        isSelected && styles.slotCardActive,
-                        !isAvailable && styles.slotCardDisabled,
-                        isSelected && (shadows.goldGlow || shadows.button3D),
-                      ]}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.slotTimeText,
-                          isSelected && styles.slotTimeTextActive,
-                          !isAvailable && styles.slotTimeTextDisabled,
-                        ]}
-                      >
-                        {slot}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.slotTagText,
-                          isSelected && styles.slotTagTextActive,
-                        ]}
-                      >
-                        {isAvailable ? tags[slot] : 'Closed'}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
+            ))}
             {validationErrors.timeSlot && (
               <Text style={[styles.errorMsg, { color: colors.error }]}>
                 {validationErrors.timeSlot}
@@ -798,7 +750,7 @@ export default function ReservationScreen() {
       ) : (
         /* MY RESERVATIONS HISTORY TAB */
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={scrollContentStyle}
           showsVerticalScrollIndicator={false}
         >
           {isLoading && reservationsList.length === 0 ? (
@@ -1300,10 +1252,8 @@ const styles = StyleSheet.create({
     color: '#a08e7a',
   },
   slotCard: {
-    flex: 1,
-    minWidth: 70,
     paddingVertical: 9,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     borderRadius: 12,
     backgroundColor: '#181c24',
     alignItems: 'center',
@@ -1566,6 +1516,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    rowGap: 8,
   },
   tableAssignCard: {
     flexDirection: 'row',
