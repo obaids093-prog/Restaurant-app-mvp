@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,12 +10,14 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrdersContext';
 import { useTheme } from '../context/ThemeContext';
+import { useMenu } from '../context/MenuContext';
 
 // Named rate constants for transparent breakdown
 const SERVICE_CHARGE_RATE = 0.05;
@@ -31,7 +33,7 @@ const showOrderAlert = (title, message) => {
 };
 
 // Pure payload builder extracted to minimize cognitive complexity
-const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber, pickupTime) => {
+const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber, pickupTime, getItemPrice) => {
   const isTakeaway =
     String(orderType || '').toLowerCase().includes('takeaway') ||
     String(orderType || '').toLowerCase().includes('curbside');
@@ -47,7 +49,7 @@ const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber
     items: (cartState?.items || []).map((i) => ({
       id: i.id || i._id,
       name: i.name,
-      price: i.price,
+      price: getItemPrice ? getItemPrice(i) : i.price,
       quantity: i.quantity,
       note: i.note || '',
     })),
@@ -57,11 +59,85 @@ const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber
   };
 };
 
+// Reusable row for contact info display
+const ContactInfoRow = ({ icon, text, color, textColor }) => (
+  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+    <Ionicons name={icon} size={16} color={color} style={{ marginRight: 8 }} />
+    <Text style={{ fontSize: 13, color: textColor }}>{text}</Text>
+  </View>
+);
+
+// Reusable row for a single cart item
+const OrderItemRow = ({ item, colors, unitPrice }) => {
+  const price = unitPrice !== undefined ? unitPrice : item.price;
+  return (
+    <View key={item.id} style={styles.itemRow}>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.itemName, { color: colors.textPrimary }]}>
+          {item.quantity}x {item.name}
+        </Text>
+        {item.note ? (
+          <Text style={[styles.itemNote, { color: colors.primary }]}>
+            Note: "{item.note}"
+          </Text>
+        ) : null}
+      </View>
+      <Text style={[styles.itemTotal, { color: colors.textPrimary }]}>
+        Rs. {(price * item.quantity).toLocaleString()}
+      </Text>
+    </View>
+  );
+};
+
+// Place order button content (avoids ternary nesting in main JSX)
+const PlaceOrderButtonContent = ({ isSubmitting, btnTextColor }) => {
+  if (isSubmitting) {
+    return (
+      <>
+        <ActivityIndicator size="small" color={btnTextColor} style={{ marginRight: 8 }} />
+        <Text style={[styles.placeBtnText, { color: btnTextColor }]}>
+          Dispatching to Kitchen...
+        </Text>
+      </>
+    );
+  }
+  return (
+    <>
+      <Ionicons name="checkmark-circle" size={20} color={btnTextColor} style={{ marginRight: 8 }} />
+      <Text style={[styles.placeBtnText, { color: btnTextColor }]}>
+        Confirm & Dispatch to Kitchen
+      </Text>
+    </>
+  );
+};
+
 export default function OrderSummaryScreen({ route, navigation }) {
   const { colors, isDark, shadows } = useTheme();
   const { user } = useAuth();
   const { cartState, clearCart } = useCart();
   const { createOrder } = useOrders();
+  const { menuItems, fetchMenu } = useMenu();
+
+  // Refetch fresh menu on Order Summary focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchMenu().catch(() => {});
+    }, [fetchMenu])
+  );
+
+  // Helper to ensure item price strictly reflects the latest fetched menu data
+  const getItemPrice = useCallback(
+    (item) => {
+      const match = (menuItems || []).find(
+        (m) =>
+          (m.id && String(m.id) === String(item.id)) ||
+          (m._id && String(m._id) === String(item._id || item.id)) ||
+          (m.name && m.name.toLowerCase().trim() === item.name?.toLowerCase()?.trim())
+      );
+      return match && match.price !== undefined ? Number(match.price) : Number(item.price);
+    },
+    [menuItems]
+  );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -73,10 +149,15 @@ export default function OrderSummaryScreen({ route, navigation }) {
     calculations: rawCalculations,
   } = route.params || {};
 
-  // Resilient fallback calculations wrapped in useMemo (deps: cart items and discount only)
-  const fallbackCalculations = useMemo(() => {
+  const btnTextColor = isDark ? '#472a00' : '#FFFFFF';
+  const isDineIn = orderType === 'Dine-in';
+  const userName = user?.name || 'Valued Guest';
+  const phoneText = user?.phone || 'No phone linked (Update in Profile)';
+
+  // Live calculations reflecting latest fetched menu prices
+  const calculations = useMemo(() => {
     const subtotal = (cartState?.items || []).reduce(
-      (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
+      (sum, item) => sum + getItemPrice(item) * (Number(item.quantity) || 1),
       0
     );
     const discountRate = (cartState?.discountPercent || 0) / 100;
@@ -84,7 +165,10 @@ export default function OrderSummaryScreen({ route, navigation }) {
     const discountedSubtotal = Math.max(0, subtotal - discountAmount);
     const serviceCharge = discountedSubtotal * SERVICE_CHARGE_RATE;
     const salesTax = discountedSubtotal * SALES_TAX_RATE;
-    const grandTotal = discountedSubtotal + serviceCharge + salesTax;
+    const tipAmount = rawCalculations?.selectedTip
+      ? discountedSubtotal * (rawCalculations.selectedTip / 100)
+      : (rawCalculations?.tipAmount || 0);
+    const grandTotal = discountedSubtotal + serviceCharge + salesTax + tipAmount;
 
     return {
       subtotal,
@@ -92,17 +176,17 @@ export default function OrderSummaryScreen({ route, navigation }) {
       discountedSubtotal,
       serviceCharge,
       salesTax,
+      tipAmount,
+      selectedTip: rawCalculations?.selectedTip,
       grandTotal,
     };
-  }, [cartState?.items, cartState?.discountPercent]);
-
-  const calculations = rawCalculations || fallbackCalculations;
+  }, [cartState?.items, cartState?.discountPercent, getItemPrice, rawCalculations]);
 
   const handlePlaceOrder = async () => {
     if (isSubmitting) return;
 
     if (!user) {
-      const msg = 'Please log in with a customer account before dispatching your order.';
+      const msg = 'Please log in before placing your order.';
       setErrorMessage(msg);
       showOrderAlert('Authentication Required', msg);
       navigation.navigate('Login');
@@ -110,7 +194,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
     }
 
     if (!cartState?.items || cartState.items.length === 0) {
-      const msg = 'Your tray is empty. Please add culinary items first.';
+      const msg = 'Your cart is empty. Please add items first.';
       setErrorMessage(msg);
       showOrderAlert('Empty Cart', msg);
       return;
@@ -126,7 +210,8 @@ export default function OrderSummaryScreen({ route, navigation }) {
         calculations,
         orderType,
         tableNumber,
-        pickupTime
+        pickupTime,
+        getItemPrice
       );
 
       const newOrder = await createOrder(orderPayload);
@@ -174,19 +259,19 @@ export default function OrderSummaryScreen({ route, navigation }) {
                 Order Verification
               </Text>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                Please confirm your culinary selection and delivery details.
+                Please confirm your selection and delivery details.
               </Text>
             </View>
           </View>
 
           <View style={[styles.diningBadge, { backgroundColor: colors.surfaceSubtle }]}>
             <Ionicons
-              name={orderType === 'Dine-in' ? 'restaurant' : 'bag-handle'}
+              name={isDineIn ? 'restaurant' : 'bag-handle'}
               size={16}
               color={colors.primary}
             />
             <Text style={[styles.diningBadgeText, { color: colors.textPrimary }]}>
-              {orderType === 'Dine-in'
+              {isDineIn
                 ? `Dine-In • ${tableNumber}`
                 : `Takeaway • Pickup ${pickupTime}`}
             </Text>
@@ -205,27 +290,25 @@ export default function OrderSummaryScreen({ route, navigation }) {
             CONTACT & DISPATCH INFO
           </Text>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <Ionicons name="person-outline" size={16} color={colors.primary} style={{ marginRight: 8 }} />
-            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary }}>
-              {user?.name || 'Valued Guest'}
-            </Text>
-          </View>
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: user?.email ? 6 : 0 }}>
-            <Ionicons name="call-outline" size={16} color={colors.primary} style={{ marginRight: 8 }} />
-            <Text style={{ fontSize: 13, color: user?.phone ? colors.textPrimary : colors.textMuted }}>
-              {user?.phone ? user.phone : 'No phone linked (Update in Profile for rider contact)'}
-            </Text>
-          </View>
-
+          <ContactInfoRow
+            icon="person-outline"
+            text={userName}
+            color={colors.primary}
+            textColor={colors.textPrimary}
+          />
+          <ContactInfoRow
+            icon="call-outline"
+            text={phoneText}
+            color={colors.primary}
+            textColor={user?.phone ? colors.textPrimary : colors.textMuted}
+          />
           {user?.email ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="mail-outline" size={16} color={colors.primary} style={{ marginRight: 8 }} />
-              <Text style={{ fontSize: 13, color: colors.textSecondary }}>
-                {user.email}
-              </Text>
-            </View>
+            <ContactInfoRow
+              icon="mail-outline"
+              text={user.email}
+              color={colors.primary}
+              textColor={colors.textSecondary}
+            />
           ) : null}
         </View>
 
@@ -242,25 +325,16 @@ export default function OrderSummaryScreen({ route, navigation }) {
           </Text>
 
           {cartState.items.map((item) => (
-            <View key={item.id} style={styles.itemRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.itemName, { color: colors.textPrimary }]}>
-                  {item.quantity}x {item.name}
-                </Text>
-                {item.note ? (
-                  <Text style={[styles.itemNote, { color: colors.primary }]}>
-                    Note: "{item.note}"
-                  </Text>
-                ) : null}
-              </View>
-              <Text style={[styles.itemTotal, { color: colors.textPrimary }]}>
-                Rs. {(item.price * item.quantity).toLocaleString()}
-              </Text>
-            </View>
+            <OrderItemRow
+              key={item.id}
+              item={item}
+              colors={colors}
+              unitPrice={getItemPrice(item)}
+            />
           ))}
         </View>
 
-        {/* Financial Breakdown (Task 6 Rates) */}
+        {/* Financial Breakdown */}
         <View
           style={[
             styles.summaryCard,
@@ -355,30 +429,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
               end={{ x: 1, y: 1 }}
               style={styles.gradientBtn}
             >
-              {isSubmitting ? (
-                <>
-                  <ActivityIndicator
-                    size="small"
-                    color={isDark ? '#472a00' : '#FFFFFF'}
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text style={[styles.placeBtnText, { color: isDark ? '#472a00' : '#FFFFFF' }]}>
-                    Dispatching to Kitchen...
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={20}
-                    color={isDark ? '#472a00' : '#FFFFFF'}
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text style={[styles.placeBtnText, { color: isDark ? '#472a00' : '#FFFFFF' }]}>
-                    Confirm & Dispatch to Kitchen
-                  </Text>
-                </>
-              )}
+              <PlaceOrderButtonContent isSubmitting={isSubmitting} btnTextColor={btnTextColor} />
             </LinearGradient>
           </TouchableOpacity>
         </View>

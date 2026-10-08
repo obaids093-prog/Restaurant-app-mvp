@@ -130,6 +130,8 @@ export const MenuProvider = ({ children }) => {
     <MenuContext.Provider
       value={{
         menuItems,
+        setMenuItems,
+        syncMenuItems: (items) => setMenuItems(normalizeItems(items)),
         isMenuLoaded,
         isLoading,
         error,

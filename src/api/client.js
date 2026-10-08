@@ -13,9 +13,9 @@
 import { Platform } from 'react-native';
 import safeStorage from '../utils/safeStorage';
 
-// Laptop's local network IP on Wi-Fi adapter (10.0.4.146)
+// Laptop's active local network IP on Wi-Fi adapter (192.168.100.6)
 // Using localhost on Web for instant browser testing, and LAN IP on native devices (iOS/Android)
-export const BASE_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'http://10.0.4.146:5000';
+export const BASE_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'http://192.168.100.6:5000';
 
 export const TOKEN_KEY = '@restaurant_app_auth_token';
 
@@ -42,6 +42,9 @@ export const apiClient = async (endpoint, options = {}) => {
   const headers = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
     ...(options.headers || {}),
   };
 
@@ -52,6 +55,7 @@ export const apiClient = async (endpoint, options = {}) => {
   const config = {
     method: options.method || 'GET',
     headers,
+    ...(Platform.OS === 'web' ? { cache: 'no-store' } : {}),
   };
 
   if (options.body) {
@@ -71,7 +75,10 @@ export const apiClient = async (endpoint, options = {}) => {
     }
 
     if (!response.ok) {
-      const errorMessage = data?.message || `Request failed with status ${response.status}`;
+      const detail = data?.error || data?.message;
+      const errorMessage = data?.message && data?.error && data.message !== data.error
+        ? `${data.message} (${data.error})`
+        : (detail || `Request failed with status ${response.status}`);
       const error = new Error(errorMessage);
       error.status = response.status;
       error.data = data;

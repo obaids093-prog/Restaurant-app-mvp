@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import safeStorage from '../utils/safeStorage';
 import { cartReducer, initialCartState } from '../reducers/cartReducer';
+import { useMenu } from './MenuContext';
 
 export const CartContext = createContext(null);
 
@@ -8,6 +9,14 @@ const CART_STORAGE_KEY = '@aura_cart_state';
 
 export const CartProvider = ({ children }) => {
   const [cartState, dispatch] = useReducer(cartReducer, initialCartState);
+  const { menuItems } = useMenu();
+
+  // Keep cart items and prices in sync with latest fetched menu
+  useEffect(() => {
+    if (menuItems && menuItems.length > 0) {
+      dispatch({ type: 'SYNC_PRICES', payload: { menuItems } });
+    }
+  }, [menuItems]);
 
   // Restore cart on app launch
   useEffect(() => {
@@ -56,7 +65,14 @@ export const CartProvider = ({ children }) => {
   const increment = (id) => dispatch({ type: 'INCREMENT', payload: { id } });
   const decrement = (id) => dispatch({ type: 'DECREMENT', payload: { id } });
   const updateNote = (id, note) => dispatch({ type: 'UPDATE_NOTE', payload: { id, note } });
-  const applyPromo = (code) => dispatch({ type: 'APPLY_PROMO', payload: { code } });
+  const applyPromo = (code) => {
+    const cleanCode = code ? code.trim().toUpperCase() : '';
+    const { PROMO_CODES } = require('../reducers/cartReducer');
+    if (!PROMO_CODES[cleanCode]) {
+      throw new Error(`Promo code "${code}" is invalid or expired.`);
+    }
+    dispatch({ type: 'APPLY_PROMO', payload: { code: cleanCode } });
+  };
   const removePromo = () => dispatch({ type: 'REMOVE_PROMO' });
   const clearCart = () => dispatch({ type: 'CLEAR_CART' });
 

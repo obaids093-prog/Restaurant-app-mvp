@@ -19,6 +19,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from '../utils/SafeLinearGradient';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -81,7 +82,7 @@ export default function MenuScreen({ navigation }) {
   const { colors, isDark, shadows } = useTheme();
   const { user } = useAuth();
   const { addItem, totalItemCount, cartState } = useCart();
-  const { menuItems: contextMenuItems } = useMenu();
+  const { menuItems: contextMenuItems, syncMenuItems } = useMenu();
   const { orders } = useOrders();
 
   const activeOrder = orders?.find((o) => ['Pending', 'Preparing', 'Ready'].includes(o.status));
@@ -138,7 +139,7 @@ export default function MenuScreen({ navigation }) {
     refetch: refetchMenu,
   } = useApi('/api/menu');
 
-  // Synchronize server menu data into component state
+  // Synchronize server menu data into component state & MenuContext
   useEffect(() => {
     if (rawMenuData && Array.isArray(rawMenuData)) {
       const normalized = rawMenuData.map((item) => ({
@@ -147,27 +148,67 @@ export default function MenuScreen({ navigation }) {
         _id: item._id || item.id,
       }));
       setMenuItems(normalized);
+      if (syncMenuItems) {
+        syncMenuItems(normalized);
+      }
     }
-  }, [rawMenuData]);
+  }, [rawMenuData, syncMenuItems]);
 
   // Synchronize live menu modifications made in Manager Dashboard
   useEffect(() => {
-    if (!isLoading && contextMenuItems && contextMenuItems.length > 0) {
+    if (contextMenuItems && contextMenuItems.length > 0) {
       setMenuItems(contextMenuItems);
     }
-  }, [contextMenuItems, isLoading]);
+  }, [contextMenuItems]);
 
   // Handle pull-to-refresh
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await refetchMenu();
+      const freshData = await refetchMenu();
+      if (freshData && Array.isArray(freshData)) {
+        const normalized = freshData.map((item) => ({
+          ...item,
+          id: item._id || item.id,
+          _id: item._id || item.id,
+        }));
+        setMenuItems(normalized);
+        if (syncMenuItems) {
+          syncMenuItems(normalized);
+        }
+      }
     } catch {
       // Error handled by useApi
     } finally {
       setRefreshing(false);
     }
   };
+
+  // Refetch menu whenever MenuScreen comes into focus (switching tabs)
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      refetchMenu()
+        .then((freshData) => {
+          if (isMounted && freshData && Array.isArray(freshData)) {
+            const normalized = freshData.map((item) => ({
+              ...item,
+              id: item._id || item.id,
+              _id: item._id || item.id,
+            }));
+            setMenuItems(normalized);
+            if (syncMenuItems) {
+              syncMenuItems(normalized);
+            }
+          }
+        })
+        .catch(() => {});
+
+      return () => {
+        isMounted = false;
+      };
+    }, [refetchMenu, syncMenuItems])
+  );
 
   // Update recent searches whenever debouncedQuery changes and has length > 1
   useEffect(() => {
@@ -209,6 +250,14 @@ export default function MenuScreen({ navigation }) {
    * mathematical consistency in a single render pass without state drift.
    * ───────────────────────────────────────────────────────────────────────────
    */
+  const featuredItem = useMemo(() => {
+    return (
+      menuItems.find((m) => m.name?.includes('Angus')) ||
+      menuItems.find((m) => m.isSpecial && m.category === 'Mains') ||
+      menuItems[0]
+    );
+  }, [menuItems]);
+
   const displayedItems = useMemo(() => {
     let result = [...menuItems];
 
@@ -388,7 +437,7 @@ export default function MenuScreen({ navigation }) {
   };
 
   // ─── LOADING STATE ────────────────────────────────────────────────────────
-  if (isLoading) {
+  if (isLoading && menuItems.length === 0) {
     return (
       <View style={[styles.stateContainer, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
@@ -406,7 +455,7 @@ export default function MenuScreen({ navigation }) {
   }
 
   // ─── ERROR STATE WITH RETRY ───────────────────────────────────────────────
-  if (error) {
+  if (error && menuItems.length === 0) {
     return (
       <View style={[styles.stateContainer, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
@@ -442,6 +491,8 @@ export default function MenuScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -623,8 +674,12 @@ export default function MenuScreen({ navigation }) {
 
                   <View style={styles.heroContent}>
                     <View style={styles.heroTitleRow}>
-                      <Text style={styles.heroTitle}>Prime Black Angus Tenderloin</Text>
-                      <Text style={styles.heroPrice}>Rs. 3,650</Text>
+                      <Text style={styles.heroTitle}>
+                        {featuredItem?.name || 'Prime Black Angus Tenderloin'}
+                      </Text>
+                      <Text style={styles.heroPrice}>
+                        Rs. {(featuredItem?.price || 3650).toLocaleString()}
+                      </Text>
                     </View>
                     <Text style={styles.heroDescription} numberOfLines={2}>
                       Charcoal-grilled center-cut beef tenderloin, roasted bone marrow jus, wild maitake mushrooms, and truffled potato mousseline.
@@ -1285,18 +1340,6 @@ const styles = StyleSheet.create({
   resetSearchText: {
     fontSize: 13,
     fontWeight: '700',
-  },
-  floatingBackToTop: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-  },
-  backToTopButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   // Stitch AI Header elements

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,9 +12,11 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
 import { useCart } from '../context/CartContext';
+import { useMenu } from '../context/MenuContext';
 import { useTheme } from '../context/ThemeContext';
 import { PROMO_CODES } from '../reducers/cartReducer';
 
@@ -34,6 +36,28 @@ export default function CartScreen({ navigation }) {
     removePromo,
     clearCart,
   } = useCart();
+  const { menuItems, fetchMenu } = useMenu();
+
+  // Refetch fresh menu on Cart screen focus so latest prices apply immediately
+  useFocusEffect(
+    useCallback(() => {
+      fetchMenu().catch(() => {});
+    }, [fetchMenu])
+  );
+
+  // Helper to ensure item price strictly reflects the latest fetched menu data
+  const getItemPrice = useCallback(
+    (item) => {
+      const match = (menuItems || []).find(
+        (m) =>
+          (m.id && String(m.id) === String(item.id)) ||
+          (m._id && String(m._id) === String(item._id || item.id)) ||
+          (m.name && m.name.toLowerCase().trim() === item.name?.toLowerCase()?.trim())
+      );
+      return match && match.price !== undefined ? Number(match.price) : Number(item.price);
+    },
+    [menuItems]
+  );
 
   const [promoInput, setPromoInput] = useState('');
   const [promoError, setPromoError] = useState('');
@@ -46,11 +70,11 @@ export default function CartScreen({ navigation }) {
 
   /**
    * Task 6: Financial Calculations computed with useMemo
-   * Depends strictly on [cartState.items, cartState.discountPercent, selectedTip]
+   * Depends strictly on [cartState.items, cartState.discountPercent, selectedTip, getItemPrice]
    */
   const calculations = useMemo(() => {
     const subtotal = cartState.items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
+      (sum, item) => sum + getItemPrice(item) * item.quantity,
       0
     );
 
@@ -72,7 +96,7 @@ export default function CartScreen({ navigation }) {
       selectedTip,
       grandTotal,
     };
-  }, [cartState.items, cartState.discountPercent, selectedTip]);
+  }, [cartState.items, cartState.discountPercent, selectedTip, getItemPrice]);
 
   // Handle promo code submission
   const handleApplyPromo = () => {
@@ -113,27 +137,29 @@ export default function CartScreen({ navigation }) {
   };
 
   // Cart item card renderer
-  const renderCartItem = ({ item }) => (
-    <View
-      style={[
-        styles.cartCard,
-        { backgroundColor: colors.card, borderColor: colors.cardBorder },
-        shadows.soft,
-      ]}
-    >
-      <View style={styles.cartCardHeader}>
-        <Image source={{ uri: item.image }} style={styles.itemThumb} />
-        <View style={styles.itemInfo}>
-          <Text style={[styles.itemName, { color: colors.textPrimary }]} numberOfLines={1}>
-            {item.name}
-          </Text>
-          <Text style={[styles.itemUnitPrice, { color: colors.textSecondary }]}>
-            Rs. {item.price.toLocaleString()} each
-          </Text>
-          <Text style={[styles.itemSubtotal, { color: colors.primary }]}>
-            Line Total: Rs. {(item.price * item.quantity).toLocaleString()}
-          </Text>
-        </View>
+  const renderCartItem = ({ item }) => {
+    const unitPrice = getItemPrice(item);
+    return (
+      <View
+        style={[
+          styles.cartCard,
+          { backgroundColor: colors.card, borderColor: colors.cardBorder },
+          shadows.soft,
+        ]}
+      >
+        <View style={styles.cartCardHeader}>
+          <Image source={{ uri: item.image }} style={styles.itemThumb} />
+          <View style={styles.itemInfo}>
+            <Text style={[styles.itemName, { color: colors.textPrimary }]} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Text style={[styles.itemUnitPrice, { color: colors.textSecondary }]}>
+              Rs. {unitPrice.toLocaleString()} each
+            </Text>
+            <Text style={[styles.itemSubtotal, { color: colors.primary }]}>
+              Line Total: Rs. {(unitPrice * item.quantity).toLocaleString()}
+            </Text>
+          </View>
 
         {/* Delete Item Button */}
         <TouchableOpacity

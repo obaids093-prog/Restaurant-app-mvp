@@ -5,9 +5,14 @@
  */
 
 export const PROMO_CODES = {
-  WELCOME10: 10,  // 10% Off (Assignment required)
-  FEAST20: 20,    // 20% Off (Assignment required)
-  AURA30: 30,     // 30% Off AURA VIP
+  WELCOME10: 10,  // 10% Off
+  FEAST20: 20,    // 20% Off
+  AURA10: 10,     // 10% Off
+  AURA20: 20,     // 20% Off
+  AURA30: 30,     // 30% Off
+  AURA50: 50,     // 50% Off
+  SAVE10: 10,     // 10% Off
+  TASTY20: 20,    // 20% Off
   CHEF15: 15,     // 15% Chef Special
   GOURMET30: 30,  // 30% Off VIP
 };
@@ -16,6 +21,7 @@ export const initialCartState = {
   items: [],
   promoCode: null,
   discountPercent: 0,
+  orderType: 'dine-in',
 };
 
 export function cartReducer(state, action) {
@@ -52,7 +58,8 @@ export function cartReducer(state, action) {
       };
     }
 
-    case 'INCREMENT': {
+    case 'INCREMENT':
+    case 'INCREMENT_QUANTITY': {
       const { id } = action.payload;
       return {
         ...state,
@@ -65,7 +72,8 @@ export function cartReducer(state, action) {
       };
     }
 
-    case 'DECREMENT': {
+    case 'DECREMENT':
+    case 'DECREMENT_QUANTITY': {
       const { id } = action.payload;
       const target = state.items.find((item) => item.id === id);
 
@@ -90,6 +98,13 @@ export function cartReducer(state, action) {
       };
     }
 
+    case 'SET_ORDER_TYPE': {
+      return {
+        ...state,
+        orderType: action.payload?.orderType || action.payload || 'dine-in',
+      };
+    }
+
     case 'UPDATE_NOTE': {
       const { id, note } = action.payload;
       return {
@@ -107,14 +122,15 @@ export function cartReducer(state, action) {
       const { code } = action.payload;
       const cleanCode = code ? code.trim().toUpperCase() : '';
 
+      // Pure reducer: if invalid, return state unchanged without side effects
       if (!PROMO_CODES[cleanCode]) {
-        throw new Error(`Promo code "${code}" is invalid or expired.`);
+        return state;
       }
 
       return {
         ...state,
         promoCode: cleanCode,
-        discountPercent: PROMO_CODES[cleanCode],
+        discountPercent: PROMO_CODES[cleanCode] || 0,
       };
     }
 
@@ -132,6 +148,39 @@ export function cartReducer(state, action) {
         promoCode: null,
         discountPercent: 0,
       };
+    case 'SYNC_PRICES': {
+      const { menuItems } = action.payload || {};
+      if (!Array.isArray(menuItems) || menuItems.length === 0 || !Array.isArray(state.items) || state.items.length === 0) {
+        return state;
+      }
+
+      const menuMap = new Map();
+      menuItems.forEach((m) => {
+        if (m.id) menuMap.set(String(m.id), m);
+        if (m._id) menuMap.set(String(m._id), m);
+        if (m.name) menuMap.set(m.name.toLowerCase().trim(), m);
+      });
+
+      let changed = false;
+      const updatedItems = state.items.map((cartItem) => {
+        const latest =
+          menuMap.get(String(cartItem.id)) ||
+          menuMap.get(String(cartItem._id)) ||
+          menuMap.get(cartItem.name?.toLowerCase().trim());
+
+        if (latest && latest.price !== undefined && Number(latest.price) !== Number(cartItem.price)) {
+          changed = true;
+          return {
+            ...cartItem,
+            price: Number(latest.price),
+            isAvailable: latest.isAvailable !== undefined ? latest.isAvailable : cartItem.isAvailable,
+          };
+        }
+        return cartItem;
+      });
+
+      if (!changed) return state;
+      return { ...state, items: updatedItems };
     }
 
     default:
