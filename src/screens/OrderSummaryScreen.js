@@ -21,6 +21,42 @@ import { useTheme } from '../context/ThemeContext';
 const SERVICE_CHARGE_RATE = 0.05;
 const SALES_TAX_RATE = 0.15;
 
+// Cross-platform alert helper to reduce complexity in event handlers
+const showOrderAlert = (title, message) => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.alert) {
+    window.alert(`${title}: ${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
+
+// Pure payload builder extracted to minimize cognitive complexity
+const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber, pickupTime) => {
+  const isTakeaway =
+    String(orderType || '').toLowerCase().includes('takeaway') ||
+    String(orderType || '').toLowerCase().includes('curbside');
+  const normalizedType = isTakeaway ? 'Takeaway' : 'Dine-in';
+
+  return {
+    customerId: user?.id || user?._id || 'guest',
+    customerName: user?.name || 'Valued Guest',
+    type: normalizedType,
+    orderType: normalizedType,
+    tableNumber: !isTakeaway ? tableNumber : '',
+    pickupTime: isTakeaway ? pickupTime : '',
+    items: (cartState?.items || []).map((i) => ({
+      id: i.id || i._id,
+      name: i.name,
+      price: i.price,
+      quantity: i.quantity,
+      note: i.note || '',
+    })),
+    total: calculations.grandTotal,
+    promoCode: cartState?.promoCode,
+    discountPercent: cartState?.discountPercent || 0,
+  };
+};
+
 export default function OrderSummaryScreen({ route, navigation }) {
   const { colors, isDark, shadows } = useTheme();
   const { user } = useAuth();
@@ -68,11 +104,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
     if (!user) {
       const msg = 'Please log in with a customer account before dispatching your order.';
       setErrorMessage(msg);
-      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.alert) {
-        window.alert(msg);
-      } else {
-        Alert.alert('Authentication Required', msg);
-      }
+      showOrderAlert('Authentication Required', msg);
       navigation.navigate('Login');
       return;
     }
@@ -80,11 +112,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
     if (!cartState?.items || cartState.items.length === 0) {
       const msg = 'Your tray is empty. Please add culinary items first.';
       setErrorMessage(msg);
-      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.alert) {
-        window.alert(msg);
-      } else {
-        Alert.alert('Empty Cart', msg);
-      }
+      showOrderAlert('Empty Cart', msg);
       return;
     }
 
@@ -92,29 +120,14 @@ export default function OrderSummaryScreen({ route, navigation }) {
     setErrorMessage('');
 
     try {
-      const isTakeaway =
-        String(orderType).toLowerCase().includes('takeaway') ||
-        String(orderType).toLowerCase().includes('curbside');
-      const normalizedType = isTakeaway ? 'Takeaway' : 'Dine-in';
-
-      const orderPayload = {
-        customerId: user?.id || user?._id || 'guest',
-        customerName: user?.name || 'Valued Guest',
-        type: normalizedType,
-        orderType: normalizedType,
-        tableNumber: !isTakeaway ? tableNumber : '',
-        pickupTime: isTakeaway ? pickupTime : '',
-        items: cartState.items.map((i) => ({
-          id: i.id || i._id,
-          name: i.name,
-          price: i.price,
-          quantity: i.quantity,
-          note: i.note || '',
-        })),
-        total: calculations.grandTotal,
-        promoCode: cartState.promoCode,
-        discountPercent: cartState.discountPercent,
-      };
+      const orderPayload = buildOrderPayload(
+        user,
+        cartState,
+        calculations,
+        orderType,
+        tableNumber,
+        pickupTime
+      );
 
       const newOrder = await createOrder(orderPayload);
       clearCart();
@@ -125,14 +138,9 @@ export default function OrderSummaryScreen({ route, navigation }) {
       console.error('Order dispatch error:', err);
       const errMsg = err.message || 'Unable to place order at this time.';
       setErrorMessage(errMsg);
-      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.alert) {
-        window.alert(`Order Failed: ${errMsg}`);
-      } else {
-        Alert.alert('Order Failed', errMsg);
-      }
+      showOrderAlert('Order Failed', errMsg);
     } finally {
       setIsSubmitting(false);
-
     }
   };
 
@@ -183,6 +191,42 @@ export default function OrderSummaryScreen({ route, navigation }) {
                 : `Takeaway • Pickup ${pickupTime}`}
             </Text>
           </View>
+        </View>
+
+        {/* Patron Contact & Dispatch Info */}
+        <View
+          style={[
+            styles.summaryCard,
+            { backgroundColor: colors.card, borderColor: colors.cardBorder },
+            shadows.soft,
+          ]}
+        >
+          <Text style={[styles.cardHeading, { color: colors.textMuted }]}>
+            CONTACT & DISPATCH INFO
+          </Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+            <Ionicons name="person-outline" size={16} color={colors.primary} style={{ marginRight: 8 }} />
+            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary }}>
+              {user?.name || 'Valued Guest'}
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: user?.email ? 6 : 0 }}>
+            <Ionicons name="call-outline" size={16} color={colors.primary} style={{ marginRight: 8 }} />
+            <Text style={{ fontSize: 13, color: user?.phone ? colors.textPrimary : colors.textMuted }}>
+              {user?.phone ? user.phone : 'No phone linked (Update in Profile for rider contact)'}
+            </Text>
+          </View>
+
+          {user?.email ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="mail-outline" size={16} color={colors.primary} style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 13, color: colors.textSecondary }}>
+                {user.email}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Selected Dishes Summary */}
