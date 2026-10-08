@@ -367,8 +367,62 @@ export default function ReservationScreen() {
               </Text>
             </View>
 
-            {/* Group 1: Twilight Dinner */}
+            {/* Group 0: Afternoon & High Tea */}
             <View style={styles.slotGroupWrapper}>
+              <View style={styles.slotGroupHeader}>
+                <Text style={styles.slotGroupName}>Afternoon & High Tea</Text>
+                <Text style={styles.slotGroupSub}>• Sunlight dining & midday service</Text>
+              </View>
+              <View style={styles.slotsGrid}>
+                {['12:00', '13:00', '14:00', '15:00', '16:00'].map((slot) => {
+                  const isAvailable = isSlotAvailable(slot);
+                  const isSelected = selectedTimeSlot === slot;
+                  const tags = {
+                    '12:00': 'Lunch',
+                    '13:00': 'Prime',
+                    '14:00': 'Matinee',
+                    '15:00': 'Tea',
+                    '16:00': 'Garden',
+                  };
+
+                  return (
+                    <TouchableOpacity
+                      key={slot}
+                      onPress={() => setSelectedTimeSlot(slot)}
+                      disabled={!isAvailable}
+                      style={[
+                        styles.slotCard,
+                        isSelected && styles.slotCardActive,
+                        !isAvailable && styles.slotCardDisabled,
+                        isSelected && (shadows.goldGlow || shadows.button3D),
+                      ]}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.slotTimeText,
+                          isSelected && styles.slotTimeTextActive,
+                          !isAvailable && styles.slotTimeTextDisabled,
+                        ]}
+                      >
+                        {slot}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.slotTagText,
+                          isSelected && styles.slotTagTextActive,
+                        ]}
+                      >
+                        {isAvailable ? tags[slot] : 'Full'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Group 1: Twilight Dinner */}
+            <View style={[styles.slotGroupWrapper, { marginTop: 12 }]}>
               <View style={styles.slotGroupHeader}>
                 <Text style={styles.slotGroupName}>Twilight Dinner</Text>
                 <Text style={styles.slotGroupSub}>• Golden hour candlelit cycle</Text>
