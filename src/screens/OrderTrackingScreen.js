@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,10 +7,14 @@ import {
   TouchableOpacity,
   StatusBar,
   Animated,
+  ActivityIndicator,
+  Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
 import { useOrders } from '../context/OrdersContext';
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
 const STAGES = [
@@ -20,9 +24,14 @@ const STAGES = [
   { key: 'Served', label: 'Delivered / Completed', desc: 'Bon appetit! Savor your culinary feast', icon: 'checkmark-done-circle' },
 ];
 
+// Must match server/config/constants.js CANCEL_WINDOW_MINUTES.
+// NOTE: the server is the final authority — this is advisory for the UI countdown.
+const CANCEL_WINDOW_MINUTES = 10;
+
 export default function OrderTrackingScreen({ route, navigation }) {
   const { colors, isDark, shadows } = useTheme();
-  const { orders, updateOrderStatus, fetchOrders } = useOrders();
+  const { user, logout } = useAuth();
+  const { orders, cancelOrder, fetchOrders } = useOrders();
 
   const { orderId } = route.params || {};
 
@@ -32,12 +41,18 @@ export default function OrderTrackingScreen({ route, navigation }) {
   // Running elapsed time counter (seconds)
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
+  // Cancel button loading state
+  const [isCancelling, setIsCancelling] = useState(false);
+
   // Animation for active step pulse
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Timers refs for cleanup
   const intervalCounterRef = useRef(null);
   const statusTimerRef = useRef(null);
+
+  // Is the order in a terminal state?
+  const isTerminal = activeOrder?.status === 'Served' || activeOrder?.status === 'Cancelled';
 
   useEffect(() => {
     // Pulse animation for active step
@@ -65,8 +80,11 @@ export default function OrderTrackingScreen({ route, navigation }) {
    * Remove fake timer from A1. Instead, use useEffect with setInterval
    * to call GET /api/orders/my every 10 seconds, so customer sees live status updates
    * as the manager modifies it. Clear interval in cleanup function.
+   * Stop polling once the order reaches a terminal state (Served or Cancelled).
    */
   useEffect(() => {
+    if (isTerminal) return; // Don't poll for terminal orders
+
     if (fetchOrders) {
       fetchOrders().catch(() => {});
     }
@@ -80,7 +98,8 @@ export default function OrderTrackingScreen({ route, navigation }) {
     return () => {
       clearInterval(pollingInterval);
     };
-  }, [fetchOrders]);
+  }, [fetchOrders, isTerminal]);
+
 
   // Format seconds to MM:SS
   const formatTime = (totalSeconds) => {
@@ -106,6 +125,68 @@ export default function OrderTrackingScreen({ route, navigation }) {
 
   const currentStageIndex = getStageIndex(activeOrder?.status || 'Pending');
 
+  // --- Cancel window remaining seconds ---
+  const getCancelRemainingSeconds = useCallback(() => {
+    if (!activeOrder?.createdAt || CANCEL_WINDOW_MINUTES === 0) return Infinity;
+    const createdMs = new Date(activeOrder.createdAt).getTime();
+    const windowMs = CANCEL_WINDOW_MINUTES * 60 * 1000;
+    const deadlineMs = createdMs + windowMs;
+    return Math.max(0, Math.floor((deadlineMs - Date.now()) / 1000));
+  }, [activeOrder?.createdAt]);
+
+  const cancelRemaining = getCancelRemainingSeconds();
+  const canCancel =
+    activeOrder?.status === 'Pending' &&
+    !isCancelling &&
+    (CANCEL_WINDOW_MINUTES === 0 || cancelRemaining > 0);
+
+  // Platform-safe alert helper
+  const showAlert = (title, message) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
+  // --- Handle Cancel Order ---
+  const handleCancelOrder = async () => {
+    const msg = 'Are you sure you want to cancel this order? This cannot be undone.';
+
+    if (Platform.OS === 'web') {
+      if (!window.confirm(msg)) return;
+    } else {
+      const confirmed = await new Promise((resolve) => {
+        Alert.alert('Cancel Order', msg, [
+          { text: 'Keep Order', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Yes, Cancel', style: 'destructive', onPress: () => resolve(true) },
+        ]);
+      });
+      if (!confirmed) return;
+    }
+
+    setIsCancelling(true);
+    try {
+      await cancelOrder(activeOrder.id || activeOrder._id);
+      // Immediately refresh to show Cancelled status
+      if (fetchOrders) await fetchOrders();
+      showAlert('Order Cancelled', 'Your order has been cancelled successfully.');
+    } catch (err) {
+      showAlert('Cancel Failed', err.message || 'Could not cancel the order.');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigation.navigate('Login');
+    } catch (e) {
+      console.warn('Logout error:', e);
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
@@ -114,6 +195,48 @@ export default function OrderTrackingScreen({ route, navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Top Header Navigation & Action Bar */}
+        <View style={styles.topActionsBar}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('CustomerApp', { screen: 'Menu' })}
+            style={[
+              styles.backToMenuBtn,
+              { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
+            ]}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="arrow-back" size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
+            <Text style={[styles.backToMenuText, { color: colors.textPrimary }]}>Back to Menu</Text>
+          </TouchableOpacity>
+
+          <View style={styles.rightActionsRow}>
+            <TouchableOpacity
+              onPress={() => {
+                if (fetchOrders) fetchOrders();
+              }}
+              style={[
+                styles.actionIconBtn,
+                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
+              ]}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="sync-outline" size={16} color={colors.primary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={[
+                styles.logoutQuickBtn,
+                { backgroundColor: '#ef444418', borderColor: '#ef444433' },
+              ]}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="log-out-outline" size={16} color="#ef4444" style={{ marginRight: 4 }} />
+              <Text style={styles.logoutQuickText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Top Status Card */}
         <View
           style={[
@@ -148,13 +271,57 @@ export default function OrderTrackingScreen({ route, navigation }) {
             </View>
           </View>
 
-          <Text style={[styles.liveStatusTitle, { color: colors.textPrimary }]}>
-            {STAGES[currentStageIndex].label}
+          <Text style={[styles.liveStatusTitle, { color: activeOrder?.status === 'Cancelled' ? colors.error : colors.textPrimary }]}>
+            {activeOrder?.status === 'Cancelled' ? 'Order Cancelled' : STAGES[currentStageIndex].label}
           </Text>
           <Text style={[styles.liveStatusDesc, { color: colors.textSecondary }]}>
-            {STAGES[currentStageIndex].desc}
+            {activeOrder?.status === 'Cancelled' ? 'This order has been cancelled.' : STAGES[currentStageIndex].desc}
           </Text>
         </View>
+
+        {/* CANCEL ORDER BUTTON — only when Pending and inside cancel window */}
+        {activeOrder?.status === 'Pending' && (
+          <View
+            style={[
+              styles.cancelSection,
+              { backgroundColor: colors.card, borderColor: canCancel ? '#ef444440' : colors.cardBorder },
+              shadows.soft,
+            ]}
+          >
+            {canCancel ? (
+              <>
+                <TouchableOpacity
+                  onPress={handleCancelOrder}
+                  disabled={isCancelling}
+                  style={[
+                    styles.cancelOrderBtn,
+                    isCancelling && { opacity: 0.5 },
+                  ]}
+                  activeOpacity={0.75}
+                >
+                  {isCancelling ? (
+                    <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+                  ) : (
+                    <Ionicons name="close-circle" size={18} color="#fff" style={{ marginRight: 8 }} />
+                  )}
+                  <Text style={styles.cancelOrderBtnText}>
+                    {isCancelling ? 'Cancelling...' : 'Cancel Order'}
+                  </Text>
+                </TouchableOpacity>
+
+                {CANCEL_WINDOW_MINUTES > 0 && cancelRemaining < Infinity && (
+                  <Text style={[styles.cancelCountdown, { color: colors.textMuted }]}>
+                    Cancel available for {formatTime(cancelRemaining)}
+                  </Text>
+                )}
+              </>
+            ) : (
+              <Text style={[styles.cancelExpiredText, { color: colors.textMuted }]}>
+                Cancellation window expired
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* STEP PROGRESS INDICATOR TIMELINE */}
         <View
@@ -169,8 +336,9 @@ export default function OrderTrackingScreen({ route, navigation }) {
           </Text>
 
           {STAGES.map((stage, idx) => {
-            const isCompleted = idx < currentStageIndex;
-            const isCurrent = idx === currentStageIndex;
+            const isCancelled = activeOrder?.status === 'Cancelled';
+            const isCompleted = !isCancelled && idx < currentStageIndex;
+            const isCurrent = !isCancelled && idx === currentStageIndex;
 
             return (
               <View key={stage.key} style={styles.stageStepRow}>
@@ -180,7 +348,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
                     style={[
                       styles.connectorLine,
                       {
-                        backgroundColor: isCompleted ? colors.primary : colors.surfaceBorder,
+                        backgroundColor: isCompleted ? colors.primary : isCancelled ? colors.error + '30' : colors.surfaceBorder,
                       },
                     ]}
                   />
@@ -205,16 +373,16 @@ export default function OrderTrackingScreen({ route, navigation }) {
                     style={[
                       styles.stepCircle,
                       {
-                        backgroundColor: isCompleted ? colors.primary : colors.surfaceSubtle,
-                        borderColor: isCompleted ? colors.primary : colors.surfaceBorder,
+                        backgroundColor: isCompleted ? colors.primary : isCancelled && idx === 0 ? colors.error : colors.surfaceSubtle,
+                        borderColor: isCompleted ? colors.primary : isCancelled && idx === 0 ? colors.error : colors.surfaceBorder,
                         borderWidth: 1.5,
                       },
                     ]}
                   >
                     <Ionicons
-                      name={isCompleted ? 'checkmark' : stage.icon}
+                      name={isCompleted ? 'checkmark' : isCancelled && idx === 0 ? 'close' : stage.icon}
                       size={16}
-                      color={isCompleted ? '#FFFFFF' : colors.textMuted}
+                      color={isCompleted ? '#FFFFFF' : isCancelled && idx === 0 ? '#FFFFFF' : colors.textMuted}
                     />
                   </View>
                 )}
@@ -229,15 +397,17 @@ export default function OrderTrackingScreen({ route, navigation }) {
                           ? colors.primary
                           : isCompleted
                           ? colors.textPrimary
+                          : isCancelled && idx === 0
+                          ? colors.error
                           : colors.textMuted,
                         fontWeight: isCurrent ? '800' : '600',
                       },
                     ]}
                   >
-                    {stage.label}
+                    {isCancelled && idx === 0 ? 'Cancelled' : stage.label}
                   </Text>
                   <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
-                    {stage.desc}
+                    {isCancelled && idx === 0 ? 'Order was cancelled' : stage.desc}
                   </Text>
                 </View>
               </View>
@@ -315,6 +485,49 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
+  topActionsBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  backToMenuBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  backToMenuText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  rightActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionIconBtn: {
+    padding: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutQuickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  logoutQuickText: {
+    color: '#ef4444',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   headerCard: {
     borderRadius: 22,
     borderWidth: 1,
@@ -361,6 +574,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
     lineHeight: 20,
+  },
+  // Cancel order section
+  cancelSection: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  cancelOrderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ef4444',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    width: '100%',
+  },
+  cancelOrderBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  cancelCountdown: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  cancelExpiredText: {
+    fontSize: 13,
+    fontWeight: '600',
+    fontStyle: 'italic',
   },
   timelineCard: {
     borderRadius: 20,
