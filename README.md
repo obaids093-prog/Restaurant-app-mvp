@@ -1,4 +1,4 @@
-# AURA: Artisan Kitchen & Modern Botanica
+# AURA Restaurant Application
 
 ### Student Submission Details
 * **Name:** Syed Obaid Ali
@@ -9,7 +9,7 @@
 
 ---
 
-A luxury full-stack mobile restaurant system featuring a **React Native / Expo** mobile client connected to an **Express.js + MongoDB** REST API backend. The system features JWT-based role authentication, live menu management, conflict-free table reservations, real-time kitchen order pipelines with automated status polling, 3D physics animations, and emerald teal & champagne gold luxury palettes.
+A full-stack mobile restaurant application built with **React Native / Expo** and an **Express.js + MongoDB** REST API backend. Key features include JWT-based authentication with role-based access control (Customer and Manager), digital menu browsing, table reservation booking, order tracking with automated status updates, and dark/light theme support.
 
 ---
 
