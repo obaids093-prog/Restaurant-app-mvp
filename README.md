@@ -19,10 +19,10 @@ The `A2/` directory contains all required non-code deliverables:
 * **`A2/SRS_v2.pdf`**: Comprehensive Software Requirements Specification (v2.0) including:
   * Updated Scope & 10+ Technical Definitions
   * Database Schema Design Tables for 5 MongoDB Collections (`users`, `menuitems`, `tables`, `reservations`, `orders`)
-  * Complete REST API Endpoints Specification (18 endpoints)
+  * Complete REST API Endpoints Specification (21 endpoints)
   * UML Sequence Diagram (`App` ➔ `Express Server` ➔ `MongoDB`)
   * UML Deployment Diagram (Physical architecture, protocols, ports)
-* **`A2/restaurant-api.postman_collection.json`**: Postman Collection covering all 18 endpoints across Auth, Menu, Tables, Reservations, Orders, and Health checks. Includes auto-token capture on login.
+* **`A2/restaurant-api.postman_collection.json`**: Postman Collection covering all 21 endpoints across Auth, Menu, Tables, Reservations, Orders, and Health checks. Includes auto-token capture on login.
 
 ---
 
@@ -42,11 +42,12 @@ Copy-Item .env.example .env
 
 # 4. Configure server/.env:
 # PORT=5000
-# MONGO_URI=mongodb://127.0.0.1:27017/restaurant_db  (or your MongoDB Atlas connection string)
-# JWT_SECRET=aura_artisan_secret_key_2026_jwt_token_auth
+# MONGO_URI=mongodb://127.0.0.1:27017/restaurant_app
+# JWT_SECRET=change_me_to_a_long_random_string
 # JWT_EXPIRES_IN=1d
+# CORS_ORIGINS=http://localhost:19006,http://localhost:8081
 
-# 5. Seed initial database (creates hashed manager/customer accounts, 16 menu items, 6 tables)
+# 5. Seed initial database (creates hashed manager/customer accounts, 16 menu items, 8 tables)
 npm run seed
 
 # 6. Start development server with nodemon
@@ -64,7 +65,7 @@ npm install
 # Open src/api/client.js and set BASE_URL based on your environment:
 # - Android Emulator:       http://10.0.2.2:5000
 # - iOS Simulator:          http://localhost:5000
-# - Physical Phone (Expo):  http://<YOUR_COMPUTER_IP>:5000 (e.g., http://192.168.100.5:5000)
+# - Physical Phone (Expo):  http://<YOUR_COMPUTER_IP>:5000 (e.g., http://192.168.100.17:5000)
 
 # 3. Start Expo development server
 npx expo start
@@ -82,37 +83,41 @@ All passwords in `server/seed.js` are securely hashed using `bcrypt` (10 salt ro
 
 | Role | Full Name | Email Address | Password | Permissions & Capabilities |
 |---|---|---|---|---|
-| **Executive Manager** | Farhan Chef | `farhan.chef@aurabistro.pk`<br/>*(or `manager@aurabistro.com`)* | `Admin1234` | Kitchen order queue progression (`Pending` ➔ `Preparing` ➔ `Ready` ➔ `Served`), Table booking approval/decline, Menu CRUD (Add/Edit items, toggling Chef's Special). |
-| **Dining Guest** | Zainab Malik | `zainab.malik@aurabistro.pk`<br/>*(or `customer@aurabistro.com`)* | `Password123` | JWT login/register, live menu browsing, cart reducer, promo vouchers, live order placement, 10s kitchen tracking, table reservations. |
-| **Demo Customer** | Guest Diner | `user@test.com` | `Password1` | Customer testing account. |
+| **Executive Manager** | Chef Farhan Siddiqui | `farhan.chef@aurabistro.pk` | `Admin1234` | Kitchen order queue progression (`Pending` ➔ `Preparing` ➔ `Ready` ➔ `Served`), Table booking approval/decline, Menu CRUD (Add/Edit items, toggling Chef's Special), Staff account creation via Team tab. |
+| **Dining Guest** | Zainab Malik | `zainab.malik@aurabistro.pk` | `Password123` | JWT login/register, live menu browsing, cart reducer, promo vouchers, live order placement, kitchen tracking with 10s polling, table reservations. |
+| **Dining Guest (Second)** | Hamza Abbasi | `hamza.abbasi@aurabistro.pk` | `Password1` | Customer dining account for multi-patron testing. |
 
-*(Quick 1-tap pre-fill chips are available on the Login screen for instant evaluation during viva).*
+*(Unified login detects role automatically upon authentication. Passwords are never pre-filled).*
 
 ---
 
 ## 4. API Endpoints Reference Table
 
-| # | HTTP Method | Endpoint | Access / Auth | Description & Query Parameters |
-|---|---|---|---|---|
-| 1 | `GET` | `/api/health` | Public | Server liveness, uptime, and database connection status. |
-| 2 | `POST` | `/api/auth/register` | Public | Registers a new customer or manager with hashed password. |
-| 3 | `POST` | `/api/auth/login` | Public | Validates credentials, issues JWT token (expires in 1 day). |
-| 4 | `GET` | `/api/auth/me` | Protected (`Bearer Token`) | Returns currently authenticated user profile. |
-| 5 | `GET` | `/api/menu` | Public | Lists menu items. Query params: `?category=Steaks&search=wagyu`. |
-| 6 | `GET` | `/api/menu/:id` | Public | Retrieves single item by MongoDB ObjectId. Validates ID format. |
-| 7 | `POST` | `/api/menu` | Manager Only | Creates a new dish in the menu inventory. |
-| 8 | `PUT` | `/api/menu/:id` | Manager Only | Updates dish details, pricing, availability, or Chef's special flag. |
-| 9 | `DELETE` | `/api/menu/:id` | Manager Only | Permanently removes a menu item from the catalog. |
-| 10 | `GET` | `/api/tables` | Public | Lists all restaurant dining tables with seating capacity & status. |
-| 11 | `POST` | `/api/tables` | Manager Only | Registers a new physical dining table into the floor plan. |
-| 12 | `POST` | `/api/reservations` | Protected | Creates table booking. Prevents double-booking (`409 Conflict`). |
-| 13 | `GET` | `/api/reservations/my` | Protected | Retrieves booking history for the logged-in diner. |
-| 14 | `GET` | `/api/reservations` | Manager Only | Lists all restaurant reservations across dates and slots. |
-| 15 | `PATCH` | `/api/reservations/:id` | Protected / Manager | Updates reservation status (`Confirmed`, `Declined`, `Cancelled`). |
-| 16 | `POST` | `/api/orders` | Protected | Places a new order and dispatches it into kitchen queue (`Pending`). |
-| 17 | `GET` | `/api/orders/my` | Protected | Retrieves active and previous orders for the logged-in diner. |
-| 18 | `GET` | `/api/orders/active` | Manager Only | Retrieves active kitchen queue (`Pending`, `Preparing`, `Ready`). |
-| 19 | `PATCH` | `/api/orders/:id/status` | Manager Only | Advances kitchen order status monotonically. |
+Total: **21 endpoints** implemented in `server/routes/`:
+
+| # | HTTP Method | Endpoint | Access / Auth | Request Body | Response Format & Description |
+|---|---|---|---|---|---|
+| 1 | `GET` | `/api/health` | Public | None | `200 OK`: `{ status: 'ok', time }` — Server health check. |
+| 2 | `POST` | `/api/auth/register` | Public | `{ name, email, password, phone? }` | `201 Created`: `{ token, user }` — Public registration. Always creates role `customer` (client-provided `role` is ignored). |
+| 3 | `POST` | `/api/auth/login` | Public | `{ email, password }` | `200 OK`: `{ token, user }` — Validates credentials, returns JWT token (expires in 1 day). |
+| 4 | `GET` | `/api/auth/me` | Protected (`Bearer Token`) | None | `200 OK`: `{ user }` — Returns authenticated user details (without password). |
+| 5 | `PUT` | `/api/auth/profile` | Protected (`Bearer Token`) | `{ name?, phone?, dob?, avatar? }` | `200 OK`: `{ message, user }` — Updates current user profile. |
+| 6 | `DELETE` | `/api/auth/profile` | Protected (`Bearer Token`) | None | `200 OK`: `{ success: true, message }` — Permanently removes user account from database. |
+| 7 | `POST` | `/api/auth/staff` | Manager Only (`protect, managerOnly`) | `{ name, email, password }` | `201 Created`: `{ user }` — Creates a new manager account with hashed password (password omitted in response). |
+| 8 | `GET` | `/api/menu` | Public | None (Query: `?category=&search=`) | `200 OK`: `MenuItem[]` — Lists menu items with optional category filtering and search. |
+| 9 | `POST` | `/api/menu` | Manager Only (`protect, managerOnly`) | `{ name, description, price, category, isAvailable?, isSpecial?, image?, prepTime?, rating?, tag? }` | `201 Created`: `MenuItem` — Adds a new gourmet dish to catalog. |
+| 10 | `GET` | `/api/menu/:id` | Public | None (`:id` param) | `200 OK`: `MenuItem` — Retrieves single item by MongoDB ObjectId (validates ObjectId format). |
+| 11 | `PUT` | `/api/menu/:id` | Manager Only (`protect, managerOnly`) | `{ name?, price?, isAvailable?, isSpecial?, description?, category?, prepTime?, rating?, tag? }` | `200 OK`: `MenuItem` — Updates dish details, price, availability, or specials. |
+| 12 | `DELETE` | `/api/menu/:id` | Manager Only (`protect, managerOnly`) | None (`:id` param) | `200 OK`: `{ message, id }` — Permanently deletes a menu item. |
+| 13 | `GET` | `/api/tables` | Public | None | `200 OK`: `Table[]` — Lists all restaurant dining tables with seating capacity and zone. |
+| 14 | `POST` | `/api/reservations` | Protected (`Bearer Token`) | `{ tableId, date, time, guests, specialRequests?, customerName?, phone? }` | `201 Created`: `Reservation` — Creates table reservation. Validates capacity and returns `409 Conflict` if double-booked. |
+| 15 | `GET` | `/api/reservations` | Manager Only (`protect, managerOnly`) | None | `200 OK`: `Reservation[]` — Retrieves all reservations across all users and tables. |
+| 16 | `GET` | `/api/reservations/my` | Protected (`Bearer Token`) | None | `200 OK`: `Reservation[]` — Retrieves reservations belonging to the authenticated customer. |
+| 17 | `PATCH` | `/api/reservations/:id` | Protected (`Bearer Token`) | `{ status }` (`Confirmed`, `Declined`, `Cancelled`) | `200 OK`: `Reservation` — Manager can confirm or decline any booking; customer can cancel own booking. |
+| 18 | `POST` | `/api/orders` | Protected (`Bearer Token`) | `{ items: [{ menuItem, name, price, quantity, note? }], orderType?, tableNumber?, notes? }` | `201 Created`: `Order` — Places new order into kitchen queue (`Pending`). Server validates menu items and calculates totals. |
+| 19 | `GET` | `/api/orders` | Manager Only (`protect, managerOnly`) | None | `200 OK`: `Order[]` — Retrieves all restaurant orders in the kitchen pipeline. |
+| 20 | `GET` | `/api/orders/my` | Protected (`Bearer Token`) | None | `200 OK`: `Order[]` — Retrieves order history for the authenticated customer. |
+| 21 | `PATCH` | `/api/orders/:id/status` | Protected (`Bearer Token`) | `{ status }` (`Pending`, `Preparing`, `Ready`, `Served`, `Cancelled`) | `200 OK`: `Order` — Manager advances status monotonically; customer can cancel order while `Pending` within 10-minute window. |
 
 ---
 
@@ -120,21 +125,26 @@ All passwords in `server/seed.js` are securely hashed using `bcrypt` (10 salt ro
 
 | Screen | React Core Hooks | Custom Project Hooks | Purpose & Responsibility |
 |---|---|---|---|
-| **LoginScreen** | `useState`, `useEffect`, `useRef` | `useAuth`, `useTheme` | 3D card flip animation, credentials validation, live JWT login via `/api/auth/login`. |
-| **MenuScreen** | `useState`, `useEffect`, `useRef`, `useMemo`, `useCallback` | `useApi`, `useTheme`, `useAuth`, `useCart`, `useMenu` | Live menu fetch using `useApi('/api/menu')`, category filter chips, debounced search, `React.memo` item cards. |
-| **CartScreen** | `useState`, `useMemo` | `useCart`, `useTheme` | Pure reducer dispatching, quantity steppers, per-item instructions, promo validation, memoized totals. |
-| **OrderSummaryScreen** | `useMemo` | `useCart`, `useOrders`, `useAuth`, `useTheme` | Order financial verification, dispatches live `POST /api/orders` to backend. |
-| **OrderTrackingScreen** | `useState`, `useEffect`, `useRef` | `useOrders`, `useTheme` | Kitchen progression timeline, active polling every 10 seconds via `/api/orders/:id`. |
-| **ReservationScreen** | `useState` | `useReservation`, `useAuth`, `useTheme` | Live table selection via `/api/tables`, booking dispatch to `/api/reservations`, `409 Conflict` alert handling. |
-| **ManagerDashboardScreen** | `useState`, `useCallback` | `useApi`, `useAuth`, `useTheme`, `useOrders`, `useMenu`, `useReservation` | Fetches live reservations via `useApi('/api/reservations')`, live order status progression, menu CRUD. |
-| **ProfileScreen** | `none` | `useAuth`, `useTheme` | User credentials inspection, dark/light theme switch toggle, role badge, JWT logout. |
+| **LoginScreen** | `useState`, `useEffect`, `useRef`, `useCallback` | `useAuth`, `useTheme`, `useForm`, `useSafeAreaInsets` | Unified authentication for login and customer registration. Live password checklist (min 8 chars, 1 digit, matching confirm), inline error display without popups, remembered email. |
+| **MenuScreen** | `useState`, `useEffect`, `useRef`, `useMemo`, `useCallback` | `useApi`, `useTheme`, `useAuth`, `useCart`, `useMenu`, `useSafeAreaInsets` | Live menu fetch using `useApi('/api/menu')`, category filter chips, debounced search, `React.memo` item cards. |
+| **CartScreen** | `useState`, `useMemo` | `useCart`, `useTheme` | Pure reducer dispatching (`ADD_ITEM`, `REMOVE_ITEM`, `INCREMENT`, `DECREMENT`, `UPDATE_NOTE`, `APPLY_PROMO`, `REMOVE_PROMO`, `CLEAR_CART`), quantity steppers, per-item notes, promo codes (`WELCOME10`, `FEAST20`, `AURA30`), memoized totals. |
+| **OrderSummaryScreen** | `useState`, `useMemo` | `useCart`, `useOrders`, `useAuth`, `useTheme` | Order financial verification (subtotal, taxes, tip), dispatches live `POST /api/orders` to backend. |
+| **OrderTrackingScreen** | `useState`, `useEffect`, `useRef`, `useCallback`, `useMemo` | `useOrders`, `useAuth`, `useTheme` | Kitchen progression timeline (`Pending` ➔ `Preparing` ➔ `Ready` ➔ `Served`), elapsed timer, cancel countdown (10-minute window), active polling every 10 seconds via `GET /api/orders/my` (stopped when no active order). |
+| **ReservationScreen** | `useState`, `useMemo`, `useEffect` | `useReservation`, `useAuth`, `useTheme`, `useSafeAreaInsets` | Live table selection via `/api/tables`, booking dispatch to `/api/reservations`, `409 Conflict` collision handling. |
+| **ManagerDashboardScreen** | `useState`, `useCallback` | `useApi`, `useAuth`, `useTheme`, `useOrders`, `useMenu` | Fetches live reservations via `useApi('/api/reservations')`, live order status progression (`Start Cooking`, `Mark Ready`, `Mark Served`), menu CRUD with price editing, staff creation via Team tab. |
+| **ProfileScreen** | `useState`, `useEffect` | `useAuth`, `useTheme`, `useOrders`, `useReservation` | User profile details inspection, dark/light theme toggle, role badge, safeStorage session management, JWT logout. |
 
 ---
 
 ## 6. Security & Environment Variable Policy
 
 * **`.env` Exclusion**: In accordance with enterprise security practices, the real `.env` file containing secrets, database credentials, and JWT signing keys is **strictly ignored** by `.gitignore` and has never been pushed to Git.
-* **`.env.example`**: A safe template file is provided at `server/.env.example` with standard defaults for local development.
+* **`.env.example` Keys**: A safe template file is provided at `server/.env.example` with standard placeholders only:
+  * `PORT=5000`
+  * `MONGO_URI=your_mongodb_atlas_connection_string_here`
+  * `JWT_SECRET=your_super_secret_key_here`
+  * `JWT_EXPIRES_IN=1d`
+  * `CORS_ORIGINS=http://localhost:19006,http://localhost:8081`
 * **Password Hashing**: Passwords are never stored in plaintext. They are salted and hashed with `bcrypt` (10 rounds).
 * **JWT Expiration**: Access tokens are signed using a server-side secret with a 24-hour expiration (`1d`).
 
@@ -143,8 +153,23 @@ All passwords in `server/seed.js` are securely hashed using `bcrypt` (10 salt ro
 ## 7. Demonstration Video & Screenshots
 
 * **Assignment 1 Video**: [Watch A1 Demo Video on GitHub](https://github.com/obaids093-prog/Restaurant-app/blob/main/A1/demo_video.mp4)
-* **Assignment 2 Full-Stack Video**: Recorded demonstration showing Express server start, MongoDB connection, Postman testing, and mobile app live sync.
-* **UML & Diagrams**: Included in high resolution inside `A2/SRS_v2.pdf`.
+* **Demo video (max 4 minutes)**: TODO add link
+* **UML & Diagrams**: Included in high resolution inside `A2/SRS_v2.pdf` and `uml/Untitled Diagram-Page-1.drawio.png`.
+
+### Screenshots
+* **Postman Success**: `TODO: add`
+* **Postman Failure**: `TODO: add`
+* **Menu POST with No Token (401 Unauthorized)**: `TODO: add`
+* **Menu POST with Customer Token (403 Forbidden)**: `TODO: add`
+* **Menu POST with Manager Token (201 Created)**: `TODO: add`
+* **Health Route on Mobile Device (`/api/health`)**: `TODO: add`
+* **MongoDB Atlas `menuitems` Collection**: `TODO: add`
+* **Real-Time Synchronized Price Update on Two Devices**: `TODO: add`
+* **Existing Repository Assets**:
+  * `assets/icon.png` (App Launcher Icon)
+  * `assets/splash-icon.png` (Splash Screen Icon)
+  * `assets/favicon.png` (Web Favicon)
+  * `uml/Untitled Diagram-Page-1.drawio.png` (System Architecture & UML Diagram)
 
 ---
 
@@ -152,17 +177,17 @@ All passwords in `server/seed.js` are securely hashed using `bcrypt` (10 salt ro
 
 | Test ID | Module | Description | Pre-condition | Steps | Expected | Actual | Status |
 |---|---|---|---|---|---|---|---|
-| **TC-AUTH-01** | Auth | Successful customer authentication | User exists in DB with valid password | 1. Enter `zainab.malik@aurabistro.pk`<br>2. Enter `Password123`<br>3. Tap "Sign In" | HTTP 200 returned, JWT token stored, user context loaded, redirect to Menu | User authenticated, token persisted in storage, navigates to Menu | Pass |
-| **TC-AUTH-02** | Auth | Rejection of invalid credentials | Registered user email | 1. Enter `zainab.malik@aurabistro.pk`<br>2. Enter wrong password<br>3. Tap "Sign In" | HTTP 401 Unauthorized with "Invalid email or password" error | Alert dialog presents "Invalid email or password"; state remains unauthenticated | Pass |
-| **TC-AUTH-03** | Auth | Rejection of duplicate email registration | Email already exists in DB | 1. Go to Register tab<br>2. Fill existing email & details<br>3. Submit form | HTTP 400 Bad Request with "User with this email already exists" | Alert displays duplicate account error message | Pass |
-| **TC-ROLE-01** | Role Switching | Manager role access to kitchen queue & controls | Logged in as manager (`farhan.chef@aurabistro.pk`) | 1. Log in with manager account<br>2. Check navigation tabs | "Manager" dashboard tab visible with order progression and booking controls | Manager Dashboard tab accessible with active queue and approval actions | Pass |
-| **TC-ROLE-02** | Role Switching | Customer role forbidden from manager operations | Logged in as customer (`zainab.malik@aurabistro.pk`) | 1. Log in as customer<br>2. Check UI and invoke manager endpoints | Manager tab hidden; direct API calls to manager routes return HTTP 403 Forbidden | Manager tab hidden in client; unauthorized endpoints return HTTP 403 | Pass |
-| **TC-CART-01** | Cart Reducer | Add menu item and calculate subtotal | Menu items loaded, cart empty | 1. Tap "+" on Wagyu Ribeye ($48)<br>2. Open Cart screen | Reducer handles `ADD_ITEM`, subtotal updates to $48.00, count is 1 | Cart renders 1x Wagyu Ribeye at $48.00; subtotal is $48.00 | Pass |
-| **TC-CART-02** | Cart Reducer | Apply valid promo voucher code | Active items in cart | 1. Enter voucher "AURA10"<br>2. Tap "Apply" | Reducer handles `APPLY_PROMO`, applies 10% discount to subtotal | 10% discount line item calculated and deducted from total | Pass |
-| **TC-CART-03** | Cart Reducer | Decrement item quantity to zero removes item | Cart contains 1 item (qty: 1) | 1. Tap "-" button on item | Reducer handles `DECREMENT_ITEM`, item removed from list | Item removed; empty cart placeholder shown | Pass |
+| **TC-AUTH-01** | Auth | Successful customer authentication | User exists in DB with valid password | 1. Enter `zainab.malik@aurabistro.pk`<br>2. Enter `Password123`<br>3. Tap "Sign In to AURA" | HTTP 200 returned, JWT token stored, user context loaded, redirect to Menu | User authenticated, token persisted in safeStorage, navigates to Menu | Pass |
+| **TC-AUTH-02** | Auth | Rejection of invalid credentials | Registered user email | 1. Enter `zainab.malik@aurabistro.pk`<br>2. Enter wrong password<br>3. Tap "Sign In to AURA" | HTTP 401 Unauthorized with "Invalid email or password" error | Inline error banner displays "Invalid email or password"; state remains unauthenticated | Pass |
+| **TC-AUTH-03** | Auth | Rejection of duplicate email registration | Email already exists in DB | 1. Tap "Sign up"<br>2. Fill name, existing email & valid password<br>3. Tap "Create Customer Account" | HTTP 409 Conflict with "An account with this email already exists" | Inline error banner displays "An account with this email already exists" | Pass |
+| **TC-ROLE-01** | Role Switching | Manager role access to kitchen queue & controls | Logged in as manager (`farhan.chef@aurabistro.pk`) | 1. Log in with manager account<br>2. Check navigation tabs | Manager Dashboard opens with Orders, Tables, Menu Stock, and Team tabs | Manager Dashboard accessible with active queue, booking approval, and staff creation | Pass |
+| **TC-ROLE-02** | Role Switching | Customer role forbidden from manager operations | Logged in as customer (`zainab.malik@aurabistro.pk`) | 1. Log in as customer<br>2. Check UI and invoke manager endpoints (e.g. POST `/api/auth/staff`) | Manager dashboard hidden in client; direct API calls to manager routes return HTTP 403 Forbidden | Manager tab hidden in client; unauthorized endpoints return HTTP 403 ("Access denied: Manager role required") | Pass |
+| **TC-CART-01** | Cart Reducer | Add menu item and calculate subtotal | Menu items loaded, cart empty | 1. Tap "+" on Saffron Infused Lobster Bisque (Rs. 1,450)<br>2. Open Cart screen | Reducer handles `ADD_ITEM`, subtotal updates to Rs. 1,450, count is 1 | Cart renders 1x item at Rs. 1,450; subtotal is Rs. 1,450 | Pass |
+| **TC-CART-02** | Cart Reducer | Apply valid promo voucher code | Active items in cart | 1. Enter voucher "WELCOME10"<br>2. Tap "Apply" | Reducer handles `APPLY_PROMO`, applies 10% discount to subtotal | 10% discount line item calculated and deducted from total | Pass |
+| **TC-CART-03** | Cart Reducer | Decrement item quantity to zero removes item | Cart contains 1 item (qty: 1) | 1. Tap "-" button on item | Reducer handles `DECREMENT`, item removed from list | Item removed; empty cart placeholder shown | Pass |
 | **TC-RES-01** | Reservations | Book dining table for available slot | User authenticated, table free | 1. Pick date, party size 2, slot 19:00<br>2. Tap "Review Booking"<br>3. Confirm in modal | POST `/api/reservations` creates booking with status "Pending" | Reservation created, booking ID issued, appears in My Bookings | Pass |
-| **TC-RES-02** | Reservations | Collision prevention for already booked slot | Table already reserved for slot | 1. Submit duplicate booking for same table, date & slot | Backend rejects with HTTP 409 Conflict: "Table already booked" | HTTP 409 Conflict returned; UI alerts collision message | Pass |
+| **TC-RES-02** | Reservations | Collision prevention for already booked slot | Table already reserved for slot | 1. Submit duplicate booking for same table, date & slot | Backend rejects with HTTP 409 Conflict: "This table is already booked for the selected date and time slot." | HTTP 409 Conflict returned; UI presents collision message | Pass |
 | **TC-RES-03** | Reservations | Customer cancels own reservation | Active booking exists in My Bookings | 1. Open My Bookings tab<br>2. Tap "Cancel Reservation"<br>3. Confirm prompt | PATCH `/api/reservations/:id` updates status to "Cancelled" | Status badge updates to "Cancelled"; table slot released | Pass |
-| **TC-ORD-01** | Orders | Place dining order from cart | Items present in cart | 1. Proceed to Order Summary<br>2. Tap "Dispatch Order to Kitchen" | POST `/api/orders` creates order with status "Pending"; cart cleared | Order record saved, cart emptied, routed to Order Tracking | Pass |
-| **TC-ORD-02** | Orders | Customer cancels own pending order | Order status is "Pending" within cancel window | 1. Open Order Tracking screen<br>2. Tap "Cancel Order"<br>3. Confirm cancellation | PATCH `/api/orders/:id/status` atomically sets status to "Cancelled" | Status transitions to "Cancelled", polling stops, UI reflects cancellation | Pass |
-| **TC-ORD-03** | Orders | Manager advances kitchen order status | Order in "Pending" status | 1. Open Manager Dashboard<br>2. Tap "Start Preparing" on order | PATCH `/api/orders/:id/status` updates status to "Preparing" | Order updates to "Preparing" in manager queue and customer tracker | Pass |
+| **TC-ORD-01** | Orders | Place dining order from cart | Items present in cart | 1. Proceed to Order Summary<br>2. Tap "Dispatch Order to Kitchen" | POST `/api/orders` creates order with status "Pending"; cart cleared via `CLEAR_CART` | Order record saved, cart emptied, routed to Order Tracking | Pass |
+| **TC-ORD-02** | Orders | Customer cancels own pending order | Order status is "Pending" within 10-minute cancellation window | 1. Open Order Tracking screen<br>2. Tap "Cancel Order"<br>3. Confirm cancellation | PATCH `/api/orders/:id/status` sets status to "Cancelled" | Status transitions to "Cancelled", polling stops, UI reflects cancellation | Pass |
+| **TC-ORD-03** | Orders | Manager advances kitchen order status | Order in "Pending" status | 1. Open Manager Dashboard<br>2. Tap "Start Cooking" on order | PATCH `/api/orders/:id/status` updates status to "Preparing" | Order updates to "Preparing" in manager queue and customer tracker | Pass |
