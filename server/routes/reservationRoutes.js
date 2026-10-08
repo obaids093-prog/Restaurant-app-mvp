@@ -24,6 +24,6 @@ router
   .get(protect, managerOnly, getAllReservations);
 
 router.get('/my', protect, getMyReservations);
-router.patch('/:id', protect, managerOnly, updateReservationStatus);
+router.patch('/:id', protect, updateReservationStatus);
 
 module.exports = router;

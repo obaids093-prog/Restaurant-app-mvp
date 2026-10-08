@@ -106,9 +106,9 @@ const getAllReservations = async (req, res) => {
   }
 };
 
-// @desc    Update reservation status (Manager accept / decline)
+// @desc    Update reservation status
 // @route   PATCH /api/reservations/:id
-// @access  Private/Manager
+// @access  Private (Manager: any status | Customer: cancel own only)
 const updateReservationStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -125,17 +125,29 @@ const updateReservationStatus = async (req, res) => {
       });
     }
 
-    const reservation = await Reservation.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true }
-    ).populate('table');
-
+    const reservation = await Reservation.findById(id);
     if (!reservation) {
       return res.status(404).json({ message: 'Reservation not found' });
     }
 
-    res.status(200).json(reservation);
+    const isManager = req.user.role === 'manager';
+    const isOwner = reservation.user.toString() === req.user._id.toString();
+
+    // Customers can only cancel their own reservations
+    if (!isManager) {
+      if (!isOwner) {
+        return res.status(403).json({ message: 'Not authorized to modify this reservation' });
+      }
+      if (status !== 'Cancelled') {
+        return res.status(403).json({ message: 'Customers can only cancel their reservations' });
+      }
+    }
+
+    reservation.status = status;
+    await reservation.save();
+
+    const updated = await Reservation.findById(id).populate('table');
+    res.status(200).json(updated);
   } catch (error) {
     console.error('Error updating reservation:', error);
     res.status(500).json({ message: 'Server error updating reservation', error: error.message });
