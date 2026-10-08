@@ -24,35 +24,35 @@ import { useReservation, TIME_SLOTS } from '../hooks/useReservation';
 
 const DINING_SLOT_GROUPS = [
   {
-    title: 'Afternoon & High Tea',
-    sub: '• Sunlight dining & midday service',
+    title: 'Lunch & Afternoon Tea',
+    sub: '• Fresh daylight dining & midday bites',
     slots: ['12:00', '13:00', '14:00', '15:00', '16:00'],
     tags: {
       '12:00': 'Lunch',
-      '13:00': 'Prime',
-      '14:00': 'Matinee',
-      '15:00': 'Tea',
-      '16:00': 'Garden',
+      '13:00': 'Popular',
+      '14:00': 'Afternoon',
+      '15:00': 'High Tea',
+      '16:00': 'Garden Tea',
     },
   },
   {
-    title: 'Twilight Dinner',
-    sub: '• Golden hour candlelit cycle',
+    title: 'Evening Dinner',
+    sub: '• Golden hour candlelit dining',
     slots: ['17:00', '18:00', '19:00', '20:00'],
     tags: {
       '17:00': 'Sunset',
-      '18:00': 'Aura',
-      '19:00': 'Prime',
-      '20:00': 'Bloom',
+      '18:00': 'Prime',
+      '19:00': 'Popular',
+      '20:00': 'Dinner',
     },
   },
   {
-    title: 'Late Botanica',
-    sub: '• Dim lights & acoustic jazz',
+    title: 'Late Night Dining',
+    sub: '• Cozy vibes & relaxing ambient music',
     slots: ['21:00', '22:00'],
     tags: {
-      '21:00': 'Sommelier',
-      '22:00': 'Digestif',
+      '21:00': 'Chef Special',
+      '22:00': 'Late Bites',
     },
   },
 ];
@@ -156,16 +156,16 @@ export default function ReservationScreen() {
     {
       id: 'courtyard',
       name: 'Olive Tree Courtyard',
-      desc: 'Open-air sheltered garden under ancient olive trees, ambient bronze fire lanterns and twilight breeze.',
-      badge: 'Al Fresco',
+      desc: 'Open-air sheltered garden under ancient olive trees with ambient lanterns and gentle breeze.',
+      badge: 'Outdoor Garden',
       capacity: '2-6 Guests',
       image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&auto=format&fit=crop&q=80',
     },
     {
       id: 'counter',
-      name: 'Sommelier Hearth Counter',
-      desc: 'Front-row vantage point facing our Bincho-tan oak hearth grill with bespoke sommelier pairings.',
-      badge: 'Chef Experience',
+      name: "Chef's Open Counter",
+      desc: 'Front-row vantage point facing our oak hearth grill with live culinary preparation and signature pairings.',
+      badge: "Chef's Special",
       capacity: '1-2 Guests',
       image: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=500&auto=format&fit=crop&q=80',
     },
@@ -421,7 +421,7 @@ export default function ReservationScreen() {
               <View>
                 <Text style={styles.partyStepperLabel}>PARTY SIZE</Text>
                 <Text style={styles.partyStepperCount}>
-                  {partySize} {partySize === 1 ? 'Discerning Guest' : 'Discerning Guests'}
+                  {partySize} {partySize === 1 ? 'Guest' : 'Guests'}
                 </Text>
               </View>
             </View>
@@ -740,7 +740,7 @@ export default function ReservationScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.reviewGradient}
               >
-                <Text style={styles.reviewBtnText}>Review Sanctuary Booking</Text>
+                <Text style={styles.reviewBtnText}>Review & Confirm Booking</Text>
                 <Ionicons name="arrow-forward" size={18} color="#472a00" style={{ marginLeft: 8 }} />
               </LinearGradient>
             </TouchableOpacity>
