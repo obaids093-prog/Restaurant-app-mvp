@@ -53,6 +53,7 @@ export default function LoginScreen({ navigation }) {
 
   // Input refs for smooth keyboard focus advancement
   const nameInputRef = useRef(null);
+  const phoneInputRef = useRef(null);
   const emailInputRef = useRef(null);
   const passwordInputRef = useRef(null);
   const confirmPasswordInputRef = useRef(null);
@@ -68,12 +69,22 @@ export default function LoginScreen({ navigation }) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const hasDigitRegex = /\d/;
 
-      // Signup only: Full name
+      // Signup only: Full name & Phone
       if (mode === 'signup') {
         if (!vals.name || !vals.name.trim()) {
           newErrors.name = 'Full name is required.';
         } else if (vals.name.trim().length < 2) {
           newErrors.name = 'Name must be at least 2 characters.';
+        }
+
+        // Pakistani Mobile Number (e.g. 0300-1234567, 03001234567, +923001234567)
+        const pakPhoneClean = (vals.phone || '').trim().replace(/[\s-]/g, '');
+        const pakPhoneRegex = /^(\+92|0092|0)?3[0-9]{9}$/;
+
+        if (!vals.phone || !vals.phone.trim()) {
+          newErrors.phone = 'Mobile number is required for order deliveries.';
+        } else if (!pakPhoneRegex.test(pakPhoneClean)) {
+          newErrors.phone = 'Enter valid Pakistani mobile number (e.g. 0300-1234567).';
         }
       }
 
@@ -116,6 +127,7 @@ export default function LoginScreen({ navigation }) {
   } = useForm(
     {
       name: '',
+      phone: '',
       email: '',
       password: '',
       confirmPassword: '',
@@ -158,6 +170,7 @@ export default function LoginScreen({ navigation }) {
     setMode(newMode);
     reset({
       name: '',
+      phone: '',
       email: values.email || '',
       password: '',
       confirmPassword: '',
@@ -196,6 +209,7 @@ export default function LoginScreen({ navigation }) {
         // Public registration: ALWAYS role 'customer'
         await signup({
           name: formValues.name.trim(),
+          phone: formValues.phone ? formValues.phone.trim() : '',
           email: cleanEmail,
           password: formValues.password,
           role: 'customer',
@@ -378,7 +392,7 @@ export default function LoginScreen({ navigation }) {
                       autoCapitalize="words"
                       autoComplete="name"
                       returnKeyType="next"
-                      onSubmitEditing={() => emailInputRef.current?.focus()}
+                      onSubmitEditing={() => phoneInputRef.current?.focus()}
                       editable={!isSubmitting}
                       accessibilityLabel="Full Name Input"
                     />
@@ -386,6 +400,50 @@ export default function LoginScreen({ navigation }) {
                   {errors.name ? (
                     <Text style={[styles.inlineError, { color: colors.error }]}>
                       {errors.name}
+                    </Text>
+                  ) : null}
+                </View>
+              )}
+
+              {/* Phone Number (Signup Only - Pakistan Mobile) */}
+              {mode === 'signup' && (
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                    PHONE NUMBER (PAKISTAN)
+                  </Text>
+                  <View
+                    style={[
+                      styles.inputBox,
+                      {
+                        backgroundColor: colors.inputBackground,
+                        borderColor: errors.phone ? colors.error : colors.inputBorder,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="call-outline"
+                      size={18}
+                      color={colors.primary}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      ref={phoneInputRef}
+                      style={[styles.textInput, { color: colors.textPrimary }]}
+                      placeholder="0300-1234567"
+                      placeholderTextColor={colors.textMuted}
+                      value={values.phone}
+                      onChangeText={(val) => handleChange('phone', val)}
+                      keyboardType="phone-pad"
+                      autoComplete="tel"
+                      returnKeyType="next"
+                      onSubmitEditing={() => emailInputRef.current?.focus()}
+                      editable={!isSubmitting}
+                      accessibilityLabel="Phone Number Input"
+                    />
+                  </View>
+                  {errors.phone ? (
+                    <Text style={[styles.inlineError, { color: colors.error }]}>
+                      {errors.phone}
                     </Text>
                   ) : null}
                 </View>
