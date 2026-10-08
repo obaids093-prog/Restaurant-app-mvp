@@ -62,6 +62,7 @@ export const OrdersProvider = ({ children }) => {
       const payload = {
         items: (orderData.items || []).map((item) => ({
           menuItem: item.menuItem || item.id || item._id,
+          name: item.name || '',
           quantity: item.quantity || 1,
           specialInstructions: item.specialInstructions || item.note || '',
         })),
@@ -109,10 +110,23 @@ export const OrdersProvider = ({ children }) => {
     return updateOrderStatus(orderId, 'Cancelled');
   };
 
+  const ACTIVE_STATUSES = ['Pending', 'Preparing', 'Ready'];
+
+  // Active orders (Pending, Preparing, Ready only) sorted newest first
+  const activeOrders = (orders || [])
+    .filter((o) => ACTIVE_STATUSES.includes(o.status))
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+  // Most recent active order
+  const activeOrder = activeOrders[0] || null;
+
   return (
     <OrdersContext.Provider
       value={{
         orders,
+        activeOrders,
+        activeOrder,
+        hasActiveOrder: Boolean(activeOrder),
         isLoading,
         error,
         fetchOrders,
