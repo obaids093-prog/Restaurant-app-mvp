@@ -14,6 +14,7 @@
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const MenuItem = require('../models/MenuItem');
+const { CANCEL_WINDOW_MINUTES } = require('../config/constants');
 
 // Valid status progression sequence
 const STATUS_ORDER = ['Pending', 'Preparing', 'Ready', 'Served'];
@@ -176,14 +177,30 @@ const updateOrderStatus = async (req, res) => {
       if (targetStatus !== 'Cancelled') {
         return res.status(403).json({ message: 'Customers can only cancel their orders' });
       }
-      if (currentStatus !== 'Pending') {
-        return res.status(400).json({
-          message: `Cannot cancel an order that is already '${currentStatus}'. Orders can only be cancelled while 'Pending'.`,
-        });
+
+      // Time window check (0 = disabled)
+      if (CANCEL_WINDOW_MINUTES > 0 && order.createdAt) {
+        const ageMs = Date.now() - new Date(order.createdAt).getTime();
+        const windowMs = CANCEL_WINDOW_MINUTES * 60 * 1000;
+        if (ageMs > windowMs) {
+          return res.status(400).json({
+            message: `Cancellation window has expired. Orders can only be cancelled within ${CANCEL_WINDOW_MINUTES} minutes of placement.`,
+          });
+        }
       }
-      order.status = 'Cancelled';
-      await order.save();
-      return res.status(200).json(order);
+
+      // Atomic cancel: filter ensures order is still Pending AND owned by this user
+      const cancelled = await Order.findOneAndUpdate(
+        { _id: id, user: req.user._id, status: 'Pending' },
+        { status: 'Cancelled' },
+        { new: true }
+      );
+
+      if (!cancelled) {
+        return res.status(400).json({ message: 'Order can no longer be cancelled (status may have changed).' });
+      }
+
+      return res.status(200).json(cancelled);
     }
 
     // --- Manager: full status progression ---
