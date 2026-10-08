@@ -24,6 +24,6 @@ router
   .get(protect, managerOnly, getAllOrders);
 
 router.get('/my', protect, getMyOrders);
-router.patch('/:id/status', protect, managerOnly, updateOrderStatus);
+router.patch('/:id/status', protect, updateOrderStatus);
 
 module.exports = router;

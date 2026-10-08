@@ -36,13 +36,31 @@ const placeOrder = async (req, res) => {
     for (const item of items) {
       const menuItemId = item.menuItem || item.id || item._id;
 
-      if (!menuItemId || !mongoose.Types.ObjectId.isValid(menuItemId)) {
-        return res.status(400).json({ message: `Invalid menu item ID: ${menuItemId}` });
+      let menuItemDoc = null;
+
+      if (menuItemId && mongoose.Types.ObjectId.isValid(menuItemId)) {
+        menuItemDoc = await MenuItem.findById(menuItemId);
       }
 
-      const menuItemDoc = await MenuItem.findById(menuItemId);
+      // Fallback: If not found by ID or ID is legacy/custom, lookup by name
+      if (!menuItemDoc && item.name) {
+        menuItemDoc = await MenuItem.findOne({
+          name: new RegExp(`^${item.name.trim()}$`, 'i'),
+        });
+      }
+
+      // Secondary fallback: partial name matching
+      if (!menuItemDoc && item.name) {
+        const firstWord = item.name.trim().split(' ')[0];
+        if (firstWord && firstWord.length > 2) {
+          menuItemDoc = await MenuItem.findOne({
+            name: new RegExp(firstWord, 'i'),
+          });
+        }
+      }
+
       if (!menuItemDoc) {
-        return res.status(404).json({ message: `Menu item not found in catalog: ${menuItemId}` });
+        return res.status(404).json({ message: `Menu item not found in catalog: ${item.name || menuItemId}` });
       }
 
       // Business Rule: Server rejects unavailable items
@@ -69,12 +87,23 @@ const placeOrder = async (req, res) => {
       });
     }
 
+    // Normalize orderType from UI variants ('Curbside', 'Dine-In Table', etc.)
+    let finalOrderType = 'Dine-in';
+    if (orderType) {
+      const lower = String(orderType).toLowerCase();
+      if (lower.includes('takeaway') || lower.includes('curbside')) {
+        finalOrderType = 'Takeaway';
+      } else {
+        finalOrderType = 'Dine-in';
+      }
+    }
+
     const newOrder = await Order.create({
       user: req.user._id,
       customerName: req.user.name,
       items: verifiedItems,
       totalAmount: calculatedTotal,
-      orderType: orderType || 'Dine-in',
+      orderType: finalOrderType,
       tableNumber: tableNumber || '',
       status: 'Pending',
       notes: notes || '',
@@ -83,7 +112,7 @@ const placeOrder = async (req, res) => {
     res.status(201).json(newOrder);
   } catch (error) {
     console.error('Error placing order:', error);
-    res.status(500).json({ message: 'Server error placing order', error: error.message });
+    res.status(500).json({ message: error.message || 'Server error placing order', error: error.message });
   }
 };
 
@@ -120,7 +149,7 @@ const getAllOrders = async (req, res) => {
 
 // @desc    Update order status
 // @route   PATCH /api/orders/:id/status
-// @access  Private/Manager
+// @access  Private (Manager: full progression | Customer: cancel own Pending only)
 const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -136,7 +165,28 @@ const updateOrderStatus = async (req, res) => {
     }
 
     const currentStatus = order.status;
+    const isManager = req.user.role === 'manager';
+    const isOwner = order.user.toString() === req.user._id.toString();
 
+    // --- Customer authorization ---
+    if (!isManager) {
+      if (!isOwner) {
+        return res.status(403).json({ message: 'Not authorized to modify this order' });
+      }
+      if (targetStatus !== 'Cancelled') {
+        return res.status(403).json({ message: 'Customers can only cancel their orders' });
+      }
+      if (currentStatus !== 'Pending') {
+        return res.status(400).json({
+          message: `Cannot cancel an order that is already '${currentStatus}'. Orders can only be cancelled while 'Pending'.`,
+        });
+      }
+      order.status = 'Cancelled';
+      await order.save();
+      return res.status(200).json(order);
+    }
+
+    // --- Manager: full status progression ---
     // Check cancellation rule:
     // "An order can be Cancelled only while it is Pending"
     if (targetStatus === 'Cancelled') {
