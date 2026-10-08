@@ -264,23 +264,14 @@ export function useReservation(currentUser) {
    * Cancel Reservation action
    */
   const cancelReservation = useCallback(async (reservationId) => {
-    try {
-      await apiClient(`/api/reservations/${reservationId}`, {
-        method: 'PATCH',
-        body: { status: 'Cancelled' },
-      });
-    } catch (e) {
-      console.warn('[useReservation] Backend cancel sync notice:', e.message);
-    }
+    await apiClient(`/api/reservations/${reservationId}`, {
+      method: 'PATCH',
+      body: { status: 'Cancelled' },
+    });
 
-    setReservationsList((prev) =>
-      prev.map((res) =>
-        res.id === reservationId || res._id === reservationId
-          ? { ...res, status: 'Cancelled' }
-          : res
-      )
-    );
-  }, []);
+    // Refresh the reservations list directly from the server
+    await loadReservations();
+  }, [loadReservations]);
 
   return {
     // States

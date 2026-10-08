@@ -61,6 +61,7 @@ export default function ReservationScreen() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [activeTab, setActiveTab] = useState('book'); // 'book' | 'history'
   const [selectedZone, setSelectedZone] = useState('glasshouse');
+  const [cancellingBookingId, setCancellingBookingId] = useState(null);
 
   // Upcoming 7 Days Ribbon
   const upcomingDates = useMemo(() => {
@@ -149,7 +150,7 @@ export default function ReservationScreen() {
     const msg = `Are you sure you wish to cancel reservation ${bookingId} for ${booking.partySize} guests at ${booking.timeSlot}?`;
 
     if (Platform.OS === 'web') {
-      if (!window.confirm(msg)) return;
+      if (typeof window !== 'undefined' && window.confirm && !window.confirm(msg)) return;
     } else {
       // Wrap Alert.alert in a promise so we can await it on native
       const confirmed = await new Promise((resolve) => {
@@ -161,11 +162,14 @@ export default function ReservationScreen() {
       if (!confirmed) return;
     }
 
+    setCancellingBookingId(bookingId);
     try {
       await cancelReservation(bookingId);
       showAlert('Cancelled', 'Your reservation has been cancelled.');
     } catch (err) {
       showAlert('Cancel Error', err.message || 'Could not cancel reservation.');
+    } finally {
+      setCancellingBookingId(null);
     }
   };
 
@@ -920,14 +924,22 @@ export default function ReservationScreen() {
                   {!isCancelled && (
                     <TouchableOpacity
                       onPress={() => handleCancelPress(booking)}
+                      disabled={cancellingBookingId === (booking.id || booking._id)}
                       style={[
                         styles.cancelBtn,
                         { backgroundColor: colors.surfaceSubtle, borderColor: colors.error + '40' },
+                        cancellingBookingId === (booking.id || booking._id) && { opacity: 0.6 },
                       ]}
                     >
-                      <Ionicons name="close-circle-outline" size={16} color={colors.error} />
+                      {cancellingBookingId === (booking.id || booking._id) ? (
+                        <ActivityIndicator size="small" color={colors.error} style={{ marginRight: 6 }} />
+                      ) : (
+                        <Ionicons name="close-circle-outline" size={16} color={colors.error} />
+                      )}
                       <Text style={[styles.cancelBtnText, { color: colors.error }]}>
-                        Cancel Reservation
+                        {cancellingBookingId === (booking.id || booking._id)
+                          ? 'Cancelling...'
+                          : 'Cancel Reservation'}
                       </Text>
                     </TouchableOpacity>
                   )}
