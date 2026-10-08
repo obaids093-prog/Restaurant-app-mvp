@@ -201,17 +201,15 @@ export default function ProfileScreen({ navigation }) {
             end={{ x: 1, y: 1 }}
             style={[styles.passportCardInner, { borderColor: '#D97706' }]}
           >
-            {/* Card Watermark & Chip */}
+            {/* Card Brand Header */}
             <View style={styles.cardHeaderRow}>
-              <View style={styles.chipRow}>
-                <View style={styles.goldSmartChip}>
-                  <View style={styles.chipWire1} />
-                  <View style={styles.chipWire2} />
-                </View>
-                <Ionicons name="wifi-outline" size={18} color="#D97706" style={{ marginLeft: 8 }} />
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="restaurant" size={16} color="#FBBF24" />
+                <Text style={{ color: '#FBBF24', fontSize: 13, fontWeight: '800', marginLeft: 6, letterSpacing: 1.5 }}>
+                  AURA
+                </Text>
               </View>
               <View style={styles.vipTagPill}>
-                <Ionicons name="sparkles" size={12} color="#FBBF24" />
                 <Text style={styles.vipTagPillText}>
                   {isManager ? 'MANAGER' : (user?.membership ? user.membership.toUpperCase() : 'CUSTOMER')}
                 </Text>
@@ -303,45 +301,6 @@ export default function ProfileScreen({ navigation }) {
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.primary} />
         </TouchableOpacity>
-
-        {/* ─── PATRON DINING METRICS ─── */}
-        <View style={styles.metricsMatrix}>
-          <View
-            style={[
-              styles.metricPod,
-              { backgroundColor: colors.card, borderColor: colors.cardBorder },
-              shadows.soft,
-            ]}
-          >
-            <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-            <Text style={[styles.metricNumber, { color: colors.textPrimary }]}>14</Text>
-            <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Visits</Text>
-          </View>
-
-          <View
-            style={[
-              styles.metricPod,
-              { backgroundColor: colors.card, borderColor: colors.cardBorder },
-              shadows.soft,
-            ]}
-          >
-            <Ionicons name="wallet-outline" size={18} color={colors.secondary} />
-            <Text style={[styles.metricNumber, { color: colors.textPrimary }]}>48.5k</Text>
-            <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Spent (Rs)</Text>
-          </View>
-
-          <View
-            style={[
-              styles.metricPod,
-              { backgroundColor: colors.card, borderColor: colors.cardBorder },
-              shadows.soft,
-            ]}
-          >
-            <Ionicons name="trophy-outline" size={18} color="#10B981" />
-            <Text style={[styles.metricNumber, { color: colors.textPrimary }]}>2,450</Text>
-            <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Points</Text>
-          </View>
-        </View>
 
         {/* ─── ATMOSPHERIC THEME SWITCHER ─── */}
         <View

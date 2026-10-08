@@ -133,7 +133,6 @@ export default function AuraProfileDrawer({ visible, onClose, navigation }) {
             onPress={() => navigation?.navigate("Profile")}
             badge={0}
           />
-          <NavItem icon="receipt-outline" label="Order History" onPress={() => {}} badge={0} />
           <NavItem
             icon="restaurant-outline"
             label="Active Orders"
@@ -146,7 +145,6 @@ export default function AuraProfileDrawer({ visible, onClose, navigation }) {
             onPress={() => navigation?.navigate("Reservations")}
             badge={0}
           />
-          <NavItem icon="heart-outline" label="Saved Favourites" onPress={() => {}} badge={0} />
           <View style={styles.navItem}>
             <View style={[styles.navIconWrap, { backgroundColor: colors.primary + "18" }]}>
               <Ionicons name={isDark ? "moon" : "sunny-outline"} size={18} color={colors.primary} />
