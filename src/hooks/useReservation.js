@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import apiClient from '../api/client';
 import safeStorage from '../utils/safeStorage';
-import { mockTables } from '../data/tables';
-import { mockReservations } from '../data/reservations';
 
 const RESERVATIONS_STORAGE_KEY = '@aura_reservations_data';
 
@@ -39,18 +37,24 @@ export function useReservation(currentUser) {
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('19:00');
   const [partySize, setPartySize] = useState(2);
-  const [tablesList, setTablesList] = useState(mockTables);
+  const [tablesList, setTablesList] = useState([]);
   const [selectedTable, setSelectedTable] = useState(null);
   const [contactName, setContactName] = useState(currentUser?.name || 'Zainab Malik');
   const [contactPhone, setContactPhone] = useState(currentUser?.phone || '0302-8877665');
   const [specialRequests, setSpecialRequests] = useState('');
-  const [reservationsList, setReservationsList] = useState(mockReservations.map(normalizeReservation));
+  const [reservationsList, setReservationsList] = useState([]);
   const [validationErrors, setValidationErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingTables, setIsLoadingTables] = useState(true);
+  const [isLoadingReservations, setIsLoadingReservations] = useState(true);
+  const [error, setError] = useState(null);
+
+  const isLoading = isLoadingTables || isLoadingReservations;
 
   // 1. Fetch live tables from backend GET /api/tables
   const loadTables = useCallback(async () => {
     try {
+      setIsLoadingTables(true);
+      setError(null);
       const data = await apiClient('/api/tables');
       if (Array.isArray(data) && data.length > 0) {
         const normalizedTables = data.map((t) => ({
@@ -61,14 +65,18 @@ export function useReservation(currentUser) {
         setTablesList(normalizedTables);
       }
     } catch (e) {
-      console.warn('[useReservation] Could not fetch live tables, using fallback:', e.message);
+      console.warn('[useReservation] Could not fetch live tables:', e.message);
+      setError(e.message || 'Could not load tables');
+    } finally {
+      setIsLoadingTables(false);
     }
   }, []);
 
   // 2. Fetch customer's live bookings from backend GET /api/reservations/my
   const loadReservations = useCallback(async () => {
     try {
-      setIsLoading(true);
+      setIsLoadingReservations(true);
+      setError(null);
       const data = await apiClient('/api/reservations/my');
       if (Array.isArray(data)) {
         const normalized = data.map(normalizeReservation);
@@ -83,13 +91,18 @@ export function useReservation(currentUser) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setReservationsList(parsed.map(normalizeReservation));
+          } else {
+            setError(e.message || 'Could not load reservations');
           }
+        } else {
+          setError(e.message || 'Could not load reservations');
         }
       } catch (cacheErr) {
         console.warn('[useReservation] Cache restore error:', cacheErr.message);
+        setError(e.message || 'Could not load reservations');
       }
     } finally {
-      setIsLoading(false);
+      setIsLoadingReservations(false);
     }
   }, []);
 
@@ -286,9 +299,11 @@ export function useReservation(currentUser) {
     specialRequests,
     setSpecialRequests,
     reservationsList,
+    tablesList,
     validationErrors,
     availableTablesCount: getAvailableTablesForSlot(selectedDate, selectedTimeSlot, partySize).length,
     isLoading,
+    error,
 
     // Actions & Helpers
     isSlotAvailable,
@@ -296,6 +311,7 @@ export function useReservation(currentUser) {
     validateReservation,
     createReservation,
     cancelReservation,
+    loadTables,
     refetchReservations: loadReservations,
   };
 }

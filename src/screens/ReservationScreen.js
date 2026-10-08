@@ -12,6 +12,7 @@ import {
   FlatList,
   Image,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
@@ -43,12 +44,17 @@ export default function ReservationScreen() {
     specialRequests,
     setSpecialRequests,
     reservationsList,
+    tablesList,
     validationErrors,
     availableTablesCount,
     isSlotAvailable,
     validateReservation,
     createReservation,
     cancelReservation,
+    isLoading,
+    error,
+    loadTables,
+    refetchReservations,
   } = useReservation(user);
 
   // Local UI-only state: Confirmation Modal visibility & active tab
@@ -230,10 +236,43 @@ export default function ReservationScreen() {
       </View>
 
       {activeTab === 'book' ? (
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
+        isLoading && tablesList.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+              Loading Sanctuary Tables...
+            </Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+              Connecting to live reservation system.
+            </Text>
+          </View>
+        ) : !isLoading && error && tablesList.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="alert-circle-outline" size={56} color={colors.error} />
+            <Text style={[styles.emptyTitle, { color: colors.error }]}>
+              Unable to Load Tables
+            </Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+              {error}
+            </Text>
+            <TouchableOpacity
+              onPress={loadTables}
+              style={{
+                marginTop: 16,
+                paddingHorizontal: 24,
+                paddingVertical: 12,
+                borderRadius: 12,
+                backgroundColor: colors.primary,
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700' }}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
           {/* Sanctuary Booking Intro Header (from Stitch AI) */}
           <View style={styles.sanctuaryHeader}>
             <View style={styles.sanctuaryTagRow}>
@@ -745,13 +784,46 @@ export default function ReservationScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+        )
       ) : (
         /* MY RESERVATIONS HISTORY TAB */
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {reservationsList.length === 0 ? (
+          {isLoading && reservationsList.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+                Loading Your Bookings...
+              </Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+                Fetching your live table reservation history.
+              </Text>
+            </View>
+          ) : !isLoading && error && reservationsList.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="alert-circle-outline" size={56} color={colors.error} />
+              <Text style={[styles.emptyTitle, { color: colors.error }]}>
+                Could Not Load Bookings
+              </Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+                {error}
+              </Text>
+              <TouchableOpacity
+                onPress={refetchReservations}
+                style={{
+                  marginTop: 16,
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  backgroundColor: colors.primary,
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700' }}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : reservationsList.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="calendar-outline" size={64} color={colors.textMuted} />
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
