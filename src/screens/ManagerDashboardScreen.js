@@ -10,6 +10,7 @@ import {
   Alert,
   StatusBar,
   Modal,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
@@ -61,7 +62,14 @@ export default function ManagerDashboardScreen({ navigation }) {
   const reservationsList = Array.isArray(reservationsData) ? reservationsData : [];
 
   // Active Manager Tab
-  const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'reservations' | 'menu'
+  const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'reservations' | 'menu' | 'team'
+
+  // Team tab: create staff accounts
+  const [staffName, setStaffName] = useState('');
+  const [staffEmail, setStaffEmail] = useState('');
+  const [staffPassword, setStaffPassword] = useState('');
+  const [isCreatingStaff, setIsCreatingStaff] = useState(false);
+  const [createdStaff, setCreatedStaff] = useState([]);
 
   // Local state for editing prices
   const [editingPriceId, setEditingPriceId] = useState(null);
@@ -75,9 +83,25 @@ export default function ManagerDashboardScreen({ navigation }) {
   const [newItemCat, setNewItemCat] = useState('Mains');
   const [newItemSpecial, setNewItemSpecial] = useState(false);
 
-  const handleUpdateStatus = (orderId, nextStatus) => {
-    updateOrderStatus(orderId, nextStatus);
-    Alert.alert('Status Updated', `Order ${orderId} marked as "${nextStatus}".`);
+  const handleUpdateStatus = async (orderId, nextStatus) => {
+    try {
+      // Debug: verify token is in localStorage before API call
+      const tok = window?.localStorage?.getItem('@restaurant_app_auth_token');
+      console.log('[Manager] Token present:', !!tok, '| OrderId:', orderId, '| Next:', nextStatus);
+      await updateOrderStatus(orderId, nextStatus);
+      if (Platform.OS === 'web') {
+        window.alert(`Order marked as "${nextStatus}" ✅`);
+      } else {
+        Alert.alert('Status Updated', `Order marked as "${nextStatus}".`);
+      }
+    } catch (err) {
+      console.error('[Manager] updateOrderStatus error:', err.message);
+      if (Platform.OS === 'web') {
+        window.alert('Failed to update: ' + (err.message || 'Server error'));
+      } else {
+        Alert.alert('Error', err.message || 'Could not update status.');
+      }
+    }
   };
 
   const handlePriceSave = (itemId) => {
@@ -121,9 +145,57 @@ export default function ManagerDashboardScreen({ navigation }) {
         body: { status: newStatus },
       });
       await refetchReservations();
-      Alert.alert('Reservation Updated', `Booking has been marked as ${newStatus}.`);
+      if (Platform.OS === 'web') {
+        window.alert(`Booking marked as ${newStatus} ✅`);
+      } else {
+        Alert.alert('Reservation Updated', `Booking has been marked as ${newStatus}.`);
+      }
     } catch (err) {
-      Alert.alert('Update Failed', err.message || 'Could not update reservation status.');
+      if (Platform.OS === 'web') {
+        window.alert('Update Failed: ' + (err.message || 'Could not update reservation status.'));
+      } else {
+        Alert.alert('Update Failed', err.message || 'Could not update reservation status.');
+      }
+    }
+  };
+
+  // Create a new staff/manager account via POST /api/auth/staff
+  const handleCreateStaff = async () => {
+    if (!staffName.trim() || !staffEmail.trim() || !staffPassword.trim()) {
+      Alert.alert('Incomplete', 'Please fill in name, email, and password for the new staff member.');
+      return;
+    }
+    if (staffPassword.length < 8 || !/\d/.test(staffPassword)) {
+      Alert.alert('Weak Password', 'Password must be at least 8 characters and include at least one number.');
+      return;
+    }
+    setIsCreatingStaff(true);
+    try {
+      const result = await apiClient('/api/auth/staff', {
+        method: 'POST',
+        body: {
+          name: staffName.trim(),
+          email: staffEmail.trim().toLowerCase(),
+          password: staffPassword.trim(),
+        },
+      });
+      setCreatedStaff((prev) => [result.user, ...prev]);
+      setStaffName('');
+      setStaffEmail('');
+      setStaffPassword('');
+      if (Platform.OS === 'web') {
+        window.alert(`Staff account created for ${result.user.name} ✅`);
+      } else {
+        Alert.alert('Staff Created', `Manager account created for ${result.user.name} (${result.user.email}).`);
+      }
+    } catch (err) {
+      if (Platform.OS === 'web') {
+        window.alert('Failed: ' + (err.message || 'Could not create staff account.'));
+      } else {
+        Alert.alert('Error', err.message || 'Could not create staff account.');
+      }
+    } finally {
+      setIsCreatingStaff(false);
     }
   };
 
@@ -150,18 +222,7 @@ export default function ManagerDashboardScreen({ navigation }) {
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('CustomerApp', { screen: 'Menu' })}
-              style={[
-                styles.switchViewBtn,
-                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-              ]}
-            >
-              <Ionicons name="eye-outline" size={16} color={colors.textPrimary} />
-              <Text style={[styles.switchViewText, { color: colors.textPrimary }]}>
-                View Menu
-              </Text>
-            </TouchableOpacity>
+
 
             <TouchableOpacity
               onPress={logout}
@@ -233,7 +294,7 @@ export default function ManagerDashboardScreen({ navigation }) {
                 { color: activeTab === 'reservations' ? colors.primary : colors.textMuted },
               ]}
             >
-              Tables ({localReservations.length})
+              Tables ({reservationsList.length})
             </Text>
           </TouchableOpacity>
 
@@ -260,6 +321,32 @@ export default function ManagerDashboardScreen({ navigation }) {
               ]}
             >
               Menu Stock
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setActiveTab('team')}
+            style={[
+              styles.tabBtn,
+              activeTab === 'team' && [
+                styles.activeTabBtn,
+                { backgroundColor: colors.surface },
+                shadows.soft,
+              ],
+            ]}
+          >
+            <Ionicons
+              name="people-outline"
+              size={16}
+              color={activeTab === 'team' ? colors.primary : colors.textMuted}
+            />
+            <Text
+              style={[
+                styles.tabBtnText,
+                { color: activeTab === 'team' ? colors.primary : colors.textMuted },
+              ]}
+            >
+              Team
             </Text>
           </TouchableOpacity>
         </View>
@@ -317,7 +404,7 @@ export default function ManagerDashboardScreen({ navigation }) {
 
                 {/* Items in order */}
                 <View style={[styles.itemsBox, { backgroundColor: colors.surfaceSubtle }]}>
-                  {order.items.map((item, idx) => (
+                  {(order.items || []).map((item, idx) => (
                     <Text
                       key={item.id || item._id || item.menuItem || `${item.name}-${idx}`}
                       style={[styles.itemLine, { color: colors.textPrimary }]}
@@ -327,7 +414,7 @@ export default function ManagerDashboardScreen({ navigation }) {
                     </Text>
                   ))}
                   <Text style={[styles.totalAmountText, { color: colors.primary }]}>
-                    Grand Total: Rs. {order.total.toLocaleString()}
+                    Grand Total: Rs. {(order.total ?? order.totalAmount ?? 0).toLocaleString()}
                   </Text>
                 </View>
 
@@ -447,24 +534,26 @@ export default function ManagerDashboardScreen({ navigation }) {
                     </Text>
                   ) : null}
 
-                  {/* Accept / Decline actions */}
-                  <View style={styles.orderActionsRow}>
-                    <TouchableOpacity
-                      onPress={() => handleReservationAction(bookingId, 'Confirmed')}
-                      style={[styles.actionBtn, { backgroundColor: colors.success }]}
-                    >
-                      <Ionicons name="checkmark" size={14} color="#FFF" />
-                      <Text style={styles.actionBtnText}>Confirm Table</Text>
-                    </TouchableOpacity>
+                  {/* Accept / Decline — only show when Pending */}
+                  {booking.status === 'Pending' && (
+                    <View style={styles.orderActionsRow}>
+                      <TouchableOpacity
+                        onPress={() => handleReservationAction(bookingId, 'Confirmed')}
+                        style={[styles.actionBtn, { backgroundColor: colors.success }]}
+                      >
+                        <Ionicons name="checkmark" size={14} color="#FFF" />
+                        <Text style={styles.actionBtnText}>Confirm Table</Text>
+                      </TouchableOpacity>
 
-                    <TouchableOpacity
-                      onPress={() => handleReservationAction(bookingId, 'Declined')}
-                      style={[styles.actionBtn, { backgroundColor: colors.error }]}
-                    >
-                      <Ionicons name="close" size={14} color="#FFF" />
-                      <Text style={styles.actionBtnText}>Decline</Text>
-                    </TouchableOpacity>
-                  </View>
+                      <TouchableOpacity
+                        onPress={() => handleReservationAction(bookingId, 'Declined')}
+                        style={[styles.actionBtn, { backgroundColor: colors.error }]}
+                      >
+                        <Ionicons name="close" size={14} color="#FFF" />
+                        <Text style={styles.actionBtnText}>Decline</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               );
             })
@@ -595,6 +684,126 @@ export default function ManagerDashboardScreen({ navigation }) {
               </View>
             );
           })}
+        </ScrollView>
+      )}
+
+      {/* ─── TAB 4: TEAM MANAGEMENT ──────────────────────────────────── */}
+      {activeTab === 'team' && (
+        <ScrollView
+          contentContainerStyle={styles.scrollList}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Create Staff Form */}
+          <View
+            style={[
+              styles.cardItem,
+              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+              shadows.soft,
+            ]}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <Ionicons name="person-add-outline" size={20} color={colors.primary} />
+              <Text style={[styles.consoleTitle, { color: colors.textPrimary, fontSize: 16 }]}>
+                Create Staff Account
+              </Text>
+            </View>
+            <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 12 }}>
+              New staff members are created with the Manager role and can access the Operations Console.
+            </Text>
+
+            <TextInput
+              style={[
+                styles.modalInput,
+                {
+                  backgroundColor: colors.inputBackground,
+                  borderColor: colors.inputBorder,
+                  color: colors.textPrimary,
+                },
+              ]}
+              placeholder="Full Name"
+              placeholderTextColor={colors.textMuted}
+              value={staffName}
+              onChangeText={setStaffName}
+            />
+            <TextInput
+              style={[
+                styles.modalInput,
+                {
+                  backgroundColor: colors.inputBackground,
+                  borderColor: colors.inputBorder,
+                  color: colors.textPrimary,
+                },
+              ]}
+              placeholder="Email Address"
+              placeholderTextColor={colors.textMuted}
+              value={staffEmail}
+              onChangeText={setStaffEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={[
+                styles.modalInput,
+                {
+                  backgroundColor: colors.inputBackground,
+                  borderColor: colors.inputBorder,
+                  color: colors.textPrimary,
+                },
+              ]}
+              placeholder="Temporary Password (min 8 chars, 1 digit)"
+              placeholderTextColor={colors.textMuted}
+              value={staffPassword}
+              onChangeText={setStaffPassword}
+              secureTextEntry
+            />
+
+            <TouchableOpacity
+              onPress={handleCreateStaff}
+              disabled={isCreatingStaff}
+              style={[
+                styles.modalSubmit,
+                { backgroundColor: colors.primary, opacity: isCreatingStaff ? 0.6 : 1, marginTop: 8 },
+              ]}
+            >
+              <Ionicons name="shield-checkmark-outline" size={16} color="#FFF" />
+              <Text style={{ color: '#FFFFFF', fontWeight: '800', marginLeft: 6 }}>
+                {isCreatingStaff ? 'Creating...' : 'Create Manager Account'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Recently Created Staff */}
+          {createdStaff.length > 0 && (
+            <View style={{ marginTop: 8 }}>
+              <Text style={[styles.consoleTitle, { color: colors.textPrimary, fontSize: 14, marginBottom: 10 }]}>
+                Recently Added Staff
+              </Text>
+              {createdStaff.map((staff) => (
+                <View
+                  key={staff._id}
+                  style={[
+                    styles.cardItem,
+                    { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                    shadows.soft,
+                  ]}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View style={[styles.statusPill, { backgroundColor: colors.successBackground }]}>
+                      <Ionicons name="shield-checkmark" size={12} color={colors.success} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.customerRef, { color: colors.textPrimary }]}>
+                        {staff.name}
+                      </Text>
+                      <Text style={[styles.orderTypeDesc, { color: colors.textSecondary }]}>
+                        {staff.email} • {staff.role}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
         </ScrollView>
       )}
 
