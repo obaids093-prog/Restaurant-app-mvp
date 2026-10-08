@@ -104,12 +104,21 @@ export default function ReservationScreen() {
     },
   ];
 
+  // Platform-safe alert helper (Alert.alert button callbacks don't work on react-native-web)
+  const showAlert = (title, message) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
   // User presses "Review Booking"
   const handleOpenReview = () => {
     if (validateReservation()) {
       setShowConfirmModal(true);
     } else {
-      Alert.alert('Validation Error', 'Please check the highlighted fields below.');
+      showAlert('Validation Error', 'Please check the highlighted fields below.');
     }
   };
 
@@ -118,34 +127,40 @@ export default function ReservationScreen() {
     try {
       const res = await createReservation();
       setShowConfirmModal(false);
-      Alert.alert(
+      showAlert(
         'Reservation Confirmed!',
         `Your table has been reserved under booking ID: ${res.id || res._id}. A confirmation notification has been dispatched to ${res.phone || contactPhone}.`
       );
       setActiveTab('history');
     } catch (err) {
-      Alert.alert('Booking Error', err.message || 'Could not complete reservation.');
+      showAlert('Booking Error', err.message || 'Could not complete reservation.');
     }
   };
 
-  // Cancel reservation with Alert confirmation
-  const handleCancelPress = (booking) => {
+  // Cancel reservation — Platform-safe confirmation
+  const handleCancelPress = async (booking) => {
     const bookingId = booking.id || booking._id;
-    Alert.alert(
-      'Cancel Table Reservation',
-      `Are you sure you wish to cancel reservation ${bookingId} for ${booking.partySize} guests at ${booking.timeSlot}?`,
-      [
-        { text: 'Keep Booking', style: 'cancel' },
-        {
-          text: 'Yes, Cancel',
-          style: 'destructive',
-          onPress: async () => {
-            await cancelReservation(bookingId);
-            Alert.alert('Cancelled', 'Your reservation has been cancelled.');
-          },
-        },
-      ]
-    );
+    const msg = `Are you sure you wish to cancel reservation ${bookingId} for ${booking.partySize} guests at ${booking.timeSlot}?`;
+
+    if (Platform.OS === 'web') {
+      if (!window.confirm(msg)) return;
+    } else {
+      // Wrap Alert.alert in a promise so we can await it on native
+      const confirmed = await new Promise((resolve) => {
+        Alert.alert('Cancel Table Reservation', msg, [
+          { text: 'Keep Booking', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Yes, Cancel', style: 'destructive', onPress: () => resolve(true) },
+        ]);
+      });
+      if (!confirmed) return;
+    }
+
+    try {
+      await cancelReservation(bookingId);
+      showAlert('Cancelled', 'Your reservation has been cancelled.');
+    } catch (err) {
+      showAlert('Cancel Error', err.message || 'Could not cancel reservation.');
+    }
   };
 
   return (
@@ -209,7 +224,7 @@ export default function ReservationScreen() {
               { color: activeTab === 'history' ? colors.primary : colors.textMuted },
             ]}
           >
-            My Bookings ({reservationsList.filter((r) => r.status === 'Confirmed').length})
+            My Bookings ({reservationsList.length})
           </Text>
         </TouchableOpacity>
       </View>
