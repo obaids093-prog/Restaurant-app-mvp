@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   StatusBar,
+  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
@@ -15,29 +17,95 @@ import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrdersContext';
 import { useTheme } from '../context/ThemeContext';
 
+// Named rate constants for transparent breakdown
+const SERVICE_CHARGE_RATE = 0.05;
+const SALES_TAX_RATE = 0.15;
+
 export default function OrderSummaryScreen({ route, navigation }) {
   const { colors, isDark, shadows } = useTheme();
   const { user } = useAuth();
   const { cartState, clearCart } = useCart();
   const { createOrder } = useOrders();
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   const {
     orderType = 'Dine-in',
     tableNumber = 'Table A-01 (Atrium Glasshouse)',
     pickupTime = 'In 25 minutes',
-    calculations,
+    calculations: rawCalculations,
   } = route.params || {};
 
+  // Resilient fallback calculations wrapped in useMemo (deps: cart items and discount only)
+  const fallbackCalculations = useMemo(() => {
+    const subtotal = (cartState?.items || []).reduce(
+      (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
+      0
+    );
+    const discountRate = (cartState?.discountPercent || 0) / 100;
+    const discountAmount = subtotal * discountRate;
+    const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+    const serviceCharge = discountedSubtotal * SERVICE_CHARGE_RATE;
+    const salesTax = discountedSubtotal * SALES_TAX_RATE;
+    const grandTotal = discountedSubtotal + serviceCharge + salesTax;
+
+    return {
+      subtotal,
+      discountAmount,
+      discountedSubtotal,
+      serviceCharge,
+      salesTax,
+      grandTotal,
+    };
+  }, [cartState?.items, cartState?.discountPercent]);
+
+  const calculations = rawCalculations || fallbackCalculations;
+
   const handlePlaceOrder = async () => {
+    if (isSubmitting) return;
+
+    if (!user) {
+      const msg = 'Please log in with a customer account before dispatching your order.';
+      setErrorMessage(msg);
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.alert) {
+        window.alert(msg);
+      } else {
+        Alert.alert('Authentication Required', msg);
+      }
+      navigation.navigate('Login');
+      return;
+    }
+
+    if (!cartState?.items || cartState.items.length === 0) {
+      const msg = 'Your tray is empty. Please add culinary items first.';
+      setErrorMessage(msg);
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.alert) {
+        window.alert(msg);
+      } else {
+        Alert.alert('Empty Cart', msg);
+      }
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage('');
+
     try {
+      const isTakeaway =
+        String(orderType).toLowerCase().includes('takeaway') ||
+        String(orderType).toLowerCase().includes('curbside');
+      const normalizedType = isTakeaway ? 'Takeaway' : 'Dine-in';
+
       const orderPayload = {
-        customerId: user?.id || 'guest',
+        customerId: user?.id || user?._id || 'guest',
         customerName: user?.name || 'Valued Guest',
-        type: orderType,
-        tableNumber: orderType === 'Dine-in' ? tableNumber : '',
-        pickupTime: orderType === 'Takeaway' ? pickupTime : '',
+        type: normalizedType,
+        orderType: normalizedType,
+        tableNumber: !isTakeaway ? tableNumber : '',
+        pickupTime: isTakeaway ? pickupTime : '',
         items: cartState.items.map((i) => ({
-          id: i.id,
+          id: i.id || i._id,
           name: i.name,
           price: i.price,
           quantity: i.quantity,
@@ -54,7 +122,17 @@ export default function OrderSummaryScreen({ route, navigation }) {
       // Navigate to live Order Tracking
       navigation.navigate('OrderTracking', { orderId: newOrder.id || newOrder._id });
     } catch (err) {
-      Alert.alert('Order Failed', err.message || 'Unable to place order at this time.');
+      console.error('Order dispatch error:', err);
+      const errMsg = err.message || 'Unable to place order at this time.';
+      setErrorMessage(errMsg);
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.alert) {
+        window.alert(`Order Failed: ${errMsg}`);
+      } else {
+        Alert.alert('Order Failed', errMsg);
+      }
+    } finally {
+      setIsSubmitting(false);
+
     }
   };
 
@@ -198,10 +276,33 @@ export default function OrderSummaryScreen({ route, navigation }) {
             </Text>
           </View>
 
+          {/* Error Banner */}
+          {errorMessage ? (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#ef444422',
+                borderColor: '#ef4444',
+                borderWidth: 1,
+                borderRadius: 12,
+                padding: 12,
+                marginTop: 14,
+                marginBottom: 8,
+              }}
+            >
+              <Ionicons name="alert-circle" size={20} color="#ef4444" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#ef4444', fontSize: 13, flex: 1, fontWeight: '600' }}>
+                {errorMessage}
+              </Text>
+            </View>
+          ) : null}
+
           {/* PLACE ORDER BUTTON */}
           <TouchableOpacity
             onPress={handlePlaceOrder}
-            style={[styles.placeBtn, shadows.button3D]}
+            disabled={isSubmitting}
+            style={[styles.placeBtn, shadows.button3D, isSubmitting && { opacity: 0.7 }]}
             activeOpacity={0.88}
           >
             <LinearGradient
@@ -210,15 +311,30 @@ export default function OrderSummaryScreen({ route, navigation }) {
               end={{ x: 1, y: 1 }}
               style={styles.gradientBtn}
             >
-              <Ionicons
-                name="checkmark-circle"
-                size={20}
-                color={isDark ? '#472a00' : '#FFFFFF'}
-                style={{ marginRight: 8 }}
-              />
-              <Text style={[styles.placeBtnText, { color: isDark ? '#472a00' : '#FFFFFF' }]}>
-                Confirm & Dispatch to Kitchen
-              </Text>
+              {isSubmitting ? (
+                <>
+                  <ActivityIndicator
+                    size="small"
+                    color={isDark ? '#472a00' : '#FFFFFF'}
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={[styles.placeBtnText, { color: isDark ? '#472a00' : '#FFFFFF' }]}>
+                    Dispatching to Kitchen...
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color={isDark ? '#472a00' : '#FFFFFF'}
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={[styles.placeBtnText, { color: isDark ? '#472a00' : '#FFFFFF' }]}>
+                    Confirm & Dispatch to Kitchen
+                  </Text>
+                </>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
