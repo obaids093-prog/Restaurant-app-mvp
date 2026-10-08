@@ -352,6 +352,8 @@ function TeamManagementTab({
   createdStaff,
   onCreateStaff,
 }) {
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
+
   return (
     <ScrollView
       contentContainerStyle={styles.scrollList}
@@ -404,21 +406,37 @@ function TeamManagementTab({
           keyboardType="email-address"
           autoCapitalize="none"
         />
-        <TextInput
+        <View
           style={[
-            styles.modalInput,
+            styles.passwordBox,
             {
               backgroundColor: colors.inputBackground,
               borderColor: colors.inputBorder,
-              color: colors.textPrimary,
             },
           ]}
-          placeholder="Temporary Password (min 8 chars, 1 digit)"
-          placeholderTextColor={colors.textMuted}
-          value={staffPassword}
-          onChangeText={setStaffPassword}
-          secureTextEntry
-        />
+        >
+          <TextInput
+            style={[styles.passwordInput, { color: colors.textPrimary }]}
+            placeholder="Temporary Password (min 8 chars, 1 digit)"
+            placeholderTextColor={colors.textMuted}
+            value={staffPassword}
+            onChangeText={setStaffPassword}
+            secureTextEntry={!showStaffPassword}
+            autoCapitalize="none"
+          />
+          <TouchableOpacity
+            onPress={() => setShowStaffPassword((prev) => !prev)}
+            style={styles.eyeBtn}
+            accessibilityLabel={showStaffPassword ? 'Hide password' : 'Show password'}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={showStaffPassword ? 'eye-off-outline' : 'eye-outline'}
+              size={18}
+              color={colors.textMuted}
+            />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           onPress={onCreateStaff}
@@ -1358,5 +1376,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 10,
+  },
+  passwordBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingLeft: 12,
+    paddingRight: 4,
+    marginBottom: 10,
+  },
+  passwordInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 13,
+  },
+  eyeBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
