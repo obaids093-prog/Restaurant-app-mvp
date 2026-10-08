@@ -63,6 +63,12 @@ export default function ReservationScreen() {
   const [selectedZone, setSelectedZone] = useState('glasshouse');
   const [cancellingBookingId, setCancellingBookingId] = useState(null);
 
+  // Bookings list normalized to ensure tab count badge strictly matches rendered items
+  const displayedBookings = useMemo(
+    () => (Array.isArray(reservationsList) ? reservationsList : []),
+    [reservationsList]
+  );
+
   // Upcoming 7 Days Ribbon
   const upcomingDates = useMemo(() => {
     const dates = [];
@@ -234,7 +240,7 @@ export default function ReservationScreen() {
               { color: activeTab === 'history' ? colors.primary : colors.textMuted },
             ]}
           >
-            My Bookings ({reservationsList.length})
+            My Bookings ({displayedBookings.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -827,7 +833,7 @@ export default function ReservationScreen() {
                 <Text style={{ color: '#fff', fontWeight: '700' }}>Retry</Text>
               </TouchableOpacity>
             </View>
-          ) : reservationsList.length === 0 ? (
+          ) : displayedBookings.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="calendar-outline" size={64} color={colors.textMuted} />
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
@@ -838,12 +844,12 @@ export default function ReservationScreen() {
               </Text>
             </View>
           ) : (
-            reservationsList.map((booking) => {
+            displayedBookings.map((booking, idx) => {
               const isCancelled = booking.status === 'Cancelled' || booking.status === 'Declined';
 
               return (
                 <View
-                  key={booking.id}
+                  key={booking.id || booking._id || `booking-${idx}`}
                   style={[
                     styles.bookingCard,
                     {
