@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   StyleSheet,
   View,
@@ -14,6 +15,8 @@ import {
   Alert,
   Animated,
   Image,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
@@ -21,6 +24,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useMenu } from '../context/MenuContext';
+import { useOrders } from '../context/OrdersContext';
 import MenuItemCard from '../components/MenuItemCard';
 import { useDebounce } from '../hooks/useDebounce';
 import { useApi } from '../hooks/useApi';
@@ -78,6 +82,10 @@ export default function MenuScreen({ navigation }) {
   const { user } = useAuth();
   const { addItem, totalItemCount, cartState } = useCart();
   const { menuItems: contextMenuItems } = useMenu();
+  const { orders } = useOrders();
+
+  const activeOrder = orders?.find((o) => ['Pending', 'Preparing', 'Ready'].includes(o.status));
+  const insets = useSafeAreaInsets();
 
   const cartTotal = useMemo(
     () => (cartState?.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -107,7 +115,20 @@ export default function MenuScreen({ navigation }) {
 
   const searchInputRef = useRef(null);
   const flatListRef = useRef(null);
+  const categoryFlatListRef = useRef(null);
   const backToTopAnim = useRef(new Animated.Value(0)).current;
+
+  // Explore Dish Modal state
+  const [exploredItem, setExploredItem] = useState(null);
+
+  const scrollCategories = (direction) => {
+    if (categoryFlatListRef.current) {
+      categoryFlatListRef.current.scrollToOffset({
+        offset: direction === 'right' ? 240 : 0,
+        animated: true,
+      });
+    }
+  };
 
   // Question 6 Requirement: Use custom useApi hook for data fetching
   const {
@@ -439,9 +460,26 @@ export default function MenuScreen({ navigation }) {
                   <Text style={styles.cellarTagText}>PRIVATE CELLAR EDITION</Text>
                 </View>
 
-                <View style={styles.loyaltyPill}>
-                  <Ionicons name="sparkles" size={12} color="#f59e0b" />
-                  <Text style={styles.loyaltyPillText}>AURA Gold • 1,420 Pts</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={styles.loyaltyPill}>
+                    <Ionicons name="sparkles" size={12} color="#f59e0b" />
+                    <Text style={styles.loyaltyPillText}>AURA Gold</Text>
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('Profile')}
+                    style={styles.headerProfileBadge}
+                    activeOpacity={0.8}
+                    accessibilityLabel="Open Profile"
+                  >
+                    {user?.avatar ? (
+                      <Image source={{ uri: user.avatar }} style={styles.headerAvatarImg} />
+                    ) : (
+                      <View style={[styles.headerAvatarImg, { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }]}>
+                        <Ionicons name="person" size={13} color="#FFFFFF" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -453,14 +491,52 @@ export default function MenuScreen({ navigation }) {
               </Text>
             </View>
 
+            {/* LIVE ACTIVE ORDER TRACKING BANNER */}
+            {activeOrder && (
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('OrderTracking', {
+                    orderId: activeOrder.id || activeOrder._id,
+                  })
+                }
+                style={[
+                  styles.activeOrderBanner,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.primary,
+                  },
+                  shadows.medium3D,
+                ]}
+                activeOpacity={0.88}
+              >
+                <View style={styles.activeOrderPulseCircle}>
+                  <View style={styles.activeOrderGreenDot} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={[styles.activeOrderTitle, { color: colors.textPrimary }]}>
+                      Order in Kitchen • {activeOrder.status}
+                    </Text>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: colors.primary }}>
+                      Track Live →
+                    </Text>
+                  </View>
+                  <Text style={[styles.activeOrderSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
+                    {activeOrder.items?.length || 1} delicacy selection • #{String(activeOrder.id || activeOrder._id).slice(-6)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
             {/* SEARCH BAR with Micro-actions */}
             <View
               style={[
                 styles.searchBarWrapper,
                 {
-                  backgroundColor: '#181c24',
-                  borderColor: isSearchFocused ? '#ffc174' : '#262a33',
+                  backgroundColor: colors.surface,
+                  borderColor: isSearchFocused ? colors.primary : colors.surfaceBorder,
                 },
+                shadows.subtle3D,
               ]}
             >
               <TouchableOpacity
@@ -471,15 +547,20 @@ export default function MenuScreen({ navigation }) {
                 <Ionicons
                   name="search"
                   size={18}
-                  color={isSearchFocused ? '#ffc174' : '#a08e7a'}
+                  color={isSearchFocused ? colors.primary : colors.textMuted}
                 />
               </TouchableOpacity>
 
               <TextInput
                 ref={searchInputRef}
-                style={[styles.searchInput, { color: colors.textPrimary }]}
+                style={[
+                  styles.searchInput,
+                  {
+                    color: colors.textPrimary,
+                  },
+                ]}
                 placeholder="Search infusions, wood-fired cuts, pairings..."
-                placeholderTextColor="#a08e7a"
+                placeholderTextColor={colors.textMuted}
                 value={searchQuery}
                 onChangeText={handleSearchTextChange}
                 onFocus={() => setIsSearchFocused(true)}
@@ -493,7 +574,7 @@ export default function MenuScreen({ navigation }) {
                   style={styles.clearBtn}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="close-circle" size={18} color="#a08e7a" />
+                  <Ionicons name="close-circle" size={18} color={colors.textMuted} />
                 </TouchableOpacity>
               ) : (
                 <View style={styles.searchMicroActions}>
@@ -501,13 +582,17 @@ export default function MenuScreen({ navigation }) {
                     style={styles.searchMicroBtn}
                     onPress={() => Alert.alert('AURA Voice Search', 'Listening for culinary pairing requests...')}
                   >
-                    <Ionicons name="mic-outline" size={17} color="#a08e7a" />
+                    <Ionicons name="mic-outline" size={17} color={colors.textMuted} />
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.searchMicroBtn, styles.searchTuneBtn]}
+                    style={[
+                      styles.searchMicroBtn,
+                      styles.searchTuneBtn,
+                      { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
+                    ]}
                     onPress={() => setShowSortDropdown(!showSortDropdown)}
                   >
-                    <Ionicons name="options-outline" size={15} color="#ffc174" />
+                    <Ionicons name="options-outline" size={15} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -538,30 +623,37 @@ export default function MenuScreen({ navigation }) {
 
                   <View style={styles.heroContent}>
                     <View style={styles.heroTitleRow}>
-                      <Text style={styles.heroTitle}>Truffle Glazed Wagyu Ribeye</Text>
-                      <Text style={styles.heroPrice}>Rs. 8,800</Text>
+                      <Text style={styles.heroTitle}>Prime Black Angus Tenderloin</Text>
+                      <Text style={styles.heroPrice}>Rs. 3,650</Text>
                     </View>
                     <Text style={styles.heroDescription} numberOfLines={2}>
-                      Charred Bincho-tan oak, summer black truffle nectar, flaked sea salt, and edible 24k botanical gold leaf.
+                      Charcoal-grilled center-cut beef tenderloin, roasted bone marrow jus, wild maitake mushrooms, and truffled potato mousseline.
                     </Text>
                     <View style={styles.heroFooter}>
                       <View style={styles.heroMetaRow}>
                         <View style={styles.heroMetaChip}>
                           <Text style={styles.heroMetaChipText}>Wine Pairing No. 4</Text>
                         </View>
-                        <Text style={styles.heroPrepText}>• 8 min prep</Text>
+                        <Text style={styles.heroPrepText}>• 24 min prep</Text>
                       </View>
                       <TouchableOpacity
                         style={styles.heroExploreBtn}
                         onPress={() => {
-                          const wagyu = menuItems.find((m) => m.id === 'art_m1') || {
-                            id: 'art_m1',
-                            name: 'Truffle Glazed Wagyu Ribeye',
-                            price: 8800,
-                            category: 'Mains',
-                            isAvailable: true,
-                          };
-                          handleAddToCart(wagyu);
+                          const featured =
+                            menuItems.find((m) => m.name?.includes('Angus')) ||
+                            menuItems.find((m) => m.isSpecial && m.category === 'Mains') ||
+                            menuItems[0] || {
+                              name: 'Prime Black Angus Tenderloin',
+                              price: 3650,
+                              category: 'Mains',
+                              isAvailable: true,
+                              description: 'Charcoal-grilled center-cut beef tenderloin, roasted bone marrow jus, wild maitake mushrooms, and truffled potato mousseline.',
+                              image: 'https://images.unsplash.com/photo-1558030006-450675393462?w=600&auto=format&fit=crop',
+                              prepTime: '24 min',
+                              pairing: 'Wine Pairing No. 4 (Cellar Reserve)',
+                              chefStory: 'Handcrafted by Executive Chef Farhan using prime dry-aged tenderloin slow-glazed over artisanal Bincho-tan charcoal.',
+                            };
+                          setExploredItem(featured);
                         }}
                         activeOpacity={0.88}
                       >
@@ -607,9 +699,22 @@ export default function MenuScreen({ navigation }) {
               </View>
             )}
 
-            {/* HORIZONTAL CATEGORY CHIPS */}
-            <View style={styles.chipsContainer}>
+            {/* HORIZONTAL CATEGORY CHIPS WITH NAVIGATION ARROWS */}
+            <View style={styles.categoryScrollContainer}>
+              <TouchableOpacity
+                onPress={() => scrollCategories('left')}
+                style={[
+                  styles.categoryArrowBtn,
+                  { backgroundColor: colors.surface, borderColor: colors.surfaceBorder },
+                  shadows.subtle3D,
+                ]}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="chevron-back" size={14} color={colors.primary} />
+              </TouchableOpacity>
+
               <FlatList
+                ref={categoryFlatListRef}
                 horizontal
                 data={CATEGORIES}
                 keyExtractor={(cat) => cat}
@@ -617,6 +722,18 @@ export default function MenuScreen({ navigation }) {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.chipsList}
               />
+
+              <TouchableOpacity
+                onPress={() => scrollCategories('right')}
+                style={[
+                  styles.categoryArrowBtn,
+                  { backgroundColor: colors.surface, borderColor: colors.surfaceBorder },
+                  shadows.subtle3D,
+                ]}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+              </TouchableOpacity>
             </View>
 
             {/* SORTING CONTROLS BAR (Task 6) */}
@@ -716,7 +833,7 @@ export default function MenuScreen({ navigation }) {
 
       {/* FLOATING GLASS ORDER CART PILL */}
       {totalItemCount > 0 && (
-        <View style={styles.floatingCartWrapper} pointerEvents="box-none">
+        <View style={[styles.floatingCartWrapper, { bottom: 24 + insets.bottom }]} pointerEvents="box-none">
           <TouchableOpacity
             style={[styles.floatingCartPill, shadows.goldGlow || shadows.button3D]}
             onPress={() => navigation.navigate('Cart')}
@@ -741,10 +858,138 @@ export default function MenuScreen({ navigation }) {
         </View>
       )}
 
+      {/* EXPLORE DISH CULINARY MODAL */}
+      <Modal
+        visible={Boolean(exploredItem)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setExploredItem(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+              shadows.deep3D,
+            ]}
+          >
+            {/* Modal Image Header */}
+            <View style={styles.modalImageWrapper}>
+              <Image
+                source={{
+                  uri:
+                    exploredItem?.image ||
+                    'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80',
+                }}
+                style={styles.modalImage}
+                resizeMode="cover"
+              />
+              <TouchableOpacity
+                style={styles.modalCloseCircle}
+                onPress={() => setExploredItem(null)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+              <View style={styles.modalImageBadge}>
+                <Ionicons name="sparkles" size={12} color="#ffc174" />
+                <Text style={styles.modalImageBadgeText}>CHEF SPECIALTY</Text>
+              </View>
+            </View>
+
+            {/* Modal Scrollable Details */}
+            <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+              <View style={styles.modalHeaderRow}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={[styles.modalItemCategory, { color: colors.primary }]}>
+                    {exploredItem?.category?.toUpperCase() || 'MAINS'} • ARTISAN CUT
+                  </Text>
+                  <Text style={[styles.modalItemTitle, { color: colors.textPrimary }]}>
+                    {exploredItem?.name}
+                  </Text>
+                </View>
+                <Text style={[styles.modalItemPrice, { color: colors.primary }]}>
+                  Rs. {exploredItem?.price?.toLocaleString()}
+                </Text>
+              </View>
+
+              <Text style={[styles.modalItemDescription, { color: colors.textSecondary }]}>
+                {exploredItem?.description}
+              </Text>
+
+              {/* Culinary Pairing & Prep Badges */}
+              <View style={styles.modalMetaRow}>
+                <View style={[styles.modalMetaChip, { backgroundColor: colors.surfaceSubtle }]}>
+                  <Ionicons name="wine-outline" size={14} color={colors.primary} />
+                  <Text style={[styles.modalMetaChipText, { color: colors.textPrimary }]}>
+                    Cellar Wine Pairing
+                  </Text>
+                </View>
+                <View style={[styles.modalMetaChip, { backgroundColor: colors.surfaceSubtle }]}>
+                  <Ionicons name="flame-outline" size={14} color="#f59e0b" />
+                  <Text style={[styles.modalMetaChipText, { color: colors.textPrimary }]}>
+                    Wood-Fired Oak
+                  </Text>
+                </View>
+                <View style={[styles.modalMetaChip, { backgroundColor: colors.surfaceSubtle }]}>
+                  <Ionicons name="time-outline" size={14} color="#10B981" />
+                  <Text style={[styles.modalMetaChipText, { color: colors.textPrimary }]}>
+                    8-10 Min Prep
+                  </Text>
+                </View>
+              </View>
+
+              {/* Chef Notes / Story */}
+              <View style={[styles.chefStoryBox, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
+                <View style={styles.chefStoryHeader}>
+                  <Ionicons name="restaurant" size={14} color={colors.primary} />
+                  <Text style={[styles.chefStoryTitle, { color: colors.primary }]}>
+                    EXECUTIVE CHEF NOTES
+                  </Text>
+                </View>
+                <Text style={[styles.chefStoryText, { color: colors.textSecondary }]}>
+                  {exploredItem?.chefStory ||
+                    'Crafted fresh with seasonal farm botanicals, slow-braised to preserve delicate aromatics and rich umami.'}
+                </Text>
+              </View>
+            </ScrollView>
+
+            {/* Modal Actions Footer */}
+            <View style={[styles.modalFooter, { borderTopColor: colors.surfaceBorder }]}>
+              <TouchableOpacity
+                style={[styles.modalSecondaryBtn, { borderColor: colors.surfaceBorder }]}
+                onPress={() => setExploredItem(null)}
+              >
+                <Text style={[styles.modalSecondaryBtnText, { color: colors.textSecondary }]}>
+                  Close
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalAddBtn, { backgroundColor: colors.primary }, shadows.button3D]}
+                onPress={() => {
+                  if (exploredItem) {
+                    handleAddToCart(exploredItem);
+                    setExploredItem(null);
+                  }
+                }}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="bag-add" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.modalAddBtnText}>
+                  Add to Tray • Rs. {exploredItem?.price?.toLocaleString()}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* FLOATING "BACK TO TOP" BUTTON */}
       <Animated.View
         style={[
           styles.floatingBackToTop,
+          { bottom: 90 + insets.bottom },
           {
             transform: [
               { scale: backToTopAnim },
@@ -904,8 +1149,11 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    height: '100%',
     fontSize: 14,
     fontWeight: '500',
+    paddingVertical: 0,
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
   },
   clearBtn: {
     padding: 4,
@@ -1083,6 +1331,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffc174',
   },
+  headerProfileBadge: {
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#f59e0b',
+    overflow: 'hidden',
+  },
+  headerAvatarImg: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
   searchMicroActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1239,6 +1498,20 @@ const styles = StyleSheet.create({
     right: 20,
     alignItems: 'flex-end',
   },
+  // Floating Back To Top button
+  floatingBackToTop: {
+    position: 'absolute',
+    bottom: 90,
+    right: 20,
+    zIndex: 10,
+  },
+  backToTopButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   floatingCartPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1287,5 +1560,212 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#ffc174',
+  },
+
+  // Category horizontal scroll controls
+  categoryScrollContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 6,
+  },
+  categoryArrowBtn: {
+    width: 28,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    zIndex: 10,
+  },
+
+  // Explore Dish Culinary Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 520,
+    maxHeight: '88%',
+    borderRadius: 24,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+  },
+  modalImageWrapper: {
+    height: 200,
+    width: '100%',
+    position: 'relative',
+  },
+  modalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  modalCloseCircle: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  modalImageBadge: {
+    position: 'absolute',
+    bottom: 12,
+    left: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 116, 0.3)',
+  },
+  modalImageBadgeText: {
+    color: '#ffc174',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  modalScrollBody: {
+    padding: 20,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  modalItemCategory: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  modalItemTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  modalItemPrice: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  modalItemDescription: {
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  modalMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  modalMetaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  },
+  modalMetaChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  chefStoryBox: {
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  chefStoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  chefStoryTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  chefStoryText: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontStyle: 'italic',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderTopWidth: 1,
+  },
+  modalSecondaryBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSecondaryBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  modalAddBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  modalAddBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  activeOrderBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1.5,
+  },
+  activeOrderPulseCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#22c55e22',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeOrderGreenDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#22c55e',
+  },
+  activeOrderTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  activeOrderSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
   },
 });

@@ -1,12 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useOrders } from '../context/OrdersContext';
 
 import LoginScreen from '../screens/LoginScreen';
 import MenuScreen from '../screens/MenuScreen';
@@ -20,28 +22,20 @@ import ManagerDashboardScreen from '../screens/ManagerDashboardScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// CUSTOMER BOTTOM TABS NAVIGATOR
 function CustomerTabs() {
   const { colors } = useTheme();
-  const { user } = useAuth();
   const { totalItemCount } = useCart();
-
-  const isManager = user?.role === 'manager';
+  const { orders } = useOrders();
+  const insets = useSafeAreaInsets();
+  const hasActiveOrder = orders?.some((o) => ['Pending', 'Preparing', 'Ready'].includes(o.status));
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: true,
-        headerStyle: {
-          backgroundColor: colors.surface,
-          elevation: 2,
-          shadowOpacity: 0.05,
-        },
+        headerStyle: { backgroundColor: colors.surface, elevation: 2, shadowOpacity: 0.05 },
         headerTintColor: colors.textPrimary,
-        headerTitleStyle: {
-          fontWeight: '800',
-          fontSize: 17,
-        },
+        headerTitleStyle: { fontWeight: '800', fontSize: 17 },
         tabBarStyle: {
           backgroundColor: colors.tabBar,
           borderTopColor: colors.tabBarBorder,
@@ -50,35 +44,25 @@ function CustomerTabs() {
           shadowOffset: { width: 0, height: -3 },
           shadowOpacity: 0.08,
           shadowRadius: 10,
-          height: 60,
-          paddingBottom: 8,
+          height: 60 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 6,
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '700',
-        },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
       }}
     >
-      {/* 1. MENU TAB */}
       <Tab.Screen
         name="Menu"
         component={MenuScreen}
         options={{
           tabBarLabel: 'Menu',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'fast-food' : 'fast-food-outline'}
-              size={size}
-              color={color}
-            />
+            <Ionicons name={focused ? 'fast-food' : 'fast-food-outline'} size={size} color={color} />
           ),
         }}
       />
-
-      {/* 2. CART TAB WITH LIVE ITEM COUNT BADGE (Task 5 requirement) */}
       <Tab.Screen
         name="Cart"
         component={CartScreen}
@@ -87,11 +71,7 @@ function CustomerTabs() {
           tabBarLabel: 'Tray',
           tabBarIcon: ({ color, size, focused }) => (
             <View style={{ width: size, height: size, margin: 2 }}>
-              <Ionicons
-                name={focused ? 'cart' : 'cart-outline'}
-                size={size}
-                color={color}
-              />
+              <Ionicons name={focused ? 'cart' : 'cart-outline'} size={size} color={color} />
               {totalItemCount > 0 && (
                 <View style={[styles.badgePill, { backgroundColor: colors.primary }]}>
                   <Text style={styles.badgePillText}>{totalItemCount}</Text>
@@ -101,8 +81,6 @@ function CustomerTabs() {
           ),
         }}
       />
-
-      {/* 3. RESERVATIONS TAB */}
       <Tab.Screen
         name="Reservations"
         component={ReservationScreen}
@@ -110,16 +88,30 @@ function CustomerTabs() {
           title: 'Table Booking',
           tabBarLabel: 'Reserve',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'calendar' : 'calendar-outline'}
-              size={size}
-              color={color}
-            />
+            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={size} color={color} />
           ),
         }}
       />
-
-      {/* 4. PROFILE TAB */}
+      <Tab.Screen
+        name="TrackTab"
+        component={OrderTrackingScreen}
+        options={{
+          title: 'Live Kitchen Tracking',
+          tabBarLabel: 'Track',
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ width: size, height: size, margin: 2 }}>
+              <Ionicons
+                name={focused ? 'receipt' : 'receipt-outline'}
+                size={size}
+                color={hasActiveOrder ? colors.primary : color}
+              />
+              {hasActiveOrder && (
+                <View style={{ position: 'absolute', top: -2, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: '#22c55e' }} />
+              )}
+            </View>
+          ),
+        }}
+      />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
@@ -127,40 +119,17 @@ function CustomerTabs() {
           title: 'Guest Account',
           tabBarLabel: 'Profile',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
-              size={size}
-              color={color}
-            />
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
           ),
         }}
       />
-
-      {/* 5. MANAGER DASHBOARD TAB (Task 4 requirement: Role-restricted to manager only) */}
-      {isManager && (
-        <Tab.Screen
-          name="ManagerOperations"
-          component={ManagerDashboardScreen}
-          options={{
-            title: 'Operations',
-            tabBarLabel: 'Manager',
-            tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons
-                name={focused ? 'shield-checkmark' : 'shield-checkmark-outline'}
-                size={size}
-                color={focused ? colors.primaryDark : color}
-              />
-            ),
-          }}
-        />
-      )}
     </Tab.Navigator>
   );
 }
 
 export default function AppNavigator() {
   const { colors, isDark } = useTheme();
-  const { user } = useAuth();
+  const { user, isLoadingAuth } = useAuth();
 
   const navigationTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
@@ -174,48 +143,46 @@ export default function AppNavigator() {
     },
   };
 
+  if (isLoadingAuth) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer theme={navigationTheme}>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          animation: 'fade_from_bottom',
-        }}
-      >
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="CustomerApp" component={CustomerTabs} />
-
-        {/* NESTED STACK SCREENS */}
-        <Stack.Screen
-          name="OrderSummary"
-          component={OrderSummaryScreen}
-          options={{
-            headerShown: true,
-            title: 'Confirm Order',
-            headerStyle: { backgroundColor: colors.surface },
-            headerTintColor: colors.textPrimary,
-          }}
-        />
-        <Stack.Screen
-          name="OrderTracking"
-          component={OrderTrackingScreen}
-          options={{
-            headerShown: true,
-            title: 'Live Kitchen Tracking',
-            headerStyle: { backgroundColor: colors.surface },
-            headerTintColor: colors.textPrimary,
-          }}
-        />
-        <Stack.Screen
-          name="ManagerDashboard"
-          component={ManagerDashboardScreen}
-          options={{
-            headerShown: true,
-            title: 'Manager Operations Console',
-            headerStyle: { backgroundColor: colors.surface },
-            headerTintColor: colors.textPrimary,
-          }}
-        />
+      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}>
+        {!user ? (
+          <Stack.Screen name="Login" component={LoginScreen} />
+        ) : user.role === 'manager' ? (
+          <Stack.Screen name="ManagerDashboard" component={ManagerDashboardScreen} />
+        ) : (
+          <>
+            <Stack.Screen name="CustomerApp" component={CustomerTabs} />
+            <Stack.Screen
+              name="OrderSummary"
+              component={OrderSummaryScreen}
+              options={{
+                headerShown: true,
+                title: 'Confirm Order',
+                headerStyle: { backgroundColor: colors.surface },
+                headerTintColor: colors.textPrimary,
+              }}
+            />
+            <Stack.Screen
+              name="OrderTracking"
+              component={OrderTrackingScreen}
+              options={{
+                headerShown: true,
+                title: 'Live Kitchen Tracking',
+                headerStyle: { backgroundColor: colors.surface },
+                headerTintColor: colors.textPrimary,
+              }}
+            />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
