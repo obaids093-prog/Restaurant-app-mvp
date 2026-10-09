@@ -1,434 +1,1102 @@
 {
-  "info": {
-    "_postman_id": "a92e6f42-498c-4a39-9d78-b19e9f9024f8",
-    "name": "AURA Restaurant API (Assignment 2)",
-    "description": "Complete Postman collection for CS / MAD Assignment 2 backend covering Authentication, Menu CRUD, Orders with status state machine, Tables, and Table Reservations.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:5000",
-      "type": "string"
-    },
-    {
-      "key": "customer_token",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "manager_token",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "sample_item_id",
-      "value": "",
-      "type": "string"
-    }
-  ],
-  "item": [
-    {
-      "name": "0. Health Check",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{base_url}}/api/health",
-          "host": ["{{base_url}}"],
-          "path": ["api", "health"]
-        }
-      }
-    },
-    {
-      "name": "1. Authentication",
-      "item": [
-        {
-          "name": "1.1 Login as Customer (Zainab)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (res.token) { pm.collectionVariables.set('customer_token', res.token); }"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"zainab.malik@aurabistro.pk\",\n  \"password\": \"Password123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["api", "auth", "login"]
-            }
-          }
-        },
-        {
-          "name": "1.2 Login as Manager (Chef Farhan)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (res.token) { pm.collectionVariables.set('manager_token', res.token); }"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"farhan.chef@aurabistro.pk\",\n  \"password\": \"Admin1234\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["api", "auth", "login"]
-            }
-          }
-        },
-        {
-          "name": "1.3 Register New User (201 Created)",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Ali Khan\",\n  \"email\": \"ali.khan@example.com\",\n  \"password\": \"Password123\",\n  \"phone\": \"0300-1122334\",\n  \"role\": \"customer\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/auth/register",
-              "host": ["{{base_url}}"],
-              "path": ["api", "auth", "register"]
-            }
-          }
-        },
-        {
-          "name": "1.4 Register Duplicate Email (409 Conflict - Expected Fail)",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Duplicate User\",\n  \"email\": \"zainab.malik@aurabistro.pk\",\n  \"password\": \"Password123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/auth/register",
-              "host": ["{{base_url}}"],
-              "path": ["api", "auth", "register"]
-            }
-          }
-        },
-        {
-          "name": "1.5 Get Current User Profile (/me)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customer_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/me",
-              "host": ["{{base_url}}"],
-              "path": ["api", "auth", "me"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "2. Menu Endpoints",
-      "item": [
-        {
-          "name": "2.1 Get All Menu Items (200 OK)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (Array.isArray(res) && res.length > 0) { pm.collectionVariables.set('sample_item_id', res[0]._id); }"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/menu",
-              "host": ["{{base_url}}"],
-              "path": ["api", "menu"]
-            }
-          }
-        },
-        {
-          "name": "2.2 Filter Menu by Category (?category=Mains)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/menu?category=Mains",
-              "host": ["{{base_url}}"],
-              "path": ["api", "menu"],
-              "query": [{ "key": "category", "value": "Mains" }]
-            }
-          }
-        },
-        {
-          "name": "2.3 Search Menu Items (?search=lobster)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/menu?search=lobster",
-              "host": ["{{base_url}}"],
-              "path": ["api", "menu"],
-              "query": [{ "key": "search", "value": "lobster" }]
-            }
-          }
-        },
-        {
-          "name": "2.4 Get Single Item by Valid ID (200 OK)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/menu/{{sample_item_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "menu", "{{sample_item_id}}"]
-            }
-          }
-        },
-        {
-          "name": "2.5 Get Item by Invalid ID Format (400 Bad Request - Expected Fail)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/menu/invalid_mongo_id_123",
-              "host": ["{{base_url}}"],
-              "path": ["api", "menu", "invalid_mongo_id_123"]
-            }
-          }
-        },
-        {
-          "name": "2.6 Get Item Non-Existent ID (404 Not Found - Expected Fail)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/menu/600000000000000000000000",
-              "host": ["{{base_url}}"],
-              "path": ["api", "menu", "600000000000000000000000"]
-            }
-          }
-        },
-        {
-          "name": "2.7 Add Item Without Token (401 Unauthorized - Expected Fail)",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Test Unauthorized Item\",\n  \"description\": \"Should fail\",\n  \"price\": 1200,\n  \"category\": \"Starters\",\n  \"image\": \"https://images.unsplash.com/photo-1547592166-23ac45744acd\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/menu",
-              "host": ["{{base_url}}"],
-              "path": ["api", "menu"]
-            }
-          }
-        },
-        {
-          "name": "2.8 Add Item With Customer Token (403 Forbidden - Expected Fail)",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{customer_token}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Customer Created Item\",\n  \"description\": \"Customer should not be able to create items\",\n  \"price\": 1200,\n  \"category\": \"Starters\",\n  \"image\": \"https://images.unsplash.com/photo-1547592166-23ac45744acd\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/menu",
-              "host": ["{{base_url}}"],
-              "path": ["api", "menu"]
-            }
-          }
-        },
-        {
-          "name": "2.9 Add Item With Negative Price (400 Bad Request - Expected Fail)",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{manager_token}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Negative Price Dish\",\n  \"description\": \"Invalid price validation\",\n  \"price\": -500,\n  \"category\": \"Starters\",\n  \"image\": \"https://images.unsplash.com/photo-1547592166-23ac45744acd\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/menu",
-              "host": ["{{base_url}}"],
-              "path": ["api", "menu"]
-            }
-          }
-        },
-        {
-          "name": "2.10 Add Item With Manager Token (201 Created)",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{manager_token}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Handcrafted Truffle Gnocchi\",\n  \"description\": \"Piedmontese soft potato gnocchi tossed in white truffle butter and aged parmigiano-reggiano.\",\n  \"price\": 2250,\n  \"category\": \"Mains\",\n  \"image\": \"https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600\",\n  \"isSpecial\": true,\n  \"isAvailable\": true,\n  \"prepTime\": \"18 min\",\n  \"rating\": 4.9,\n  \"tag\": \"Chef Special\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/menu",
-              "host": ["{{base_url}}"],
-              "path": ["api", "menu"]
-            }
-          }
-        },
-        {
-          "name": "2.11 Update Menu Item (200 OK)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{manager_token}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"price\": 1550,\n  \"isAvailable\": true\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/menu/{{sample_item_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "menu", "{{sample_item_id}}"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "3. Orders Endpoints",
-      "item": [
-        {
-          "name": "3.1 Place Order (201 Created - Server Recalculates Total)",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{customer_token}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"items\": [\n    {\n      \"menuItem\": \"{{sample_item_id}}\",\n      \"quantity\": 2,\n      \"specialInstructions\": \"Warm bread on side\"\n    }\n  ],\n  \"orderType\": \"Dine-in\",\n  \"tableNumber\": \"A-01\",\n  \"notes\": \"Anniversary dinner\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/orders",
-              "host": ["{{base_url}}"],
-              "path": ["api", "orders"]
-            }
-          }
-        },
-        {
-          "name": "3.2 Get Customer My Orders (200 OK)",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{customer_token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/orders/my",
-              "host": ["{{base_url}}"],
-              "path": ["api", "orders", "my"]
-            }
-          }
-        },
-        {
-          "name": "3.3 Manager Get All Orders (200 OK)",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{manager_token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/orders",
-              "host": ["{{base_url}}"],
-              "path": ["api", "orders"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "4. Reservations & Tables",
-      "item": [
-        {
-          "name": "4.1 Get All Tables (200 OK)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/tables",
-              "host": ["{{base_url}}"],
-              "path": ["api", "tables"]
-            }
-          }
-        },
-        {
-          "name": "4.2 Customer Get My Reservations (200 OK)",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{customer_token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/reservations/my",
-              "host": ["{{base_url}}"],
-              "path": ["api", "reservations", "my"]
-            }
-          }
-        },
-        {
-          "name": "4.3 Manager Get All Reservations (200 OK)",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{manager_token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/reservations",
-              "host": ["{{base_url}}"],
-              "path": ["api", "reservations"]
-            }
-          }
-        }
-      ]
-    }
-  ]
+	"info": {
+		"_postman_id": "aura-restaurant-api-collection",
+		"name": "AURA Restaurant API (A2)",
+		"description": "Complete Postman collection for the AURA Restaurant Express.js + MongoDB REST API.\n\nCovers all 23 endpoints across Health, Auth, Menu, Tables, Reservations, Orders, and Negative Tests.\n\nUses seeded demo accounts from README.md. Run the two login requests first to auto-populate manager and customer tokens.\n\nAssignment 2 — Syed Obaid Ali (9321) — MAD Fall 2026",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "managerToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "customerToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "dishId",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "health"]
+						},
+						"description": "Public health-check endpoint. Returns server status and current timestamp."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Body contains status ok', function () {",
+									"    pm.expect(pm.response.json().status).to.eql('ok');",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register Customer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Test Customer\",\n  \"email\": \"test.customer@example.com\",\n  \"password\": \"TestPass1\",\n  \"phone\": \"0312-3456789\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register"]
+						},
+						"description": "Public registration. Always creates role 'customer' regardless of any role field sent."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Login as Manager",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"farhan.chef@aurabistro.pk\",\n  \"password\": \"Admin1234\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Login with seeded manager account. Saves JWT to managerToken collection variable automatically."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Token is present', function () {",
+									"    pm.expect(pm.response.json().token).to.be.a('string');",
+									"});",
+									"pm.collectionVariables.set('managerToken', pm.response.json().token);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Login as Customer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"zainab.malik@aurabistro.pk\",\n  \"password\": \"Password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Login with seeded customer account. Saves JWT to customerToken collection variable automatically."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Token is present', function () {",
+									"    pm.expect(pm.response.json().token).to.be.a('string');",
+									"});",
+									"pm.collectionVariables.set('customerToken', pm.response.json().token);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Me (Current User)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{managerToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "me"]
+						},
+						"description": "Returns the authenticated user's profile details (without password)."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('User object exists', function () {",
+									"    pm.expect(pm.response.json().user).to.be.an('object');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{customerToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Zainab Malik Updated\",\n  \"phone\": \"0321-9876543\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "profile"]
+						},
+						"description": "Updates the authenticated user's profile fields (name, phone, dob, avatar)."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Delete Profile ⚠️ DESTRUCTIVE — do not run on seeded users",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{customerToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "profile"]
+						},
+						"description": "⚠️ DESTRUCTIVE: Permanently deletes the authenticated user's account from MongoDB. Do NOT run this on seeded demo accounts unless you re-seed afterwards."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Send Phone OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"0300-1234567\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/phone/send-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "phone", "send-otp"]
+						},
+						"description": "Generates and sends a 4-digit OTP to a Pakistani mobile number. OTP is returned in the response for dev/testing convenience."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Verify Phone OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"0300-1234567\",\n  \"otp\": \"1234\",\n  \"name\": \"OTP Test User\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/phone/verify-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "phone", "verify-otp"]
+						},
+						"description": "Verifies the OTP code. If the phone number is new, creates a customer account. The static dev code '1234' is always accepted."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create Staff Account (Manager Only)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{managerToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"New Staff Member\",\n  \"email\": \"newstaff@aurabistro.pk\",\n  \"password\": \"StaffPass1\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/staff",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "staff"]
+						},
+						"description": "Manager-only: creates a new manager/staff account with hashed password."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Menu",
+			"item": [
+				{
+					"name": "Get All Menu Items",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/menu",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "menu"]
+						},
+						"description": "Public: returns all menu items. Supports optional ?category= and ?search= query params."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response is an array', function () {",
+									"    pm.expect(pm.response.json()).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Menu Item by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/menu/{{dishId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "menu", "{{dishId}}"]
+						},
+						"description": "Public: returns a single menu item by its MongoDB ObjectId. Validates the ID format."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create Menu Item (Manager)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{managerToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Truffle Mushroom Risotto\",\n  \"description\": \"Creamy Arborio rice with black truffle shavings and wild mushrooms\",\n  \"price\": 2450,\n  \"category\": \"Main Course\",\n  \"image\": \"https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=400\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/menu",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "menu"]
+						},
+						"description": "Manager-only: creates a new menu item. Requires name, description, price, category, and image. Saves the created _id into the dishId collection variable."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test('Dish ID saved', function () {",
+									"    var id = pm.response.json()._id;",
+									"    pm.expect(id).to.be.a('string');",
+									"    pm.collectionVariables.set('dishId', id);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Menu Item (Manager)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{managerToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"price\": 2650,\n  \"isSpecial\": true,\n  \"description\": \"Creamy Arborio rice with premium black truffle and wild porcini mushrooms\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/menu/{{dishId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "menu", "{{dishId}}"]
+						},
+						"description": "Manager-only: updates an existing menu item. Uses {{dishId}} saved from the Create request."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Delete Menu Item (Manager)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{managerToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/menu/{{dishId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "menu", "{{dishId}}"]
+						},
+						"description": "Manager-only: permanently deletes the menu item. Uses {{dishId}} saved from the Create request."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Tables",
+			"item": [
+				{
+					"name": "Get All Tables",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tables"]
+						},
+						"description": "Public: returns all restaurant dining tables with seating capacity and zone info."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response is an array', function () {",
+									"    pm.expect(pm.response.json()).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Reservations",
+			"item": [
+				{
+					"name": "Create Reservation (Customer)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{customerToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tableId\": \"1\",\n  \"date\": \"2026-12-25\",\n  \"time\": \"19:00\",\n  \"guests\": 2,\n  \"specialRequests\": \"Window seat preferred\",\n  \"customerName\": \"Zainab Malik\",\n  \"phone\": \"0321-9876543\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reservations",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reservations"]
+						},
+						"description": "Customer: creates a table reservation. Validates capacity and returns 409 if double-booked."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get My Reservations (Customer)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{customerToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/reservations/my",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reservations", "my"]
+						},
+						"description": "Customer: retrieves reservations belonging to the authenticated user."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get All Reservations (Manager)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{managerToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/reservations",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reservations"]
+						},
+						"description": "Manager-only: retrieves all reservations across all users and tables."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Reservation Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{managerToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"Confirmed\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reservations/000000000000000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reservations", "000000000000000000000000"]
+						},
+						"description": "Manager can confirm/decline any booking; customer can cancel own booking. Replace the placeholder ID with a real reservation _id."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Place Order (Customer)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{customerToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"menuItem\": \"000000000000000000000000\",\n      \"name\": \"Saffron Infused Lobster Bisque\",\n      \"price\": 1450,\n      \"quantity\": 2\n    }\n  ],\n  \"orderType\": \"dine-in\",\n  \"tableNumber\": 1,\n  \"notes\": \"Extra saffron please\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders"]
+						},
+						"description": "Customer: places a new order into the kitchen queue with status 'Pending'. Replace the menuItem ID with a real menu item _id from GET /api/menu."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get My Orders (Customer)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{customerToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/orders/my",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders", "my"]
+						},
+						"description": "Customer: retrieves order history for the authenticated customer."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get All Orders (Manager)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{managerToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders"]
+						},
+						"description": "Manager-only: retrieves all orders in the restaurant kitchen pipeline."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Order Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{managerToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"Preparing\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/orders/000000000000000000000000/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders", "000000000000000000000000", "status"]
+						},
+						"description": "Manager advances order status (Pending → Preparing → Ready → Served); customer can cancel while Pending within 10-min window. Replace the placeholder ID with a real order _id."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Negative Tests",
+			"item": [
+				{
+					"name": "Menu POST with no token (401)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Unauthorized Dish\",\n  \"description\": \"Should fail\",\n  \"price\": 500,\n  \"category\": \"Test\",\n  \"image\": \"https://example.com/img.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/menu",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "menu"]
+						},
+						"description": "Attempts to create a menu item without any Authorization token. Expected: 401 Unauthorized."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 401', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Menu POST with customer token (403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{customerToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Forbidden Dish\",\n  \"description\": \"Should fail\",\n  \"price\": 500,\n  \"category\": \"Test\",\n  \"image\": \"https://example.com/img.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/menu",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "menu"]
+						},
+						"description": "Attempts to create a menu item with a customer token. Expected: 403 Forbidden (manager role required)."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', function () {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Menu POST with missing name (400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{managerToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Missing the name field\",\n  \"price\": 500,\n  \"category\": \"Test\",\n  \"image\": \"https://example.com/img.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/menu",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "menu"]
+						},
+						"description": "Attempts to create a menu item without the required 'name' field. Expected: 400 Bad Request."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Menu POST with negative price (400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{managerToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Negative Price Dish\",\n  \"description\": \"Price is negative\",\n  \"price\": -100,\n  \"category\": \"Test\",\n  \"image\": \"https://example.com/img.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/menu",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "menu"]
+						},
+						"description": "Attempts to create a menu item with a negative price. Expected: 400 Bad Request."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Menu GET with invalid id 'abc123' (400)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/menu/abc123",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "menu", "abc123"]
+						},
+						"description": "Attempts to fetch a menu item with an invalid ObjectId. Expected: 400 Bad Request."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Register with duplicate email (409)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Duplicate User\",\n  \"email\": \"zainab.malik@aurabistro.pk\",\n  \"password\": \"Password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register"]
+						},
+						"description": "Attempts to register with an email that already exists in the database. Expected: 409 Conflict."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 409', function () {",
+									"    pm.response.to.have.status(409);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Login with wrong password (401)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"zainab.malik@aurabistro.pk\",\n  \"password\": \"WrongPassword99\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Attempts to login with a correct email but wrong password. Expected: 401 Unauthorized."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 401', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Staff create with customer token (403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{customerToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Forbidden Staff\",\n  \"email\": \"forbidden.staff@aurabistro.pk\",\n  \"password\": \"StaffPass1\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/staff",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "staff"]
+						},
+						"description": "Attempts to create a staff account using a customer token. Expected: 403 Forbidden (manager role required)."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', function () {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		}
+	]
 }
