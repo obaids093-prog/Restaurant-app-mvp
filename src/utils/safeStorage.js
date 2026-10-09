@@ -10,12 +10,16 @@ const memoryFallback = new Map();
 export const safeStorage = {
   async getItem(key) {
     try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const val = window.localStorage.getItem(key);
+        if (val !== null && val !== undefined) return val;
+      }
       if (AsyncStorage && typeof AsyncStorage.getItem === 'function') {
         const value = await AsyncStorage.getItem(key);
-        if (value !== null) return value;
+        if (value !== null && value !== undefined) return value;
       }
     } catch (e) {
-      console.warn(`[safeStorage] AsyncStorage.getItem failed for "${key}", using memory fallback:`, e.message);
+      console.warn(`[safeStorage] getItem failed for "${key}", using memory fallback:`, e.message);
     }
     return memoryFallback.get(key) || null;
   },
@@ -23,22 +27,28 @@ export const safeStorage = {
   async setItem(key, value) {
     memoryFallback.set(key, value);
     try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, value);
+      }
       if (AsyncStorage && typeof AsyncStorage.setItem === 'function') {
         await AsyncStorage.setItem(key, value);
       }
     } catch (e) {
-      console.warn(`[safeStorage] AsyncStorage.setItem failed for "${key}", using memory fallback:`, e.message);
+      console.warn(`[safeStorage] setItem failed for "${key}", using memory fallback:`, e.message);
     }
   },
 
   async removeItem(key) {
     memoryFallback.delete(key);
     try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
       if (AsyncStorage && typeof AsyncStorage.removeItem === 'function') {
         await AsyncStorage.removeItem(key);
       }
     } catch (e) {
-      console.warn(`[safeStorage] AsyncStorage.removeItem failed for "${key}":`, e.message);
+      console.warn(`[safeStorage] removeItem failed for "${key}":`, e.message);
     }
   },
 };

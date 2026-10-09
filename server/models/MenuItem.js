@@ -63,5 +63,7 @@ const menuItemSchema = new mongoose.Schema(
 
 // Text index for search query optimization
 menuItemSchema.index({ name: 'text', description: 'text' });
+// F-24: Category filter query index
+menuItemSchema.index({ category: 1 });
 
 module.exports = mongoose.model('MenuItem', menuItemSchema);

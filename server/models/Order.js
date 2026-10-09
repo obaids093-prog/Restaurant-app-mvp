@@ -55,7 +55,7 @@ const orderSchema = new mongoose.Schema(
     },
     orderType: {
       type: String,
-      enum: ['Dine-in', 'Takeaway'],
+      enum: ['Dine-in', 'Takeaway', 'Dine-In Table', 'Curbside', 'Priority'],
       default: 'Dine-in',
     },
     tableNumber: {
@@ -81,5 +81,9 @@ const orderSchema = new mongoose.Schema(
     timestamps: true, // Automatically manages createdAt and updatedAt
   }
 );
+
+// F-24: Query optimization indexes
+orderSchema.index({ user: 1, createdAt: -1 });
+orderSchema.index({ status: 1 });
 
 module.exports = mongoose.model('Order', orderSchema);

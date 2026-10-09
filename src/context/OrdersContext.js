@@ -33,7 +33,14 @@ export const OrdersProvider = ({ children }) => {
     try {
       const endpoint = user.role === 'manager' ? '/api/orders' : '/api/orders/my';
       const data = await apiClient(endpoint);
-      const normalized = (Array.isArray(data) ? data : []).map(normalizeOrder);
+      const normalized = (Array.isArray(data) ? data : [])
+        .map(normalizeOrder)
+        .sort((a, b) => {
+          const timeA = new Date(a.createdAt || 0).getTime();
+          const timeB = new Date(b.createdAt || 0).getTime();
+          if (timeA && timeB && timeA !== timeB) return timeB - timeA;
+          return String(b._id || b.id || '').localeCompare(String(a._id || a.id || ''));
+        });
       setOrders(normalized);
       return normalized;
     } catch (err) {

@@ -63,7 +63,7 @@ const createReservation = async (req, res) => {
       date: date.trim(),
       time: time.trim(),
       guests: guestCount,
-      specialRequests: specialRequests || '',
+      specialRequests: typeof specialRequests === 'string' ? specialRequests.trim().slice(0, 500) : '',
       status: 'Pending',
     });
 
@@ -71,7 +71,13 @@ const createReservation = async (req, res) => {
     res.status(201).json(populatedReservation);
   } catch (error) {
     console.error('Error creating reservation:', error);
-    res.status(500).json({ message: 'Server error creating reservation', error: error.message });
+    // F-21: Catch Mongo duplicate key error from partial unique index
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: 'This table has already been booked for that date and time. Please choose another time or table.',
+      });
+    }
+    res.status(500).json({ message: 'Server error creating reservation' });
   }
 };
 
@@ -80,13 +86,15 @@ const createReservation = async (req, res) => {
 // @access  Private
 const getMyReservations = async (req, res) => {
   try {
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 50), 100);
     const reservations = await Reservation.find({ user: req.user._id })
       .sort({ createdAt: -1 })
+      .limit(limit)
       .populate('table');
     res.status(200).json(reservations);
   } catch (error) {
     console.error('Error fetching my reservations:', error);
-    res.status(500).json({ message: 'Server error fetching reservations', error: error.message });
+    res.status(500).json({ message: 'Server error fetching reservations' });
   }
 };
 
@@ -95,14 +103,16 @@ const getMyReservations = async (req, res) => {
 // @access  Private/Manager
 const getAllReservations = async (req, res) => {
   try {
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 50), 100);
     const reservations = await Reservation.find()
-      .sort({ date: 1, time: 1 })
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limit)
       .populate('user', 'name email phone')
       .populate('table');
     res.status(200).json(reservations);
   } catch (error) {
     console.error('Error fetching reservations:', error);
-    res.status(500).json({ message: 'Server error fetching all reservations', error: error.message });
+    res.status(500).json({ message: 'Server error fetching all reservations' });
   }
 };
 
@@ -150,7 +160,7 @@ const updateReservationStatus = async (req, res) => {
     res.status(200).json(updated);
   } catch (error) {
     console.error('Error updating reservation:', error);
-    res.status(500).json({ message: 'Server error updating reservation', error: error.message });
+    res.status(500).json({ message: 'Server error updating reservation' });
   }
 };
 

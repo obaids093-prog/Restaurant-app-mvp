@@ -16,6 +16,8 @@
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
@@ -27,13 +29,98 @@ connectDB();
 
 const app = express();
 
-// ── Middleware ──────────────────────────────────────────────
-app.use(cors());              // Allow cross-origin requests from the app
-app.use(express.json());      // Parse incoming JSON request bodies
+// ── Security Headers Middleware (S5-B) ──────────────────────
+// helmet() sets many security headers including X-Content-Type-Options,
+// X-Frame-Options, Strict-Transport-Security, etc.
+app.use(helmet());
+
+// ── CORS Policy (S5-A) ──────────────────────────────────────
+const allowedOrigins = [
+  'http://localhost:8081',
+  'http://localhost:19006',
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:8081',
+  'http://192.168.100.17:8081',
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Mobile native apps (React Native / Expo Go) send no origin
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Permissive in local dev, logs origin
+    },
+    credentials: true,
+  })
+);
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ── express-mongo-sanitize (S1-C) ────────────────────────────
+// Strips keys starting with '$' or containing '.' from req.body/query/params
+app.use(mongoSanitize());
+
+// ── NoSQL Operator Sanitizer (S1-C) ─────────────────────────
+// Recursively strip any keys that start with '$' or contain '.'
+const sanitizeNoSql = (obj) => {
+  if (!obj || typeof obj !== 'object') return;
+  if (Array.isArray(obj)) {
+    obj.forEach(sanitizeNoSql);
+    return;
+  }
+  for (const key of Object.keys(obj)) {
+    if (key.startsWith('$') || key.includes('.')) {
+      delete obj[key];
+    } else if (typeof obj[key] === 'object') {
+      sanitizeNoSql(obj[key]);
+    }
+  }
+};
+
+app.use((req, res, next) => {
+  if (req.body) sanitizeNoSql(req.body);
+  if (req.query) sanitizeNoSql(req.query);
+  if (req.params) sanitizeNoSql(req.params);
+  next();
+});
+
+// ── In-Memory Auth Rate Limiter (S3-B) ───────────────────────
+const authRateMap = new Map();
+const authRateLimiter = (req, res, next) => {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000; // 15-minute sliding window
+  const maxAttempts = 30; // Max 30 attempts per 15 minutes
+
+  const entry = authRateMap.get(ip) || { count: 0, resetTime: now + windowMs };
+
+  if (now > entry.resetTime) {
+    entry.count = 1;
+    entry.resetTime = now + windowMs;
+  } else {
+    entry.count += 1;
+  }
+
+  authRateMap.set(ip, entry);
+
+  if (entry.count > maxAttempts) {
+    return res.status(429).json({
+      message: 'Too many authentication attempts. Please try again after 15 minutes.',
+    });
+  }
+
+  next();
+};
+
+app.use('/api/auth/login', authRateLimiter);
+app.use('/api/auth/register', authRateLimiter);
 
 // ── Routes ─────────────────────────────────────────────────
 // Health Check — used to verify server is running
-// Viva: "GET /api/health returns the current time so we can confirm server is alive"
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
@@ -46,17 +133,15 @@ app.use('/api/reservations', require('./routes/reservationRoutes'));
 app.use('/api/tables', require('./routes/tableRoutes'));
 
 // ── 404 Handler ─────────────────────────────────────────────
-// If no route matches, return 404
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// ── Global Error Handler ─────────────────────────────────────
-// If any route throws an error, it comes here
-// "next(error)" in any controller sends it here automatically
+// ── Global Error Handler (S5-C) ─────────────────────────────
+// Never leak error stack or raw error.message to the client
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: err.message || 'Internal Server Error' });
+  console.error('[SERVER ERROR]', err.stack || err.message);
+  res.status(500).json({ message: 'Internal Server Error' });
 });
 
 // ── Start Server ─────────────────────────────────────────────

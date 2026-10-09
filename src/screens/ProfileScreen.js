@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useOrders } from '../context/OrdersContext';
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +33,7 @@ const CURATED_AVATARS = [
 export default function ProfileScreen({ navigation }) {
   const { user, logout, updateProfile, deleteAccount } = useAuth();
   const { colors, isDark, toggleTheme, shadows } = useTheme();
+  const { orders } = useOrders() || { orders: [] };
 
   const [dietaryPrefs, setDietaryPrefs] = useState(['Halal', 'Window Seat']);
 
@@ -62,42 +64,45 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handlePickFile = () => {
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (file) {
-          if (file.size > 6 * 1024 * 1024) {
-            setEditError('Selected photo is too large (max 6MB).');
-            return;
-          }
-          const reader = new FileReader();
-          reader.onload = (loadEvent) => {
-            if (loadEvent.target && loadEvent.target.result) {
-              setEditAvatar(loadEvent.target.result);
-              setEditError('');
-            }
-          };
-          reader.readAsDataURL(file);
-        }
-      };
-      input.click();
-    } else {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
       Alert.alert(
         'Upload Picture',
         'Choose an avatar from the curated presets below or enter an image URL.'
       );
+      return;
     }
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target?.files?.[0];
+      if (!file) return;
+      if (file.size > 6 * 1024 * 1024) {
+        setEditError('Selected photo is too large (max 6MB).');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        if (loadEvent.target?.result) {
+          setEditAvatar(loadEvent.target.result);
+          setEditError('');
+        }
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
   };
 
   const handleSaveProfile = async () => {
-    if (!editName.trim()) {
+    const trimmedName = editName.trim();
+    const trimmedEmail = editEmail.trim();
+
+    if (!trimmedName) {
       setEditError('Please enter your name.');
       return;
     }
-    if (!editEmail.trim() || !editEmail.includes('@')) {
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
       setEditError('Please enter a valid email address.');
       return;
     }
@@ -106,18 +111,19 @@ export default function ProfileScreen({ navigation }) {
       setIsSaving(true);
       setEditError('');
       await updateProfile({
-        name: editName.trim(),
-        email: editEmail.trim(),
+        name: trimmedName,
+        email: trimmedEmail,
         phone: editPhone.trim(),
         dob: editDob.trim(),
         avatar: editAvatar,
       });
 
       setIsEditModalVisible(false);
+      const msg = 'Profile details saved successfully!';
       if (Platform.OS === 'web') {
-        window.alert('Profile details saved successfully!');
+        window.alert(msg);
       } else {
-        Alert.alert('Success', 'Profile details saved successfully!');
+        Alert.alert('Success', msg);
       }
     } catch (err) {
       setEditError(err.message || 'Failed to update profile.');
@@ -133,13 +139,11 @@ export default function ProfileScreen({ navigation }) {
       await deleteAccount();
       setIsDeleteConfirmVisible(false);
 
+      const msg = 'Your account has been permanently deleted from our database.';
       if (Platform.OS === 'web') {
-        window.alert('Your account has been permanently deleted from our database.');
+        window.alert(msg);
       } else {
-        Alert.alert(
-          'Account Deleted',
-          'Your account has been permanently deleted from our database.'
-        );
+        Alert.alert('Account Deleted', msg);
       }
       navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     } catch (err) {
@@ -154,14 +158,16 @@ export default function ProfileScreen({ navigation }) {
     );
   };
 
-  const handleLogout = async () => {
+  const performLogout = async () => {
+    await logout();
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+  };
+
+  const handleLogout = () => {
     if (Platform.OS === 'web') {
-      const confirmed = window.confirm(
-        'Are you sure you want to log out of your account?'
-      );
-      if (!confirmed) return;
-      await logout();
-      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      if (window.confirm('Are you sure you want to log out of your account?')) {
+        void performLogout();
+      }
       return;
     }
 
@@ -170,22 +176,34 @@ export default function ProfileScreen({ navigation }) {
       'Are you sure you want to log out of your account?',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Log Out',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          },
-        },
+        { text: 'Log Out', style: 'destructive', onPress: performLogout },
       ]
     );
   };
 
   const isManager = user?.role === 'manager';
+
+  const getPatronId = () => {
+    if (isManager) return 'ID: #MGR-001';
+    const rawId = user?._id || user?.id;
+    const suffix = rawId ? String(rawId).slice(-6).toUpperCase() : '9041';
+    return `ID: #CUST-${suffix}`;
+  };
+
+  const getMembershipBadgeText = () => {
+    if (isManager) return 'MANAGER';
+    return (user?.membership || 'CUSTOMER').toUpperCase();
+  };
+
+  const patronIdText = getPatronId();
+  const membershipBadgeText = getMembershipBadgeText();
+
+  const totalOrders = (orders || []).length;
+  const ordersSuffix = totalOrders === 1 ? '' : 's';
+  const ordersSubtitle =
+    totalOrders > 0
+      ? `${totalOrders} active / recorded order${ordersSuffix}`
+      : 'Track live kitchen progression & view receipts';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -210,9 +228,7 @@ export default function ProfileScreen({ navigation }) {
                 </Text>
               </View>
               <View style={styles.vipTagPill}>
-                <Text style={styles.vipTagPillText}>
-                  {isManager ? 'MANAGER' : (user?.membership ? user.membership.toUpperCase() : 'CUSTOMER')}
-                </Text>
+                <Text style={styles.vipTagPillText}>{membershipBadgeText}</Text>
               </View>
             </View>
 
@@ -240,7 +256,7 @@ export default function ProfileScreen({ navigation }) {
 
                 <View style={styles.infoCol}>
                   <Text style={styles.patronNumber}>
-                    {isManager ? 'ID: #MGR-001' : 'ID: #CUST-9041'}
+                    {patronIdText}
                   </Text>
                   <Text style={styles.patronDisplayName} numberOfLines={1}>
                     {user?.name || 'Customer'}
@@ -276,31 +292,78 @@ export default function ProfileScreen({ navigation }) {
           </LinearGradient>
         </View>
 
-        {/* ─── QUICK EDIT PROFILE ACTION BUTTON ─── */}
-        <TouchableOpacity
-          onPress={openEditModal}
+        {/* ─── PROFESSIONAL ACCOUNT & ACTIVITY HUB (Real-world Food & Dining) ─── */}
+        <View
           style={[
-            styles.editProfileTriggerBtn,
-            { backgroundColor: colors.surfaceSubtle, borderColor: colors.primary + '50' },
+            styles.accountHubCard,
+            { backgroundColor: colors.card, borderColor: colors.cardBorder },
             shadows.soft,
           ]}
-          activeOpacity={0.85}
         >
-          <View style={styles.editProfileTriggerLeft}>
-            <View style={[styles.editIconBadge, { backgroundColor: colors.primary + '20' }]}>
-              <Ionicons name="create-outline" size={18} color={colors.primary} />
+          <Text style={[styles.sectionSmallHeading, { color: colors.textMuted }]}>
+            ACCOUNT & ACTIVITY
+          </Text>
+
+          {/* Edit Profile Details */}
+          <TouchableOpacity
+            onPress={openEditModal}
+            style={[styles.accountHubRow, { borderBottomColor: colors.surfaceBorder }]}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.hubIconBadge, { backgroundColor: colors.primary + '18' }]}>
+              <Ionicons name="person-circle-outline" size={22} color={colors.primary} />
             </View>
-            <View>
-              <Text style={[styles.editProfileTriggerTitle, { color: colors.textPrimary }]}>
-                Edit Profile Details
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hubRowTitle, { color: colors.textPrimary }]}>
+                Personal Information
               </Text>
-              <Text style={[styles.editProfileTriggerSub, { color: colors.textMuted }]}>
-                Update photo, name, email, DOB & phone number
+              <Text style={[styles.hubRowSubtitle, { color: colors.textMuted }]}>
+                Update name, email, phone & profile photo
               </Text>
             </View>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
-        </TouchableOpacity>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          {/* Orders Tracking & Receipts */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('TrackTab')}
+            style={[styles.accountHubRow, { borderBottomColor: colors.surfaceBorder }]}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.hubIconBadge, { backgroundColor: '#F59E0B18' }]}>
+              <Ionicons name="receipt-outline" size={20} color="#F59E0B" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hubRowTitle, { color: colors.textPrimary }]}>
+                My Orders & Kitchen Tracking
+              </Text>
+              <Text style={[styles.hubRowSubtitle, { color: colors.textMuted }]}>
+                {ordersSubtitle}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          {/* Table Reservations */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Reservations')}
+            style={[styles.accountHubRow, { borderBottomWidth: 0 }]}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.hubIconBadge, { backgroundColor: '#3B82F618' }]}>
+              <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hubRowTitle, { color: colors.textPrimary }]}>
+                Table Reservations
+              </Text>
+              <Text style={[styles.hubRowSubtitle, { color: colors.textMuted }]}>
+                Reserve dining slots and check status
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
 
         {/* ─── ATMOSPHERIC THEME SWITCHER ─── */}
         <View
@@ -468,248 +531,310 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      {/* ═══════════════════════════════════════════════════════════
-          EDIT PROFILE MODAL
-          ═══════════════════════════════════════════════════════════ */}
-      <Modal
+      {/* ─── EDIT PROFILE MODAL ─── */}
+      <EditProfileModal
         visible={isEditModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => !isSaving && setIsEditModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.editModalBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Edit Dining Profile</Text>
-                <Text style={[styles.modalSub, { color: colors.textMuted }]}>
-                  Update your patron credentials & avatar
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => !isSaving && setIsEditModalVisible(false)}
-                style={[styles.closeIconBtn, { backgroundColor: colors.surfaceSubtle }]}
-              >
-                <Ionicons name="close" size={20} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
+        isSaving={isSaving}
+        onClose={() => setIsEditModalVisible(false)}
+        colors={colors}
+        editName={editName}
+        setEditName={setEditName}
+        editEmail={editEmail}
+        setEditEmail={setEditEmail}
+        editPhone={editPhone}
+        setEditPhone={setEditPhone}
+        editDob={editDob}
+        setEditDob={setEditDob}
+        editAvatar={editAvatar}
+        setEditAvatar={setEditAvatar}
+        editError={editError}
+        onPickFile={handlePickFile}
+        onSave={handleSaveProfile}
+      />
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-              {/* Avatar Preview & Upload Buttons */}
-              <View style={styles.avatarPickerSection}>
-                <View style={styles.avatarBigWrapper}>
-                  {editAvatar ? (
-                    <Image source={{ uri: editAvatar }} style={styles.avatarBigImg} />
-                  ) : (
-                    <View style={[styles.avatarBigImg, { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }]}>
-                      <Text style={{ fontSize: 32, color: '#FFFFFF', fontWeight: '800' }}>
-                        {(editName || 'U').charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                <TouchableOpacity
-                  onPress={handlePickFile}
-                  style={[styles.uploadFileBtn, { backgroundColor: colors.primary }]}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="cloud-upload-outline" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.uploadFileBtnText}>Upload Photo from Device</Text>
-                </TouchableOpacity>
-
-                {/* Preset Avatar Selection */}
-                <Text style={[styles.presetsHeading, { color: colors.textMuted }]}>
-                  Or choose a curated luxury persona:
-                </Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetAvatarRow}>
-                  {CURATED_AVATARS.map((av) => {
-                    const isSelected = editAvatar === av.uri;
-                    return (
-                      <TouchableOpacity
-                        key={av.id}
-                        onPress={() => setEditAvatar(av.uri)}
-                        style={[
-                          styles.presetAvatarItem,
-                          isSelected && { borderColor: colors.primary, borderWidth: 2.5 },
-                        ]}
-                      >
-                        <Image source={{ uri: av.uri }} style={styles.presetAvatarThumb} />
-                        {isSelected && (
-                          <View style={[styles.selectedCheckBadge, { backgroundColor: colors.primary }]}>
-                            <Ionicons name="checkmark" size={10} color="#FFFFFF" />
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-
-              {/* Error Notice */}
-              {editError ? (
-                <View style={styles.errorBanner}>
-                  <Ionicons name="alert-circle" size={16} color="#DC2626" />
-                  <Text style={styles.errorBannerText}>{editError}</Text>
-                </View>
-              ) : null}
-
-              {/* Form Input: Full Name */}
-              <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Full Name</Text>
-                <View style={[styles.inputContainer, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
-                  <Ionicons name="person-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.textInput, { color: colors.textPrimary }]}
-                    placeholder="Enter full name"
-                    placeholderTextColor={colors.textMuted}
-                    value={editName}
-                    onChangeText={setEditName}
-                  />
-                </View>
-              </View>
-
-              {/* Form Input: Email */}
-              <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Email Address</Text>
-                <View style={[styles.inputContainer, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
-                  <Ionicons name="mail-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.textInput, { color: colors.textPrimary }]}
-                    placeholder="e.g. patron@aurabistro.pk"
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={editEmail}
-                    onChangeText={setEditEmail}
-                  />
-                </View>
-              </View>
-
-              {/* Form Input: Date of Birth (DOB) */}
-              <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Date of Birth (DOB)</Text>
-                <View style={[styles.inputContainer, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
-                  <Ionicons name="calendar-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.textInput, { color: colors.textPrimary }]}
-                    placeholder="e.g. 1998-08-15 or 15 Aug 1998"
-                    placeholderTextColor={colors.textMuted}
-                    value={editDob}
-                    onChangeText={setEditDob}
-                  />
-                </View>
-              </View>
-
-              {/* Form Input: Phone Number */}
-              <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Phone Number</Text>
-                <View style={[styles.inputContainer, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
-                  <Ionicons name="call-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.textInput, { color: colors.textPrimary }]}
-                    placeholder="e.g. 0300-1234567"
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="phone-pad"
-                    value={editPhone}
-                    onChangeText={setEditPhone}
-                  />
-                </View>
-              </View>
-
-              {/* Action Buttons */}
-              <View style={styles.modalActionButtons}>
-                <TouchableOpacity
-                  onPress={() => setIsEditModalVisible(false)}
-                  style={[styles.modalCancelBtn, { borderColor: colors.surfaceBorder }]}
-                  disabled={isSaving}
-                >
-                  <Text style={[styles.modalCancelBtnText, { color: colors.textPrimary }]}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleSaveProfile}
-                  style={[styles.modalSaveBtn, { backgroundColor: colors.primary }]}
-                  disabled={isSaving}
-                  activeOpacity={0.88}
-                >
-                  {isSaving ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <Ionicons name="save-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                      <Text style={styles.modalSaveBtnText}>Save Changes</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ═══════════════════════════════════════════════════════════
-          DELETE ACCOUNT CONFIRMATION MODAL
-          ═══════════════════════════════════════════════════════════ */}
-      <Modal
+      {/* ─── DELETE ACCOUNT CONFIRMATION MODAL ─── */}
+      <DeleteAccountModal
         visible={isDeleteConfirmVisible}
-        animationType="fade"
-        transparent
-        onRequestClose={() => !isDeleting && setIsDeleteConfirmVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.deleteModalBox, { backgroundColor: colors.card, borderColor: '#DC2626' }]}>
-            <View style={styles.deleteModalIconRing}>
-              <Ionicons name="trash" size={32} color="#DC2626" />
+        isDeleting={isDeleting}
+        onClose={() => setIsDeleteConfirmVisible(false)}
+        colors={colors}
+        deleteError={deleteError}
+        onConfirm={handleConfirmDeleteAccount}
+      />
+    </View>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUB-COMPONENTS (Extracted for Clean Modular Architecture)
+// ═══════════════════════════════════════════════════════════════
+
+function EditProfileModal({
+  visible,
+  isSaving,
+  onClose,
+  colors,
+  editName,
+  setEditName,
+  editEmail,
+  setEditEmail,
+  editPhone,
+  setEditPhone,
+  editDob,
+  setEditDob,
+  editAvatar,
+  setEditAvatar,
+  editError,
+  onPickFile,
+  onSave,
+}) {
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={() => !isSaving && onClose()}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.editModalBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Edit Dining Profile</Text>
+              <Text style={[styles.modalSub, { color: colors.textMuted }]}>
+                Update your patron credentials & avatar
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => !isSaving && onClose()}
+              style={[styles.closeIconBtn, { backgroundColor: colors.surfaceSubtle }]}
+            >
+              <Ionicons name="close" size={20} color={colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+            {/* Avatar Preview & Upload Buttons */}
+            <View style={styles.avatarPickerSection}>
+              <View style={styles.avatarBigWrapper}>
+                {editAvatar ? (
+                  <Image source={{ uri: editAvatar }} style={styles.avatarBigImg} />
+                ) : (
+                  <View style={[styles.avatarBigImg, { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }]}>
+                    <Text style={{ fontSize: 32, color: '#FFFFFF', fontWeight: '800' }}>
+                      {(editName || 'U').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <TouchableOpacity
+                onPress={onPickFile}
+                style={[styles.uploadFileBtn, { backgroundColor: colors.primary }]}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="cloud-upload-outline" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.uploadFileBtnText}>Upload Photo from Device</Text>
+              </TouchableOpacity>
+
+              {/* Preset Avatar Selection */}
+              <Text style={[styles.presetsHeading, { color: colors.textMuted }]}>
+                Or choose a curated luxury persona:
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetAvatarRow}>
+                {CURATED_AVATARS.map((av) => {
+                  const isSelected = editAvatar === av.uri;
+                  return (
+                    <TouchableOpacity
+                      key={av.id}
+                      onPress={() => setEditAvatar(av.uri)}
+                      style={[
+                        styles.presetAvatarItem,
+                        isSelected && { borderColor: colors.primary, borderWidth: 2.5 },
+                      ]}
+                    >
+                      <Image source={{ uri: av.uri }} style={styles.presetAvatarThumb} />
+                      {isSelected && (
+                        <View style={[styles.selectedCheckBadge, { backgroundColor: colors.primary }]}>
+                          <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </View>
 
-            <Text style={[styles.deleteModalTitle, { color: colors.textPrimary }]}>
-              Permanently Delete Account?
-            </Text>
-
-            <Text style={[styles.deleteModalDesc, { color: colors.textSecondary }]}>
-              Are you sure you want to permanently delete your account? This action cannot be reversed. Your user account and dining credentials will be completely erased from the database.
-            </Text>
-
-            {deleteError ? (
+            {/* Error Notice */}
+            {editError ? (
               <View style={styles.errorBanner}>
                 <Ionicons name="alert-circle" size={16} color="#DC2626" />
-                <Text style={styles.errorBannerText}>{deleteError}</Text>
+                <Text style={styles.errorBannerText}>{editError}</Text>
               </View>
             ) : null}
 
-            <View style={styles.deleteModalBtnRow}>
+            {/* Form Input: Full Name */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Full Name</Text>
+              <View style={[styles.inputContainer, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
+                <Ionicons name="person-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.textInput, { color: colors.textPrimary }]}
+                  placeholder="Enter full name"
+                  placeholderTextColor={colors.textMuted}
+                  value={editName}
+                  onChangeText={setEditName}
+                />
+              </View>
+            </View>
+
+            {/* Form Input: Email */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Email Address</Text>
+              <View style={[styles.inputContainer, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
+                <Ionicons name="mail-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.textInput, { color: colors.textPrimary }]}
+                  placeholder="e.g. patron@aurabistro.pk"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={editEmail}
+                  onChangeText={setEditEmail}
+                />
+              </View>
+            </View>
+
+            {/* Form Input: Date of Birth (DOB) */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Date of Birth (DOB)</Text>
+              <View style={[styles.inputContainer, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
+                <Ionicons name="calendar-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.textInput, { color: colors.textPrimary }]}
+                  placeholder="e.g. 1998-08-15 or 15 Aug 1998"
+                  placeholderTextColor={colors.textMuted}
+                  value={editDob}
+                  onChangeText={setEditDob}
+                />
+              </View>
+            </View>
+
+            {/* Form Input: Phone Number */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Phone Number</Text>
+              <View style={[styles.inputContainer, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
+                <Ionicons name="call-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.textInput, { color: colors.textPrimary }]}
+                  placeholder="e.g. 0300-1234567"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="phone-pad"
+                  value={editPhone}
+                  onChangeText={setEditPhone}
+                />
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.modalActionButtons}>
               <TouchableOpacity
-                onPress={() => setIsDeleteConfirmVisible(false)}
-                style={[styles.deleteModalCancelBtn, { borderColor: colors.surfaceBorder }]}
-                disabled={isDeleting}
+                onPress={onClose}
+                style={[styles.modalCancelBtn, { borderColor: colors.surfaceBorder }]}
+                disabled={isSaving}
               >
-                <Text style={[styles.deleteModalCancelText, { color: colors.textPrimary }]}>
-                  Keep Account
-                </Text>
+                <Text style={[styles.modalCancelBtnText, { color: colors.textPrimary }]}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={handleConfirmDeleteAccount}
-                style={styles.deleteModalConfirmBtn}
-                disabled={isDeleting}
+                onPress={onSave}
+                style={[styles.modalSaveBtn, { backgroundColor: colors.primary }]}
+                disabled={isSaving}
                 activeOpacity={0.88}
               >
-                {isDeleting ? (
+                {isSaving ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <>
-                    <Ionicons name="trash" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                    <Text style={styles.deleteModalConfirmText}>Yes, Delete Permanently</Text>
+                    <Ionicons name="save-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.modalSaveBtnText}>Save Changes</Text>
                   </>
                 )}
               </TouchableOpacity>
             </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function DeleteAccountModal({
+  visible,
+  isDeleting,
+  onClose,
+  colors,
+  deleteError,
+  onConfirm,
+}) {
+  return (
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent
+      onRequestClose={() => !isDeleting && onClose()}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.deleteModalBox, { backgroundColor: colors.card, borderColor: '#DC2626' }]}>
+          <View style={styles.deleteModalIconRing}>
+            <Ionicons name="trash" size={32} color="#DC2626" />
+          </View>
+
+          <Text style={[styles.deleteModalTitle, { color: colors.textPrimary }]}>
+            Permanently Delete Account?
+          </Text>
+
+          <Text style={[styles.deleteModalDesc, { color: colors.textSecondary }]}>
+            Are you sure you want to permanently delete your account? This action cannot be reversed. Your user account and dining credentials will be completely erased from the database.
+          </Text>
+
+          {deleteError ? (
+            <View style={styles.errorBanner}>
+              <Ionicons name="alert-circle" size={16} color="#DC2626" />
+              <Text style={styles.errorBannerText}>{deleteError}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.deleteModalBtnRow}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[styles.deleteModalCancelBtn, { borderColor: colors.surfaceBorder }]}
+              disabled={isDeleting}
+            >
+              <Text style={[styles.deleteModalCancelText, { color: colors.textPrimary }]}>
+                Keep Account
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={onConfirm}
+              style={styles.deleteModalConfirmBtn}
+              disabled={isDeleting}
+              activeOpacity={0.88}
+            >
+              {isDeleting ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Ionicons name="trash" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.deleteModalConfirmText}>Yes, Delete Permanently</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-    </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -877,36 +1002,36 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // ─── EDIT PROFILE TRIGGER BUTTON ───
-  editProfileTriggerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 16,
+  // ─── DINING METRICS ANALYTICS PODS (FR-27) ───
+  // ─── PROFESSIONAL ACCOUNT & ACTIVITY HUB ───
+  accountHubCard: {
+    borderRadius: 20,
     borderWidth: 1.5,
-    padding: 12,
+    padding: 16,
     marginBottom: 14,
   },
-  editProfileTriggerLeft: {
+  accountHubRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
   },
-  editIconBadge: {
-    width: 38,
-    height: 38,
+  hubIconBadge: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
-  editProfileTriggerTitle: {
-    fontSize: 14,
-    fontWeight: '800',
+  hubRowTitle: {
+    fontSize: 14.5,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
-  editProfileTriggerSub: {
-    fontSize: 11,
-    marginTop: 1,
+  hubRowSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
   },
 
   // ─── METRIC PODS ───

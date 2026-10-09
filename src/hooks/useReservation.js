@@ -79,7 +79,17 @@ export function useReservation(currentUser) {
       setError(null);
       const data = await apiClient('/api/reservations/my');
       if (Array.isArray(data)) {
-        const normalized = data.map(normalizeReservation);
+        const normalized = data
+          .map(normalizeReservation)
+          .sort((a, b) => {
+            const createdA = new Date(a.createdAt || 0).getTime();
+            const createdB = new Date(b.createdAt || 0).getTime();
+            if (createdA && createdB && createdA !== createdB) return createdB - createdA;
+            const dateA = new Date(`${a.date || ''}T${a.time || a.timeSlot || '00:00'}`).getTime() || 0;
+            const dateB = new Date(`${b.date || ''}T${b.time || b.timeSlot || '00:00'}`).getTime() || 0;
+            if (dateA !== dateB) return dateB - dateA;
+            return String(b._id || b.id || '').localeCompare(String(a._id || a.id || ''));
+          });
         setReservationsList(normalized);
         await safeStorage.setItem(RESERVATIONS_STORAGE_KEY, JSON.stringify(normalized));
       }

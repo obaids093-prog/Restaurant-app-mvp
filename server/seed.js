@@ -51,6 +51,7 @@ const seedData = async () => {
         password: customerPasswordHash,
         role: 'customer',
         phone: '0302-8877665',
+        dob: '1996-04-12',
         membership: 'VIP Emerald Patron • Gulberg',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop',
       },
@@ -60,6 +61,7 @@ const seedData = async () => {
         password: managerPasswordHash,
         role: 'manager',
         phone: '0321-5544332',
+        dob: '1985-09-24',
         membership: 'Executive Head Chef & Operations GM',
         avatar: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=200&auto=format&fit=crop',
       },
@@ -69,6 +71,7 @@ const seedData = async () => {
         password: secondUserPasswordHash,
         role: 'customer',
         phone: '0333-4455667',
+        dob: '1999-11-18',
         membership: 'Gold Dining Patron',
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop',
       },
@@ -127,6 +130,18 @@ const seedData = async () => {
         tag: 'Seasonal Harvest',
       },
       // Mains
+      {
+        name: 'Truffle Glazed Wagyu Ribeye',
+        description: 'Charred Bincho-tan oak, summer black truffle nectar, flaked sea salt, and edible 24k botanical gold leaf.',
+        price: 8800,
+        category: 'Mains',
+        image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80',
+        isSpecial: true,
+        isAvailable: true,
+        prepTime: '20 min',
+        rating: 5.0,
+        tag: 'A5 Miyazaki',
+      },
       {
         name: 'Prime Black Angus Tenderloin',
         description: 'Charcoal-grilled center-cut beef tenderloin, roasted bone marrow jus, wild maitake mushrooms, and truffled potato mousseline.',
@@ -337,4 +352,7 @@ const seedData = async () => {
   }
 };
 
-seedData();
+seedData().catch((err) => {
+  console.error('❌ Unhandled seed error:', err);
+  process.exit(1);
+});

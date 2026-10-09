@@ -36,6 +36,11 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    dob: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     membership: {
       type: String,
       default: 'Member',

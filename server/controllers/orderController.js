@@ -16,6 +16,11 @@ const Order = require('../models/Order');
 const MenuItem = require('../models/MenuItem');
 const { CANCEL_WINDOW_MINUTES } = require('../config/constants');
 
+// Safe regex string escaper to prevent NoSQL regex injection / ReDoS (S1-A)
+const escapeRegex = (str) => {
+  return typeof str === 'string' ? str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+};
+
 // Valid status progression sequence
 const STATUS_ORDER = ['Pending', 'Preparing', 'Ready', 'Served'];
 
@@ -28,6 +33,10 @@ const placeOrder = async (req, res) => {
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: 'Order must contain at least one item' });
+    }
+
+    if (items.length > 50) {
+      return res.status(400).json({ message: 'Cannot order more than 50 items at once' });
     }
 
     // Lookup menu items from database to compute real total and check availability
@@ -43,19 +52,21 @@ const placeOrder = async (req, res) => {
         menuItemDoc = await MenuItem.findById(menuItemId);
       }
 
-      // Fallback: If not found by ID or ID is legacy/custom, lookup by name
-      if (!menuItemDoc && item.name) {
+      // Fallback: If not found by ID or ID is legacy/custom, lookup by name with safe escaped regex
+      if (!menuItemDoc && item.name && typeof item.name === 'string') {
+        const safeName = escapeRegex(item.name.trim().slice(0, 100));
         menuItemDoc = await MenuItem.findOne({
-          name: new RegExp(`^${item.name.trim()}$`, 'i'),
+          name: new RegExp(`^${safeName}$`, 'i'),
         });
       }
 
-      // Secondary fallback: partial name matching
-      if (!menuItemDoc && item.name) {
+      // Secondary fallback: partial name matching with safe escaped regex
+      if (!menuItemDoc && item.name && typeof item.name === 'string') {
         const firstWord = item.name.trim().split(' ')[0];
         if (firstWord && firstWord.length > 2) {
+          const safeWord = escapeRegex(firstWord.slice(0, 50));
           menuItemDoc = await MenuItem.findOne({
-            name: new RegExp(firstWord, 'i'),
+            name: new RegExp(safeWord, 'i'),
           });
         }
       }
@@ -84,7 +95,7 @@ const placeOrder = async (req, res) => {
         name: menuItemDoc.name,
         price: menuItemDoc.price,
         quantity,
-        specialInstructions: item.specialInstructions || '',
+        specialInstructions: typeof item.specialInstructions === 'string' ? item.specialInstructions.trim().slice(0, 300) : '',
       });
     }
 
@@ -105,15 +116,15 @@ const placeOrder = async (req, res) => {
       items: verifiedItems,
       totalAmount: calculatedTotal,
       orderType: finalOrderType,
-      tableNumber: tableNumber || '',
+      tableNumber: typeof tableNumber === 'string' ? tableNumber.trim().slice(0, 20) : '',
       status: 'Pending',
-      notes: notes || '',
+      notes: typeof notes === 'string' ? notes.trim().slice(0, 500) : '',
     });
 
     res.status(201).json(newOrder);
   } catch (error) {
     console.error('Error placing order:', error);
-    res.status(500).json({ message: error.message || 'Server error placing order', error: error.message });
+    res.status(500).json({ message: 'Server error placing order' });
   }
 };
 
@@ -122,13 +133,15 @@ const placeOrder = async (req, res) => {
 // @access  Private
 const getMyOrders = async (req, res) => {
   try {
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 50), 100);
     const orders = await Order.find({ user: req.user._id })
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limit)
       .populate('items.menuItem', 'name price image category');
     res.status(200).json(orders);
   } catch (error) {
     console.error('Error fetching my orders:', error);
-    res.status(500).json({ message: 'Server error fetching orders', error: error.message });
+    res.status(500).json({ message: 'Server error fetching orders' });
   }
 };
 
@@ -137,14 +150,16 @@ const getMyOrders = async (req, res) => {
 // @access  Private/Manager
 const getAllOrders = async (req, res) => {
   try {
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 50), 100);
     const orders = await Order.find()
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limit)
       .populate('user', 'name email phone')
       .populate('items.menuItem', 'name price image');
     res.status(200).json(orders);
   } catch (error) {
     console.error('Error fetching all orders:', error);
-    res.status(500).json({ message: 'Server error fetching all orders', error: error.message });
+    res.status(500).json({ message: 'Server error fetching all orders' });
   }
 };
 
@@ -241,7 +256,7 @@ const updateOrderStatus = async (req, res) => {
     res.status(200).json(order);
   } catch (error) {
     console.error('Error updating order status:', error);
-    res.status(500).json({ message: 'Server error updating status', error: error.message });
+    res.status(500).json({ message: 'Server error updating status' });
   }
 };
 

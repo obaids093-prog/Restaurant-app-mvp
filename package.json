@@ -26,5 +26,9 @@
     "ios": "node ./node_modules/expo/bin/cli start --ios",
     "web": "node ./node_modules/expo/bin/cli start --web"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~57.0.2"
+  }
 }

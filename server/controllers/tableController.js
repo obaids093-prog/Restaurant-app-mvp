@@ -9,7 +9,8 @@ const getTables = async (req, res) => {
     const tables = await Table.find().sort({ seats: 1 });
     res.status(200).json(tables);
   } catch (error) {
-    res.status(500).json({ message: 'Server error fetching tables', error: error.message });
+    console.error('Error fetching tables:', error);
+    res.status(500).json({ message: 'Server error fetching tables' });
   }
 };
 

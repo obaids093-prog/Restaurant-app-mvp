@@ -13,6 +13,11 @@
 const mongoose = require('mongoose');
 const MenuItem = require('../models/MenuItem');
 
+// Safe regex string escaper to prevent NoSQL regex injection / ReDoS (S1-B)
+const escapeRegex = (str) => {
+  return typeof str === 'string' ? str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+};
+
 // @desc    Get all menu items (with optional category and search filters)
 // @route   GET /api/menu
 // @access  Public
@@ -21,21 +26,23 @@ const getMenuItems = async (req, res) => {
     const { category, search } = req.query;
     const filter = {};
 
-    // Optional category filter (e.g. ?category=Mains)
-    if (category && category.trim() !== '') {
-      filter.category = new RegExp(`^${category.trim()}$`, 'i');
+    // Optional category filter with safe escaped regex
+    if (category && typeof category === 'string' && category.trim() !== '') {
+      const safeCat = escapeRegex(category.trim().slice(0, 50));
+      filter.category = new RegExp(`^${safeCat}$`, 'i');
     }
 
-    // Optional case-insensitive search filter matching item name
-    if (search && search.trim() !== '') {
-      filter.name = { $regex: search.trim(), $options: 'i' };
+    // Optional case-insensitive search filter matching item name safely
+    if (search && typeof search === 'string' && search.trim() !== '') {
+      const safeSearch = escapeRegex(search.trim().slice(0, 50));
+      filter.name = { $regex: safeSearch, $options: 'i' };
     }
 
-    const items = await MenuItem.find(filter).sort({ createdAt: -1 });
+    const items = await MenuItem.find(filter).sort({ createdAt: -1 }).limit(100);
     res.status(200).json(items);
   } catch (error) {
     console.error('Error fetching menu items:', error);
-    res.status(500).json({ message: 'Server error while fetching menu items', error: error.message });
+    res.status(500).json({ message: 'Server error while fetching menu items' });
   }
 };
 
@@ -59,7 +66,7 @@ const getMenuItemById = async (req, res) => {
     res.status(200).json(item);
   } catch (error) {
     console.error('Error fetching menu item by id:', error);
-    res.status(500).json({ message: 'Server error while fetching menu item', error: error.message });
+    res.status(500).json({ message: 'Server error while fetching menu item' });
   }
 };
 
@@ -80,25 +87,25 @@ const createMenuItem = async (req, res) => {
     }
 
     const newItem = await MenuItem.create({
-      name,
-      description,
+      name: String(name).trim().slice(0, 100),
+      description: String(description).trim().slice(0, 1000),
       price: Number(price),
-      category,
-      image,
+      category: String(category).trim(),
+      image: String(image).trim(),
       isSpecial: Boolean(isSpecial),
       isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,
-      prepTime: prepTime || '15 min',
-      rating: rating !== undefined ? Number(rating) : 4.8,
-      tag: tag || '',
+      prepTime: prepTime ? String(prepTime).trim().slice(0, 30) : '15 min',
+      rating: rating !== undefined ? Math.min(5, Math.max(0, Number(rating))) : 4.8,
+      tag: tag ? String(tag).trim().slice(0, 50) : '',
     });
 
     res.status(201).json(newItem);
   } catch (error) {
     console.error('Error creating menu item:', error);
     if (error.name === 'ValidationError') {
-      return res.status(400).json({ message: error.message });
+      return res.status(400).json({ message: 'Validation failed for menu item' });
     }
-    res.status(500).json({ message: 'Server error while creating menu item', error: error.message });
+    res.status(500).json({ message: 'Server error while creating menu item' });
   }
 };
 
@@ -117,9 +124,24 @@ const updateMenuItem = async (req, res) => {
       return res.status(400).json({ message: 'Price cannot be negative' });
     }
 
+    // SECURITY (S2-B): Whitelist allowed fields to prevent arbitrary field injection
+    const allowedUpdates = {};
+    const { name, description, price, category, image, isSpecial, isAvailable, prepTime, rating, tag } = req.body;
+
+    if (name !== undefined) allowedUpdates.name = String(name).trim().slice(0, 100);
+    if (description !== undefined) allowedUpdates.description = String(description).trim().slice(0, 1000);
+    if (price !== undefined) allowedUpdates.price = Number(price);
+    if (category !== undefined) allowedUpdates.category = String(category).trim();
+    if (image !== undefined) allowedUpdates.image = String(image).trim();
+    if (isSpecial !== undefined) allowedUpdates.isSpecial = Boolean(isSpecial);
+    if (isAvailable !== undefined) allowedUpdates.isAvailable = Boolean(isAvailable);
+    if (prepTime !== undefined) allowedUpdates.prepTime = String(prepTime).trim().slice(0, 30);
+    if (rating !== undefined) allowedUpdates.rating = Math.min(5, Math.max(0, Number(rating)));
+    if (tag !== undefined) allowedUpdates.tag = String(tag).trim().slice(0, 50);
+
     const updatedItem = await MenuItem.findByIdAndUpdate(
       id,
-      { $set: req.body },
+      { $set: allowedUpdates },
       { new: true, runValidators: true }
     );
 
@@ -131,9 +153,9 @@ const updateMenuItem = async (req, res) => {
   } catch (error) {
     console.error('Error updating menu item:', error);
     if (error.name === 'ValidationError') {
-      return res.status(400).json({ message: error.message });
+      return res.status(400).json({ message: 'Validation failed for menu item update' });
     }
-    res.status(500).json({ message: 'Server error while updating menu item', error: error.message });
+    res.status(500).json({ message: 'Server error while updating menu item' });
   }
 };
 
@@ -157,7 +179,7 @@ const deleteMenuItem = async (req, res) => {
     res.status(200).json({ message: 'Menu item deleted successfully', id: deletedItem._id });
   } catch (error) {
     console.error('Error deleting menu item:', error);
-    res.status(500).json({ message: 'Server error while deleting menu item', error: error.message });
+    res.status(500).json({ message: 'Server error while deleting menu item' });
   }
 };
 

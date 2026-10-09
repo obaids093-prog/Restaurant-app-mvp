@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -139,12 +139,24 @@ function OrderItemCard({ order, colors, shadows, onUpdateStatus, onCancelOrder }
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity
-          onPress={() => onCancelOrder(order.id)}
-          style={[styles.cancelBtn, { borderColor: colors.error + '40' }]}
-        >
-          <Text style={[styles.cancelBtnText, { color: colors.error }]}>Cancel</Text>
-        </TouchableOpacity>
+        {order.status === 'Served' ? (
+          <View style={[styles.cancelBtn, { borderColor: '#22c55e40', backgroundColor: '#22c55e12' }]}>
+            <Ionicons name="checkmark-circle" size={13} color="#22c55e" style={{ marginRight: 4 }} />
+            <Text style={[styles.cancelBtnText, { color: '#22c55e' }]}>Completed</Text>
+          </View>
+        ) : order.status === 'Cancelled' ? (
+          <View style={[styles.cancelBtn, { borderColor: colors.error + '40', backgroundColor: colors.error + '12' }]}>
+            <Ionicons name="close-circle" size={13} color={colors.error} style={{ marginRight: 4 }} />
+            <Text style={[styles.cancelBtnText, { color: colors.error }]}>Cancelled</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            onPress={() => onCancelOrder(order.id)}
+            style={[styles.cancelBtn, { borderColor: colors.error + '40' }]}
+          >
+            <Text style={[styles.cancelBtnText, { color: colors.error }]}>Cancel</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -649,7 +661,28 @@ export default function ManagerDashboardScreen({ navigation }) {
     refetch: refetchReservations,
   } = useApi('/api/reservations');
 
-  const reservationsList = Array.isArray(reservationsData) ? reservationsData : [];
+  const reservationsList = useMemo(() => {
+    if (!Array.isArray(reservationsData)) return [];
+    return [...reservationsData].sort((a, b) => {
+      const createdA = new Date(a.createdAt || 0).getTime();
+      const createdB = new Date(b.createdAt || 0).getTime();
+      if (createdA && createdB && createdA !== createdB) return createdB - createdA;
+      const dateA = new Date(`${a.date || ''}T${a.time || '00:00'}`).getTime() || 0;
+      const dateB = new Date(`${b.date || ''}T${b.time || '00:00'}`).getTime() || 0;
+      if (dateA !== dateB) return dateB - dateA;
+      return String(b._id || b.id || '').localeCompare(String(a._id || a.id || ''));
+    });
+  }, [reservationsData]);
+
+  const sortedOrders = useMemo(() => {
+    if (!Array.isArray(orders)) return [];
+    return [...orders].sort((a, b) => {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      if (timeA && timeB && timeA !== timeB) return timeB - timeA;
+      return String(b._id || b.id || '').localeCompare(String(a._id || a.id || ''));
+    });
+  }, [orders]);
 
   // Active Manager Tab
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'reservations' | 'menu' | 'team'
@@ -945,16 +978,28 @@ export default function ManagerDashboardScreen({ navigation }) {
       {/* TAB 1: INCOMING KITCHEN ORDERS */}
       {activeTab === 'orders' && (
         <ScrollView contentContainerStyle={styles.scrollList} showsVerticalScrollIndicator={false}>
-          {orders.map((order) => (
-            <OrderItemCard
-              key={order.id}
-              order={order}
-              colors={colors}
-              shadows={shadows}
-              onUpdateStatus={handleUpdateStatus}
-              onCancelOrder={cancelOrder}
-            />
-          ))}
+          {sortedOrders.length === 0 ? (
+            <View style={[styles.cardItem, { backgroundColor: colors.card, alignItems: 'center', padding: 24 }]}>
+              <Ionicons name="receipt-outline" size={40} color={colors.textMuted} />
+              <Text style={{ color: colors.textPrimary, fontWeight: '700', marginTop: 12 }}>
+                No Orders Placed Yet
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 4 }}>
+                Customer orders will appear here in real time.
+              </Text>
+            </View>
+          ) : (
+            sortedOrders.map((order) => (
+              <OrderItemCard
+                key={order.id}
+                order={order}
+                colors={colors}
+                shadows={shadows}
+                onUpdateStatus={handleUpdateStatus}
+                onCancelOrder={cancelOrder}
+              />
+            ))
+          )}
         </ScrollView>
       )}
 

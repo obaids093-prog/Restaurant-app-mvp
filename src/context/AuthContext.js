@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }) => {
   /**
    * Register user via backend API /api/auth/register
    */
-  const signup = async ({ name, email, password, role, phone }) => {
+  const signup = async ({ name, email, password, phone }) => {
     try {
       const response = await apiClient('/api/auth/register', {
         method: 'POST',
@@ -88,7 +88,6 @@ export const AuthProvider = ({ children }) => {
           name: name.trim(),
           email: email.trim().toLowerCase(),
           password: password.trim(),
-          role: role || 'customer',
           phone: phone ? phone.trim() : '',
         },
       });
@@ -109,6 +108,42 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
+   * Update profile fields (name, email, phone, dob, avatar)
+   */
+  const updateProfile = async (profileData) => {
+    try {
+      const response = await apiClient('/api/auth/profile', {
+        method: 'PUT',
+        body: profileData,
+      });
+
+      if (response && response.user) {
+        setUser(response.user);
+        await safeStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.user));
+        return response.user;
+      }
+      return null;
+    } catch (error) {
+      throw new Error(error.message || 'Failed to update profile.');
+    }
+  };
+
+  /**
+   * Permanently delete user account from database
+   */
+  const deleteAccount = async () => {
+    try {
+      await apiClient('/api/auth/profile', {
+        method: 'DELETE',
+      });
+      await logout();
+      return true;
+    } catch (error) {
+      throw new Error(error.message || 'Failed to delete account.');
+    }
+  };
+
+  /**
    * Logout user and wipe credentials from AsyncStorage
    */
   const logout = async () => {
@@ -122,6 +157,69 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Request 4-digit SMS OTP to Pakistani mobile number
+   */
+  const sendPhoneOtp = async (phone) => {
+    try {
+      const response = await apiClient('/api/auth/phone/send-otp', {
+        method: 'POST',
+        body: { phone: phone.trim() },
+      });
+      return response;
+    } catch (error) {
+      throw new Error(error.message || 'Failed to send verification code.');
+    }
+  };
+
+  /**
+   * Verify SMS OTP and log in / register customer
+   */
+  const verifyPhoneOtp = async ({ phone, otp, name }) => {
+    try {
+      const response = await apiClient('/api/auth/phone/verify-otp', {
+        method: 'POST',
+        body: {
+          phone: phone.trim(),
+          otp: otp.trim(),
+          name: name ? name.trim() : '',
+        },
+      });
+
+      const { token: receivedToken, user: receivedUser, isNewUser } = response;
+
+      // Always set token in state & storage so subsequent authorized calls succeed
+      setToken(receivedToken);
+      await safeStorage.setItem(TOKEN_KEY, receivedToken);
+
+      // Check if user is newly registered or still has temporary "Customer XXXX" name
+      const hasPlaceholderName =
+        !receivedUser.name || /^Customer \d+$/i.test(receivedUser.name.trim());
+      const needsNamePrompt = !!isNewUser || hasPlaceholderName;
+
+      if (!needsNamePrompt) {
+        // Existing user with established real name -> finalize session immediately
+        setUser(receivedUser);
+        await safeStorage.setItem(AUTH_USER_KEY, JSON.stringify(receivedUser));
+      }
+
+      // Return user info and flag indicating whether name entry screen is needed
+      return { ...receivedUser, isNewUser: needsNamePrompt };
+    } catch (error) {
+      throw new Error(error.message || 'Invalid verification code.');
+    }
+  };
+
+  /**
+   * Finalize login session if user skips typing name
+   */
+  const completePendingAuth = async (pendingUser) => {
+    if (pendingUser) {
+      setUser(pendingUser);
+      await safeStorage.setItem(AUTH_USER_KEY, JSON.stringify(pendingUser));
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -130,6 +228,11 @@ export const AuthProvider = ({ children }) => {
         isLoadingAuth,
         login,
         signup,
+        sendPhoneOtp,
+        verifyPhoneOtp,
+        completePendingAuth,
+        updateProfile,
+        deleteAccount,
         logout,
       }}
     >

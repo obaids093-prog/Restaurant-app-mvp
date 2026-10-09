@@ -54,4 +54,19 @@ const reservationSchema = new mongoose.Schema(
   }
 );
 
+// F-21: Unique compound partial index to prevent double bookings
+reservationSchema.index(
+  { table: 1, date: 1, time: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: { $in: ['Pending', 'Confirmed'] },
+    },
+  }
+);
+
+// F-24: Query indexes
+reservationSchema.index({ user: 1 });
+reservationSchema.index({ date: 1, time: 1 });
+
 module.exports = mongoose.model('Reservation', reservationSchema);

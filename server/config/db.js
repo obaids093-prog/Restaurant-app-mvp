@@ -19,6 +19,15 @@ const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI);
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+
+    // Warm up the connection pool so first real query (login) is fast
+    try {
+      const t0 = Date.now();
+      await conn.connection.db.collection('users').findOne({});
+      console.log(`⚡ DB warm-up done in ${Date.now() - t0}ms — queries are now fast`);
+    } catch (warmupErr) {
+      console.warn('⚠️ Warm-up query skipped:', warmupErr.message);
+    }
   } catch (error) {
     console.error(`❌ MongoDB Error: ${error.message}`);
     process.exit(1); // Stop the server if DB fails to connect
