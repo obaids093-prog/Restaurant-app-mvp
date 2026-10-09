@@ -160,15 +160,39 @@ Total: **23 endpoints** implemented in `server/routes/`:
 * **Demo video (max 4 minutes)**: TODO add link
 * **UML & Diagrams**: Included in high resolution inside `A2/SRS_v2.pdf` and `uml/Untitled Diagram-Page-1.drawio.png`.
 
-### Screenshots
-* **Postman Success**: `TODO: add`
-* **Postman Failure**: `TODO: add`
-* **Menu POST with No Token (401 Unauthorized)**: `TODO: add`
-* **Menu POST with Customer Token (403 Forbidden)**: `TODO: add`
-* **Menu POST with Manager Token (201 Created)**: `TODO: add`
-* **Health Route on Mobile Device (`/api/health`)**: `TODO: add`
-* **MongoDB Atlas `menuitems` Collection**: `TODO: add`
-* **Real-Time Synchronized Price Update on Two Devices**: `TODO: add`
+### Screenshots & Test Evidence
+
+#### Available Image Files in `A2/screenshots/`:
+* `200statusok.png`
+* `customerloginok.png`
+* `deletetestdish 200-ok.png`
+* `manager200-ok.png`
+* `managerloginok.png`
+* `menu 201-created.png`
+* `menu-negative-price-400.png`
+* `menu-success.png`
+* `menu400bad request.png`
+* `menuitemcollection1.png`
+* `menuitemcollection2.png`
+* `menupostcutomertokenok.png`
+* `menupostok.png`
+* `newprice-customer.jpeg`
+* `phone-health.jpeg`
+* `price-manager.png`
+
+#### Test Execution & Verification Evidence:
+* **Health Route on Laptop (`/api/health` - 200 OK)**: ![Health Laptop](A2/screenshots/200statusok.png)
+* **Health Route on Mobile Device (`/api/health`)**: ![Health Phone](A2/screenshots/phone-health.jpeg)
+* **Menu POST with No Token (401 Unauthorized)**: ![Menu POST No Token](A2/screenshots/menupostok.png)
+* **Menu POST with Customer Token (403 Forbidden)**: ![Menu POST Customer Token](A2/screenshots/menupostcutomertokenok.png)
+* **Menu POST with Manager Token (201 Created)**: ![Menu POST Manager Token](A2/screenshots/menu%20201-created.png)
+* **Successful Request (200 OK)**: ![Successful Request](A2/screenshots/menu-success.png)
+* **Menu POST with Negative Price (400 Bad Request)**: ![Negative Price](A2/screenshots/menu-negative-price-400.png)
+* **Menu GET with Invalid ID (400 Bad Request)**: `TODO: add`
+* **MongoDB Atlas `menuitems` Collection**: ![MongoDB menuitems Collection](A2/screenshots/menuitemcollection1.png)
+* **Price Change on Manager Device**: ![Price Change Manager](A2/screenshots/price-manager.png)
+* **New Price on Customer Device (Real-Time Sync)**: ![New Price Customer](A2/screenshots/newprice-customer.jpeg)
+
 * **Existing Repository Assets**:
   * `assets/icon.png` (App Launcher Icon)
   * `assets/splash-icon.png` (Splash Screen Icon)
