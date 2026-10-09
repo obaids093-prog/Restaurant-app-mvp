@@ -79,7 +79,7 @@ npx expo start
 
 ## 3. Seeded Accounts & Login Credentials
 
-All passwords in `server/seed.js` are securely hashed using `bcrypt` (10 salt rounds):
+All accounts listed below are **demo accounts provided strictly for testing and academic evaluation**. All passwords in `server/seed.js` are securely hashed using `bcrypt` (10 salt rounds):
 
 | Role | Full Name | Email Address | Password | Permissions & Capabilities |
 |---|---|---|---|---|
@@ -87,7 +87,9 @@ All passwords in `server/seed.js` are securely hashed using `bcrypt` (10 salt ro
 | **Dining Guest** | Zainab Malik | `zainab.malik@aurabistro.pk` | `Password123` | JWT login/register, live menu browsing, cart reducer, promo vouchers, live order placement, kitchen tracking with 10s polling, table reservations. |
 | **Dining Guest (Second)** | Hamza Abbasi | `hamza.abbasi@aurabistro.pk` | `Password1` | Customer dining account for multi-patron testing. |
 
-*(Unified login detects role automatically upon authentication. Passwords are never pre-filled).*
+> **Note on Registration Security:** Public user registration and mobile signup (`POST /api/auth/register` and OTP verification) **always create customer accounts only** (`role: 'customer'`). Client-provided role inputs are strictly ignored. Administrative manager accounts cannot be self-registered; they must be created by an authenticated manager via `POST /api/auth/staff` or seeded through `npm run seed`.
+> 
+> *(Unified login detects role automatically upon authentication. Passwords are never pre-filled).*
 
 ---
 
