@@ -45,3 +45,8 @@ server/.env.*
 # generated native folders
 /ios
 /android
+
+# HTTP test files
+*.http
+api-tests.http
+.claude/api-tests.http
