@@ -148,6 +148,8 @@ export function cartReducer(state, action) {
         promoCode: null,
         discountPercent: 0,
       };
+    }
+
     case 'SYNC_PRICES': {
       const { menuItems } = action.payload || {};
       if (!Array.isArray(menuItems) || menuItems.length === 0 || !Array.isArray(state.items) || state.items.length === 0) {

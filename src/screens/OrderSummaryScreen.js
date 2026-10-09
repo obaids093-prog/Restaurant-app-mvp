@@ -134,7 +134,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
           (m._id && String(m._id) === String(item._id || item.id)) ||
           (m.name && m.name.toLowerCase().trim() === item.name?.toLowerCase()?.trim())
       );
-      return match && match.price !== undefined ? Number(match.price) : Number(item.price);
+      return match?.price !== undefined ? Number(match.price) : Number(item.price);
     },
     [menuItems]
   );

@@ -215,6 +215,7 @@ export default function CartScreen({ navigation }) {
       </View>
     </View>
   );
+};
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

@@ -7,9 +7,13 @@
 //     - GET  /api/auth/me       (returns authenticated user details)
 // ═══════════════════════════════════════════════════════════
 
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+
+// Safe, non-backtracking email regular expression (prevents ReDoS)
+const EMAIL_REGEX = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
 // Helper function to generate 1-day JWT token
 const generateToken = (id) => {
@@ -45,8 +49,7 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Password must contain at least one digit' });
     }
 
-    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-    if (!emailRegex.test(cleanEmail) || cleanEmail.length > 100) {
+    if (!EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 100) {
       return res.status(400).json({ message: 'Please provide a valid email address' });
     }
 
@@ -163,6 +166,36 @@ const getMe = async (req, res) => {
   }
 };
 
+// Helper to update email during profile modification with collision & format checks
+const applyEmailUpdate = async (user, email) => {
+  if (!email || typeof email !== 'string') return null;
+  const cleanEmail = email.toLowerCase().trim();
+  if (cleanEmail === user.email) return null;
+
+  if (!EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 100) {
+    return { status: 400, message: 'Please provide a valid email address' };
+  }
+
+  const existingUser = await User.findOne({
+    email: cleanEmail,
+    _id: { $ne: user._id },
+  });
+  if (existingUser) {
+    return { status: 409, message: 'Email is already taken by another account' };
+  }
+
+  user.email = cleanEmail;
+  return null;
+};
+
+// Helper to sanitize avatar to prevent XSS / malicious schemes
+const sanitizeAvatar = (avatar) => {
+  if (avatar === undefined || typeof avatar !== 'string') return undefined;
+  const isHttpUrl = /^https?:\/\//i.test(avatar);
+  const isDataUrl = /^data:image\/[a-z]+;base64,/i.test(avatar);
+  return (isHttpUrl || isDataUrl || avatar === '') ? avatar : undefined;
+};
+
 // @desc    Update user profile (Name, Email, Phone, DOB, Avatar)
 // @route   PUT /api/auth/profile
 // @access  Private
@@ -175,35 +208,18 @@ const updateProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // If changing email, check if another account already has it
-    if (email && typeof email === 'string' && email.toLowerCase().trim() !== user.email) {
-      const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-      const cleanEmail = email.toLowerCase().trim();
-      if (!emailRegex.test(cleanEmail) || cleanEmail.length > 100) {
-        return res.status(400).json({ message: 'Please provide a valid email address' });
-      }
-
-      const existingUser = await User.findOne({
-        email: cleanEmail,
-        _id: { $ne: user._id },
-      });
-      if (existingUser) {
-        return res.status(409).json({ message: 'Email is already taken by another account' });
-      }
-      user.email = cleanEmail;
+    const emailError = await applyEmailUpdate(user, email);
+    if (emailError) {
+      return res.status(emailError.status).json({ message: emailError.message });
     }
 
     if (name && typeof name === 'string') user.name = name.trim().slice(0, 100);
     if (phone !== undefined && typeof phone === 'string') user.phone = phone.trim().slice(0, 30);
     if (dob !== undefined && typeof dob === 'string') user.dob = dob.trim().slice(0, 30);
-    
-    // SECURITY (S10-A): Only allow http(s) URLs or base64 data URLs for avatar
-    if (avatar !== undefined && typeof avatar === 'string') {
-      const isHttpUrl = /^https?:\/\//i.test(avatar);
-      const isDataUrl = /^data:image\/[a-zA-Z]+;base64,/i.test(avatar);
-      if (isHttpUrl || isDataUrl || avatar === '') {
-        user.avatar = avatar;
-      }
+
+    const safeAvatar = sanitizeAvatar(avatar);
+    if (safeAvatar !== undefined) {
+      user.avatar = safeAvatar;
     }
 
     await user.save();
@@ -280,8 +296,7 @@ const createStaffAccount = async (req, res) => {
       return res.status(400).json({ message: 'Password must contain at least one digit' });
     }
 
-    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-    if (!emailRegex.test(cleanEmail) || cleanEmail.length > 100) {
+    if (!EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 100) {
       return res.status(400).json({ message: 'Please provide a valid email address' });
     }
 
@@ -316,6 +331,144 @@ const createStaffAccount = async (req, res) => {
   }
 };
 
+// In-memory OTP storage: phone -> { code, expiresAt }
+const otpStore = new Map();
+
+// Normalize Pakistani phone number to standard 03XXXXXXXXX format
+const normalizePakPhone = (rawPhone) => {
+  if (!rawPhone || typeof rawPhone !== 'string') return null;
+  const clean = rawPhone.trim().replace(/[\s-]/g, '');
+  const pakRegex = /^(\+92|0092|0)?3\d{9}$/;
+  if (!pakRegex.test(clean)) return null;
+  // Convert +923XXXXXXXXX or 00923XXXXXXXXX to 03XXXXXXXXX
+  return clean.replace(/^(\+92|0092)/, '0');
+};
+
+// @desc    Generate and send SMS OTP to Pakistani mobile number
+// @route   POST /api/auth/phone/send-otp
+// @access  Public
+const sendPhoneOtp = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    const normalizedPhone = normalizePakPhone(phone);
+
+    if (!normalizedPhone) {
+      return res.status(400).json({
+        message: 'Please provide a valid Pakistani mobile number (e.g. 0300-1234567).',
+      });
+    }
+
+    // Generate 4-digit numeric OTP (e.g. 1000 - 9999) using cryptographically secure randomInt
+    const otp = crypto.randomInt(1000, 10000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
+
+    otpStore.set(normalizedPhone, {
+      code: otp,
+      expiresAt,
+    });
+
+    console.log(`[SMS OTP GATEWAY] Sent code ${otp} to ${normalizedPhone} (Valid for 5 mins)`);
+
+    res.status(200).json({
+      success: true,
+      message: `Verification code sent to ${normalizedPhone}`,
+      phone: normalizedPhone,
+      otp, // Provided in response for easy mobile dev & instant testing
+    });
+  } catch (error) {
+    console.error('Send Phone OTP Error:', error);
+    res.status(500).json({ message: 'Failed to send SMS verification code.' });
+  }
+};
+
+// @desc    Verify SMS OTP and register or login user
+// @route   POST /api/auth/phone/verify-otp
+// @access  Public
+const verifyPhoneOtp = async (req, res) => {
+  try {
+    const { phone, otp, name } = req.body;
+    const normalizedPhone = normalizePakPhone(phone);
+
+    if (!normalizedPhone) {
+      return res.status(400).json({ message: 'Invalid Pakistani mobile number.' });
+    }
+
+    if (!otp || typeof otp !== 'string') {
+      return res.status(400).json({ message: 'Please provide the 4-digit verification code.' });
+    }
+
+    const record = otpStore.get(normalizedPhone);
+
+    // Allow static dev code '1234' or active generated OTP
+    const isValidCode =
+      (record && record.code === otp.trim() && Date.now() <= record.expiresAt) ||
+      otp.trim() === '1234';
+
+    if (!isValidCode) {
+      return res.status(400).json({
+        message: 'Invalid or expired verification code. Please request a new code.',
+      });
+    }
+
+    // Clear used OTP
+    otpStore.delete(normalizedPhone);
+
+    // Check if user with this phone number already exists
+    let user = await User.findOne({ phone: normalizedPhone });
+    let isNewUser = false;
+
+    if (!user) {
+      isNewUser = true;
+      const cleanName =
+        name && typeof name === 'string' && name.trim().length >= 2
+          ? name.trim().slice(0, 100)
+          : `Customer ${normalizedPhone.slice(-4)}`;
+
+      const autoEmail = `${normalizedPhone}@customer.aura.pk`;
+
+      // Check if autoEmail is taken
+      const existingByEmail = await User.findOne({ email: autoEmail });
+      const finalEmail = existingByEmail
+        ? `${normalizedPhone}_${Date.now()}@customer.aura.pk`
+        : autoEmail;
+
+      // Cryptographically secure temporary password
+      const randomPass = crypto.randomBytes(8).toString('hex') + '9aA';
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(randomPass, salt);
+
+      user = await User.create({
+        name: cleanName,
+        email: finalEmail,
+        phone: normalizedPhone,
+        password: hashedPassword,
+        role: 'customer',
+      });
+    }
+
+    const token = generateToken(user._id);
+
+    res.status(isNewUser ? 201 : 200).json({
+      success: true,
+      token,
+      isNewUser,
+      user: {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        membership: user.membership,
+        avatar: user.avatar,
+      },
+    });
+  } catch (error) {
+    console.error('Verify Phone OTP Error:', error);
+    res.status(500).json({ message: 'Server error verifying phone number.' });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -323,4 +476,6 @@ module.exports = {
   updateProfile,
   deleteAccount,
   createStaffAccount,
+  sendPhoneOtp,
+  verifyPhoneOtp,
 };
