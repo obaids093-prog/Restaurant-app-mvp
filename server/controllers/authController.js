@@ -331,8 +331,13 @@ const createStaffAccount = async (req, res) => {
   }
 };
 
-// In-memory OTP storage: phone -> { code, expiresAt }
+// In-memory OTP storage: phone -> { code, expiresAt, attempts }
 const otpStore = new Map();
+// Cooldown storage: phone -> lastSentTimestamp
+const otpCooldownStore = new Map();
+const RESEND_COOLDOWN_MS = 30 * 1000; // 30 seconds cooldown
+const OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes validity
+const MAX_OTP_ATTEMPTS = 3;
 
 // Normalize Pakistani phone number to standard 03XXXXXXXXX format
 const normalizePakPhone = (rawPhone) => {
@@ -358,22 +363,34 @@ const sendPhoneOtp = async (req, res) => {
       });
     }
 
-    // Generate 4-digit numeric OTP (e.g. 1000 - 9999) using cryptographically secure randomInt
+    // Check 30-second resend cooldown per phone number
+    const lastSentAt = otpCooldownStore.get(normalizedPhone);
+    const now = Date.now();
+    if (lastSentAt && now - lastSentAt < RESEND_COOLDOWN_MS) {
+      const waitSeconds = Math.ceil((RESEND_COOLDOWN_MS - (now - lastSentAt)) / 1000);
+      return res.status(429).json({
+        message: `Please wait ${waitSeconds} second${waitSeconds === 1 ? '' : 's'} before requesting a new code.`,
+      });
+    }
+
+    // Generate 4-digit numeric OTP (1000 - 9999) using cryptographically secure randomInt
     const otp = crypto.randomInt(1000, 10000).toString();
-    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
+    const expiresAt = now + OTP_EXPIRY_MS;
 
     otpStore.set(normalizedPhone, {
       code: otp,
       expiresAt,
+      attempts: 0,
     });
+    otpCooldownStore.set(normalizedPhone, now);
 
     console.log(`[SMS OTP GATEWAY] Sent code ${otp} to ${normalizedPhone} (Valid for 5 mins)`);
 
+    // Do NOT return otp in the response body (simulated SMS appears in server terminal)
     res.status(200).json({
       success: true,
       message: `Verification code sent to ${normalizedPhone}`,
       phone: normalizedPhone,
-      otp, // Provided in response for easy mobile dev & instant testing
     });
   } catch (error) {
     console.error('Send Phone OTP Error:', error);
@@ -399,18 +416,38 @@ const verifyPhoneOtp = async (req, res) => {
 
     const record = otpStore.get(normalizedPhone);
 
-    // Allow static dev code '1234' or active generated OTP
-    const isValidCode =
-      (record && record.code === otp.trim() && Date.now() <= record.expiresAt) ||
-      otp.trim() === '1234';
-
-    if (!isValidCode) {
+    if (!record) {
       return res.status(400).json({
-        message: 'Invalid or expired verification code. Please request a new code.',
+        message: 'No verification code requested or code expired. Please request a new code.',
       });
     }
 
-    // Clear used OTP
+    // Check expiry
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(normalizedPhone);
+      return res.status(400).json({
+        message: 'Verification code has expired. Please request a new code.',
+      });
+    }
+
+    // Validate OTP (static dev code '1234' removed completely)
+    if (record.code !== otp.trim()) {
+      record.attempts = (record.attempts || 0) + 1;
+
+      if (record.attempts >= MAX_OTP_ATTEMPTS) {
+        otpStore.delete(normalizedPhone);
+        return res.status(429).json({
+          message: 'Too many incorrect attempts. Verification code has been invalidated. Please request a new code.',
+        });
+      }
+
+      const remainingAttempts = MAX_OTP_ATTEMPTS - record.attempts;
+      return res.status(400).json({
+        message: `Invalid verification code. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.`,
+      });
+    }
+
+    // Clear used OTP upon successful validation
     otpStore.delete(normalizedPhone);
 
     // Check if user with this phone number already exists
