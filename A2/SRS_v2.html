@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>SRS v2.0: AURA Modern Artisan Kitchen & Botanica (Assignment 2)</title>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<title>SRS v2.0: AURA Modern Artisan Kitchen &amp; Botanica (Assignment 2)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js" integrity="sha512-6a80OTZVmEJhqYJUmYd5z8yHUCDlYnj6q9XwB/gKOEyNQV/Q8u+XeSG59a2ZKFEHGTYzgfOQKYEBtrZV7vBr+Q==" crossorigin="anonymous"></script>
 <script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
 <style>
   body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; line-height: 1.65; color: #1e293b; margin: 40px auto; max-width: 960px; padding: 24px; background: #f8faf9; }
@@ -37,7 +37,7 @@
 <h2>AURA: Artisan Kitchen &amp; Modern Botanica</h2>
 <h3>Client-Server Architecture (React Native, Node.js, Express, MongoDB)</h3>
 
-<p><strong>Document Version:</strong> 2.0.0 (Assignment 2 Deliverable)<br/>
+<p><strong>Document Version:</strong> 2.0.0 (Assignment 2 Submission)<br/>
 <strong>Academic Term:</strong> Fall 2026<br/>
 <strong>Course:</strong> Mobile Application Development (CS-3112 / SE-3112)<br/>
 <strong>Student Name:</strong> Syed Obaid Ali &nbsp;|&nbsp; <strong>Roll Number:</strong> 9321<br/>
@@ -46,24 +46,25 @@
 <hr/>
 
 <h2>Executive Summary &amp; Problem Resolution</h2>
-<p>In <strong>Assignment 1 (A1)</strong>, the AURA Restaurant Application operated strictly as a standalone mobile MVP. All business records—menu catalogs, patron profiles, cart states, table bookings, and kitchen orders—were kept in local mock files and client-side storage (<code>AsyncStorage</code>).</p>
+<p>In <strong>Assignment 1 (A1)</strong>, the AURA Restaurant Application operated strictly as a standalone mobile MVP. All business records—menu catalogs, patron profiles, cart states, table bookings, and kitchen orders—were kept in local mock files and client-side device storage (<code>AsyncStorage</code>).</p>
 
 <div class="box">
   <h4>Real-World Problems Observed in A1:</h4>
   <ul>
-    <li><strong>Multi-Device Data Desynchronization:</strong> When the Manager changed a price or marked a dish sold-out on their phone, diners on other phones still saw old prices and ordered unavailable dishes.</li>
-    <li><strong>Cross-Device Order Invisibility:</strong> Orders placed on one device never appeared on another device or after app reinstallation.</li>
-    <li><strong>Table Double-Booking Hazard:</strong> Two patrons could book the same table at the same time because each phone checked only local state.</li>
+    <li><strong>Multi-Device Data Desynchronization:</strong> When the Restaurant Manager changed the price of a dish or toggled an ingredient as sold out on their device, dining customers on other phones still observed the old price and could continue ordering unavailable items.</li>
+    <li><strong>Cross-Device Order Invisibility:</strong> When a customer placed an order on one phone, checking on another family member's phone or reinstalling the app showed an empty tray. The orders were trapped in the local sandbox of a single phone.</li>
+    <li><strong>Table Double-Booking Hazard:</strong> Two patrons attempting to book the same private window booth at 19:00 on the same date could both succeed simultaneously because each phone checked only its local memory.</li>
+    <li><strong>Data Loss on Reinstall / Cache Clear:</strong> Uninstalling or clearing app storage wiped out all reservation history and customer loyalty records.</li>
   </ul>
 </div>
 
 <div class="box" style="border-left-color: #0D9488; background: #F0FDFA;">
   <h4>How Assignment 2 (A2) Resolves Every Problem:</h4>
   <ul>
-    <li><strong>Single Source of Truth:</strong> Central Express server + MongoDB database connects all client devices.</li>
-    <li><strong>Instant Price &amp; Availability Sync:</strong> Manager updates via <code>PUT /api/menu/:id</code> persist to MongoDB, immediately reflected on customer devices upon pull-to-refresh.</li>
-    <li><strong>10-Second Live Order Polling:</strong> <code>OrderTrackingScreen</code> polls <code>GET /api/orders/my</code> every 10 seconds, detecting kitchen status changes without restarts.</li>
-    <li><strong>Collision-Proof Bookings:</strong> <code>POST /api/reservations</code> queries MongoDB and rejects conflicting bookings with <strong>HTTP 409 Conflict</strong>.</li>
+    <li><strong>Single Source of Truth:</strong> All devices read from and write to the same central Node.js + Express REST API server connected to MongoDB.</li>
+    <li><strong>Instant Menu Updates:</strong> When a manager updates a price or toggles availability via <code>PUT /api/menu/:id</code>, the database updates immediately, and any patron pulling to refresh sees the updated catalog.</li>
+    <li><strong>Synchronized Orders &amp; 10s Polling:</strong> Orders are stored in MongoDB. The customer's <code>OrderTrackingScreen</code> polls <code>GET /api/orders/my</code> every 10 seconds, immediately displaying when the kitchen advances the status from <code>Preparing</code> to <code>Ready</code>.</li>
+    <li><strong>Server-Side Collision Detection:</strong> When a booking is submitted via <code>POST /api/reservations</code>, the server checks whether the table is already occupied for that date and time. If occupied, the server returns an <strong>HTTP 409 Conflict</strong>, preventing double-bookings.</li>
   </ul>
 </div>
 
@@ -72,135 +73,204 @@
 <h2>1. Introduction</h2>
 
 <h3>1.1. Purpose</h3>
-<p>This Software Requirements Specification establishes the full functional, database, and architectural requirements for the connected AURA Restaurant Mobile Application. It details the client-server interaction between the React Native frontend, Express.js backend, and MongoDB database.</p>
+<p>This Software Requirements Specification (SRS v2.0) establishes the full functional, database, and architectural requirements for the connected <strong>AURA Restaurant Mobile Application</strong>. It provides developers, evaluators, and system architects with a blueprint of the integrated system comprising an Expo/React Native cross-platform mobile client, an Express.js HTTP backend, and a MongoDB NoSQL database.</p>
 
 <h3>1.2. Scope</h3>
-<h4>In-Scope (Updated for A2):</h4>
+
+<h4>In-Scope Functionalities (Updated for A2):</h4>
 <ol>
-  <li><strong>Node.js &amp; Express REST API:</strong> Modular backend (<code>config/</code>, <code>models/</code>, <code>routes/</code>, <code>controllers/</code>, <code>middleware/</code>) running on port 5000.</li>
-  <li><strong>MongoDB Database:</strong> Production NoSQL database (<code>restaurant_app</code>) with Mongoose schemas for User, MenuItem, Table, Reservation, and Order.</li>
-  <li><strong>Authentication &amp; JWT Security:</strong> Password hashing via <code>bcryptjs</code>, signed 24-hour JSON Web Tokens, and <code>protect</code> / <code>managerOnly</code> middleware.</li>
-  <li><strong>Dynamic Menu Catalog:</strong> Filterable by category and search, with protected manager-only CRUD endpoints.</li>
-  <li><strong>Server-Validated Orders:</strong> Server recomputes total prices from database prices and enforces monotonic order progression (<code>Pending</code> &rarr; <code>Preparing</code> &rarr; <code>Ready</code> &rarr; <code>Served</code>).</li>
-  <li><strong>Collision-Proof Reservations:</strong> Verification of table capacity and rejection of duplicate slot bookings with <strong>HTTP 409 Conflict</strong>.</li>
-  <li><strong>10-Second Polling:</strong> Live status synchronization on customer order tracking screen via <code>setInterval</code>.</li>
+  <li><strong>Centralized Backend REST API:</strong> A production-grade Node.js and Express server running on port 5000, modularized into <code>config/</code>, <code>models/</code>, <code>routes/</code>, <code>controllers/</code>, and <code>middleware/</code>.</li>
+  <li><strong>MongoDB Database Persistence:</strong> Centralized NoSQL database (<code>restaurant_app</code>) with strict Mongoose schemas for <code>User</code>, <code>MenuItem</code>, <code>Table</code>, <code>Reservation</code>, and <code>Order</code>.</li>
+  <li><strong>Secure Authentication &amp; Token Management:</strong> Password encryption with <code>bcryptjs</code> (salt rounds = 10) and stateless user authentication using signed <strong>JSON Web Tokens (JWT)</strong> expiring in 24 hours.</li>
+  <li><strong>Role-Based Access Control Middleware:</strong> Custom Express middleware <code>protect</code> (verifies <code>Bearer &lt;token&gt;</code> headers) and <code>managerOnly</code> (enforces administrative authorization with HTTP 403 Forbidden).</li>
+  <li><strong>Dynamic Menu Catalog &amp; Management:</strong> Public endpoints for categorized retrieval and case-insensitive search (<code>/api/menu?category=...&amp;search=...</code>), with manager-only protected endpoints for creating, editing, and deleting dishes.</li>
+  <li><strong>Validated Order Pipeline:</strong> Server-side order calculation using database menu prices (ignoring untrusted client calculations), rejection of sold-out items, and monotonic state progression (<code>Pending</code> &rarr; <code>Preparing</code> &rarr; <code>Ready</code> &rarr; <code>Served</code>). An order can only be set to <code>Cancelled</code> while its status is <code>Pending</code>.</li>
+  <li><strong>Collision-Proof Table Reservations:</strong> Server validation ensuring seat capacity requirements and blocking double-bookings with HTTP 409 Conflict.</li>
+  <li><strong>Automated Live Status Polling:</strong> Client-side 10-second polling intervals (<code>setInterval</code>) on <code>OrderTrackingScreen</code> to provide real-time kitchen status synchronization without manual restarts.</li>
+  <li><strong>Mobile API Client &amp; Custom Hooks:</strong> Centralized HTTP client (<code>src/api/client.js</code>) and reusable data-fetching hook (<code>src/hooks/useApi.js</code>) handling loading, error, and refetch lifecycles across screens.</li>
+  <li><strong>Phone OTP Authentication (Extra Feature):</strong> A Pakistani mobile phone number OTP login flow beyond the assignment requirements. The server generates a 4-digit numeric code using <code>crypto.randomInt</code>, stores it in an in-memory <code>Map</code> (not in the database), and prints the code to the server console as a simulated SMS gateway. The OTP is valid for 5 minutes. After verification (or acceptance of the static dev code <code>1234</code>), the server either logs in the existing user or creates a new customer account automatically, returning a JWT token.</li>
 </ol>
 
-<h4>Out-of-Scope:</h4>
+<h4>Out-of-Scope (Excluded from A2):</h4>
 <ul>
-  <li>Real credit card payment processing (Stripe, JazzCash, EasyPaisa).</li>
-  <li>Native OS push notifications (Apple APNs / Google FCM).</li>
-  <li>Real-time GPS courier delivery tracking.</li>
+  <li><strong>Real Payment Gateways:</strong> Real credit card transactions (Stripe, JazzCash, EasyPaisa) remain out of scope; orders are placed with simulated payment processing.</li>
+  <li><strong>Native Push Notifications:</strong> Push daemons (Apple APNs, Google FCM) remain out of scope; polling intervals are used for status tracking.</li>
+  <li><strong>GPS Courier Live Tracking:</strong> External delivery fleet tracking is excluded.</li>
 </ul>
 
 <h3>1.3. Definitions, Acronyms, and Abbreviations</h3>
 <table>
   <tr><th>Term</th><th>Definition</th></tr>
-  <tr><td><strong>API</strong></td><td>Application Programming Interface enabling mobile clients to communicate with the Express server.</td></tr>
-  <tr><td><strong>REST</strong></td><td>Representational State Transfer; standard architecture utilizing HTTP verbs (GET, POST, PUT, PATCH, DELETE) for stateless operations.</td></tr>
-  <tr><td><strong>Endpoint</strong></td><td>A specific URL location (e.g., <code>/api/menu</code>) where requests are received and processed.</td></tr>
-  <tr><td><strong>JSON</strong></td><td>JavaScript Object Notation; format used for serializing request payloads and responses.</td></tr>
-  <tr><td><strong>MongoDB</strong></td><td>Document-oriented NoSQL database that stores data in collections of JSON-like BSON documents.</td></tr>
-  <tr><td><strong>Collection</strong></td><td>A grouping of MongoDB documents (analogous to a SQL table, e.g., <code>menuitems</code>).</td></tr>
-  <tr><td><strong>Mongoose</strong></td><td>Object Data Modeling (ODM) library providing schema validation, relationships, and queries in Node.js.</td></tr>
-  <tr><td><strong>Middleware</strong></td><td>Express functions that intercept and process requests prior to route controllers (e.g., JWT authentication).</td></tr>
-  <tr><td><strong>JWT</strong></td><td>JSON Web Token; encrypted, signed token used for stateless authentication.</td></tr>
-  <tr><td><strong>HTTP Status Code</strong></td><td>Standardized numerical response code (e.g., 200, 201, 400, 401, 403, 404, 409, 500).</td></tr>
+  <tr><td><strong>API (Application Programming Interface)</strong></td><td>A set of rules and protocols that allows the React Native mobile application to communicate with the Express backend server.</td></tr>
+  <tr><td><strong>REST (Representational State Transfer)</strong></td><td>An architectural style for networked applications that utilizes standard HTTP verbs (GET, POST, PUT, PATCH, DELETE) to manage resources represented as JSON.</td></tr>
+  <tr><td><strong>Endpoint</strong></td><td>A specific URL location (e.g., <code>http://192.168.1.15:5000/api/menu</code>) on a server where the API receives requests and sends responses.</td></tr>
+  <tr><td><strong>JSON (JavaScript Object Notation)</strong></td><td>A lightweight, human-readable data-interchange text format used for serializing request payloads and API responses between client and server.</td></tr>
+  <tr><td><strong>MongoDB</strong></td><td>A document-oriented, NoSQL database that stores data in flexible, JSON-like BSON documents grouped into collections.</td></tr>
+  <tr><td><strong>Collection</strong></td><td>A grouping of MongoDB documents, analogous to a table in a relational database system (e.g., <code>menuitems</code>, <code>orders</code>).</td></tr>
+  <tr><td><strong>Mongoose</strong></td><td>An Object Data Modeling (ODM) library for Node.js and MongoDB that provides schema validation, type casting, middleware hooks, and business logic methods.</td></tr>
+  <tr><td><strong>Middleware</strong></td><td>Functions that execute during the Express request-response lifecycle, having access to <code>req</code>, <code>res</code>, and the <code>next</code> function (e.g., authentication, error handling, JSON parsing).</td></tr>
+  <tr><td><strong>JWT (JSON Web Token)</strong></td><td>A compact, URL-safe means of representing claims between two parties. Encoded with a secret key (<code>JWT_SECRET</code>) to securely authenticate users without storing server-side sessions.</td></tr>
+  <tr><td><strong>HTTP Status Code</strong></td><td>Standardized 3-digit numerical responses from the server indicating the outcome of a request (e.g., <code>200 OK</code>, <code>201 Created</code>, <code>400 Bad Request</code>, <code>401 Unauthorized</code>, <code>403 Forbidden</code>, <code>404 Not Found</code>, <code>409 Conflict</code>, <code>500 Server Error</code>).</td></tr>
+  <tr><td><strong>Bcrypt</strong></td><td>A cryptographic hash function designed specifically for password storage, incorporating salting to protect against rainbow table attacks.</td></tr>
+  <tr><td><strong>CORS (Cross-Origin Resource Sharing)</strong></td><td>A security mechanism allowing web and mobile applications running on different ports or origins to interact with the backend API.</td></tr>
 </table>
 
 <hr/>
 
+<h2>2. Overall Description &amp; System Actors</h2>
+
+<h3>2.1. System Actors &amp; Roles</h3>
+<ul>
+  <li><strong>Customer / Dining Patron:</strong> A registered user who logs in to browse the real-time menu catalog, filter dishes, customize cart items, place Dine-in/Takeaway orders, track order progression via 10-second polling, and book dining tables.</li>
+  <li><strong>Restaurant Operations Manager:</strong> An authenticated administrative user who oversees incoming kitchen orders, advances order stages (<code>Pending</code> &rarr; <code>Preparing</code> &rarr; <code>Ready</code> &rarr; <code>Served</code>), accepts or declines table bookings, updates item prices, and toggles dish availability.</li>
+</ul>
+
+<hr/>
+
+<h2>3. Functional Requirements</h2>
+
+<h3>Module 1: Authentication &amp; Authorization</h3>
+<ul>
+  <li><strong>FR-01 (User Registration):</strong> <code>POST /api/auth/register</code> shall validate name, unique email, password, and optional phone. The server always creates role <code>customer</code>; any client-provided <code>role</code> field is ignored. Passwords must be hashed using <code>bcryptjs</code> before storage. Duplicate emails must return HTTP 409 Conflict.</li>
+  <li><strong>FR-02 (User Login):</strong> <code>POST /api/auth/login</code> shall verify email and password against MongoDB. Successful logins return a signed JWT expiring in 24 hours, along with user details (<code>id</code>, <code>name</code>, <code>email</code>, <code>role</code>). The password hash must never be returned.</li>
+  <li><strong>FR-03 (Token Verification):</strong> The <code>protect</code> middleware shall inspect the <code>Authorization: Bearer &lt;token&gt;</code> header, verify token authenticity using <code>JWT_SECRET</code>, and attach the user record to <code>req.user</code>. Invalid or missing tokens return HTTP 401.</li>
+  <li><strong>FR-04 (Role Enforcement):</strong> The <code>managerOnly</code> middleware shall verify that <code>req.user.role === 'manager'</code>. Unauthorized non-manager roles return HTTP 403 Forbidden.</li>
+</ul>
+
+<h3>Module 2: Menu Catalog &amp; CRUD</h3>
+<ul>
+  <li><strong>FR-05 (Public Menu Listing):</strong> <code>GET /api/menu</code> shall return all active menu items. It must accept optional query parameters: <code>category</code> (case-insensitive filter) and <code>search</code> (case-insensitive regular expression matching dish name).</li>
+  <li><strong>FR-06 (Single Item Retrieval):</strong> <code>GET /api/menu/:id</code> shall validate the MongoDB ObjectId format. If valid and existing, it returns the item; if non-existent, it returns HTTP 404; if invalid format, it returns HTTP 400.</li>
+  <li><strong>FR-07 (Manager Menu Mutations):</strong> <code>POST /api/menu</code> (201 Created), <code>PUT /api/menu/:id</code> (200 OK), and <code>DELETE /api/menu/:id</code> (200 OK) shall require both <code>protect</code> and <code>managerOnly</code> middleware.</li>
+</ul>
+
+<h3>Module 3: Order Pipeline &amp; Validation</h3>
+<ul>
+  <li><strong>FR-08 (Order Creation):</strong> <code>POST /api/orders</code> shall accept order items, dining type, and table number. The server must verify that each dish exists and <code>isAvailable === true</code>. The server must calculate the total price directly from MongoDB dish prices, ignoring client-submitted totals.</li>
+  <li><strong>FR-09 (Monotonic Progression):</strong> <code>PATCH /api/orders/:id/status</code> shall enforce that orders progress strictly forward: <code>Pending</code> &rarr; <code>Preparing</code> &rarr; <code>Ready</code> &rarr; <code>Served</code>. An order can only be set to <code>Cancelled</code> while in <code>Pending</code> state. A manager advances the status forward; a customer can set only <code>Cancelled</code> on their own <code>Pending</code> order within a 10-minute cancellation window. Any illegal transition returns HTTP 400.</li>
+  <li><strong>FR-10 (Order Queries):</strong> Customers retrieve their orders via <code>GET /api/orders/my</code>. Managers retrieve all restaurant orders via <code>GET /api/orders</code>.</li>
+  <li><strong>FR-11 (Live Polling):</strong> The mobile <code>OrderTrackingScreen</code> shall execute <code>GET /api/orders/my</code> every 10 seconds via <code>setInterval</code> and clear the timer upon unmount.</li>
+</ul>
+
+<h3>Module 4: Table Reservations &amp; Collision Prevention</h3>
+<ul>
+  <li><strong>FR-12 (Table Availability Check):</strong> <code>POST /api/reservations</code> shall check whether the requested table has sufficient seating capacity and is unbooked for that specific date and hourly time slot. If a booking exists with status <code>Pending</code> or <code>Confirmed</code>, the server returns <strong>HTTP 409 Conflict</strong>.</li>
+  <li><strong>FR-13 (Reservation Management):</strong> Customers view their reservations via <code>GET /api/reservations/my</code>. Managers view all reservations via <code>GET /api/reservations</code>. Status is updated via <code>PATCH /api/reservations/:id</code>: a manager can set <code>Confirmed</code> or <code>Declined</code> on any booking; a customer can set only <code>Cancelled</code> on their own booking.</li>
+</ul>
+
+<hr/>
+
 <h2>5. Database Design (Replaces Section 5 of A1)</h2>
+<p>The mock arrays from A1 are now fully realized as normalized MongoDB collections in the <code>restaurant_app</code> database:</p>
+
+<h3>Table 5.1: Database Collections &amp; Schema Definitions</h3>
 <table>
-  <tr><th>Collection</th><th>Fields &amp; Types</th><th>Relationships &amp; Business Rules</th></tr>
+  <tr><th>Collection</th><th>Fields &amp; Types</th><th>Relationships, Constraints &amp; Validation Rules</th></tr>
   <tr>
     <td><strong>Users</strong><br/><code>users</code></td>
     <td>
       • <code>_id</code>: ObjectId (PK)<br/>
-      • <code>name</code>: String (Required)<br/>
-      • <code>email</code>: String (Required, Unique, Lowercase)<br/>
-      • <code>password</code>: String (Hashed with bcrypt)<br/>
-      • <code>role</code>: Enum (<code>customer</code>, <code>manager</code>)<br/>
-      • <code>phone</code>: String (Optional)<br/>
-      • <code>createdAt</code>, <code>updatedAt</code>: Date
+      • <code>name</code>: String (Required, Trim)<br/>
+      • <code>email</code>: String (Required, Unique, Lowercase, Trim)<br/>
+      • <code>password</code>: String (Required, Hashed with bcrypt)<br/>
+      • <code>role</code>: String (Enum: <code>['customer', 'manager']</code>, Default: <code>'customer'</code>)<br/>
+      • <code>phone</code>: String (Optional, Trim, Default: <code>''</code>)<br/>
+      • <code>dob</code>: String (Optional, Trim, Default: <code>''</code>)<br/>
+      • <code>membership</code>: String (Default: <code>'Member'</code>)<br/>
+      • <code>avatar</code>: String (Default: Unsplash placeholder URL)<br/>
+      • <code>createdAt</code> &amp; <code>updatedAt</code>: Date (Auto)
     </td>
     <td>
-      • Unique index on <code>email</code>.<br/>
-      • Passwords never returned in responses.<br/>
-      • Parent of Orders (1:N) and Reservations (1:N).
+      • <strong>Unique Constraint:</strong> <code>email</code> is indexed and unique.<br/>
+      • <strong>Security:</strong> Passwords are never returned in responses.<br/>
+      • <strong>Parent of:</strong> <code>Orders</code> (1:N) and <code>Reservations</code> (1:N).
     </td>
   </tr>
   <tr>
     <td><strong>MenuItems</strong><br/><code>menuitems</code></td>
     <td>
       • <code>_id</code>: ObjectId (PK)<br/>
-      • <code>name</code>: String (Required)<br/>
-      • <code>description</code>: String (Required)<br/>
+      • <code>name</code>: String (Required, Trim)<br/>
+      • <code>description</code>: String (Required, Trim)<br/>
       • <code>price</code>: Number (Required, Min: 0)<br/>
-      • <code>category</code>: Enum (Starters, Mains, Desserts, Drinks)<br/>
-      • <code>image</code>: String (URL)<br/>
-      • <code>isSpecial</code>: Boolean (Default: false)<br/>
-      • <code>isAvailable</code>: Boolean (Default: true)<br/>
-      • <code>createdAt</code>, <code>updatedAt</code>: Date
+      • <code>category</code>: String (Required, Enum: <code>['Starters', 'Mains', 'Desserts', 'Drinks']</code>)<br/>
+      • <code>image</code>: String (Required, URL format)<br/>
+      • <code>isSpecial</code>: Boolean (Default: <code>false</code>)<br/>
+      • <code>isAvailable</code>: Boolean (Default: <code>true</code>)<br/>
+      • <code>prepTime</code>: String (Default: <code>'15 min'</code>)<br/>
+      • <code>rating</code>: Number (Min: 0, Max: 5, Default: 4.8)<br/>
+      • <code>tag</code>: String (Optional, Trim)<br/>
+      • <code>createdAt</code> &amp; <code>updatedAt</code>: Date
     </td>
     <td>
-      • Price cannot be negative (<code>min: 0</code>).<br/>
-      • Referenced by <code>Order.items.menuItem</code>.<br/>
-      • Unavailable items rejected during order placement.
+      • <strong>Validation Rule:</strong> <code>price</code> must be non-negative (<code>min: [0, 'Price cannot be negative']</code>).<br/>
+      • <strong>Indexes:</strong> Text index on <code>{name, description}</code> for search; index on <code>{category: 1}</code> for filter queries.<br/>
+      • <strong>Referenced by:</strong> <code>Order.items.menuItem</code>.
     </td>
   </tr>
   <tr>
     <td><strong>Tables</strong><br/><code>tables</code></td>
     <td>
       • <code>_id</code>: ObjectId (PK)<br/>
-      • <code>tableNumber</code>: String (Required, Unique, e.g. 'A-01')<br/>
-      • <code>name</code>: String (Required)<br/>
+      • <code>tableNumber</code>: String (Required, Unique, Trim, e.g. <code>'A-01'</code>)<br/>
+      • <code>name</code>: String (Required, Trim, e.g. <code>'Atrium Glasshouse Window'</code>)<br/>
       • <code>seats</code>: Number (Required, Min: 1)<br/>
-      • <code>location</code>: String (Required)<br/>
-      • <code>isWindow</code>: Boolean (Default: false)<br/>
-      • <code>isAvailable</code>: Boolean (Default: true)
+      • <code>location</code>: String (Required, Trim)<br/>
+      • <code>isWindow</code>: Boolean (Default: <code>false</code>)<br/>
+      • <code>isAvailable</code>: Boolean (Default: <code>true</code>)<br/>
+      • <code>createdAt</code> &amp; <code>updatedAt</code>: Date
     </td>
     <td>
-      • Unique constraint on <code>tableNumber</code>.<br/>
-      • <code>seats</code> defines maximum allowable guests.<br/>
-      • Referenced by <code>Reservation.table</code>.
+      • <strong>Unique Constraint:</strong> <code>tableNumber</code> is unique across the restaurant.<br/>
+      • <strong>Capacity Rule:</strong> <code>seats</code> determines maximum allowable party size.<br/>
+      • <strong>Referenced by:</strong> <code>Reservation.table</code>.
     </td>
   </tr>
   <tr>
     <td><strong>Reservations</strong><br/><code>reservations</code></td>
     <td>
       • <code>_id</code>: ObjectId (PK)<br/>
-      • <code>user</code>: ObjectId (FK &rarr; User)<br/>
-      • <code>customerName</code>: String (Required)<br/>
-      • <code>phone</code>: String (Required)<br/>
-      • <code>table</code>: ObjectId (FK &rarr; Table)<br/>
-      • <code>date</code>: String (YYYY-MM-DD)<br/>
-      • <code>time</code>: String (HH:mm)<br/>
+      • <code>user</code>: ObjectId (FK &rarr; <code>User</code>, Required)<br/>
+      • <code>customerName</code>: String (Optional, Trim)<br/>
+      • <code>phone</code>: String (Optional, Trim)<br/>
+      • <code>table</code>: ObjectId (FK &rarr; <code>Table</code>, Required)<br/>
+      • <code>date</code>: String (Required, Format: <code>YYYY-MM-DD</code>)<br/>
+      • <code>time</code>: String (Required, Format: <code>HH:mm</code>)<br/>
       • <code>guests</code>: Number (Required, Min: 1)<br/>
-      • <code>status</code>: Enum (Pending, Confirmed, Declined, Cancelled)<br/>
-      • <code>timestamps: true</code>
+      • <code>specialRequests</code>: String (Optional, Trim)<br/>
+      • <code>status</code>: String (Enum: <code>['Pending', 'Confirmed', 'Cancelled', 'Declined']</code>, Default: <code>'Pending'</code>)<br/>
+      • <code>createdAt</code> &amp; <code>updatedAt</code>: Date (<code>timestamps: true</code>)
     </td>
     <td>
-      • <strong>Collision Prevention (Q7):</strong> Duplicate bookings for same table, date, and time return <strong>HTTP 409 Conflict</strong>.<br/>
-      • Table capacity must accommodate guest count.
+      • <strong>Relational Integrity:</strong> Links <code>User</code> and <code>Table</code> documents.<br/>
+      • <strong>Collision Rule (Q7):</strong> Unique compound partial index on <code>{table, date, time}</code> where <code>status</code> is <code>Pending</code> or <code>Confirmed</code> blocks double-booking with HTTP 409.<br/>
+      • <strong>Indexes:</strong> <code>{user: 1}</code>, <code>{date: 1, time: 1}</code>.<br/>
+      • <strong>Capacity Rule:</strong> <code>table.seats &gt;= guests</code>.
     </td>
   </tr>
   <tr>
     <td><strong>Orders</strong><br/><code>orders</code></td>
     <td>
       • <code>_id</code>: ObjectId (PK)<br/>
-      • <code>user</code>: ObjectId (FK &rarr; User)<br/>
-      • <code>customerName</code>: String (Required)<br/>
-      • <code>items</code>: Subdocuments (menuItem, name, price, quantity, specialInstructions)<br/>
-      • <code>totalAmount</code>: Number (Computed by server)<br/>
-      • <code>orderType</code>: Enum (Dine-in, Takeaway)<br/>
-      • <code>status</code>: Enum (Pending, Preparing, Ready, Served, Cancelled)<br/>
-      • <code>timestamps: true</code>
+      • <code>user</code>: ObjectId (FK &rarr; <code>User</code>, Required)<br/>
+      • <code>customerName</code>: String (Optional, Trim)<br/>
+      • <code>items</code>: Array of Subdocuments:<br/>
+      &nbsp;&nbsp;&ndash; <code>menuItem</code>: ObjectId (FK &rarr; <code>MenuItem</code>)<br/>
+      &nbsp;&nbsp;&ndash; <code>name</code>: String<br/>
+      &nbsp;&nbsp;&ndash; <code>price</code>: Number<br/>
+      &nbsp;&nbsp;&ndash; <code>quantity</code>: Number (Min: 1)<br/>
+      &nbsp;&nbsp;&ndash; <code>specialInstructions</code>: String<br/>
+      • <code>totalAmount</code>: Number (Required, Calculated on server)<br/>
+      • <code>orderType</code>: String (Enum: <code>['Dine-in', 'Takeaway', 'Dine-In Table', 'Curbside', 'Priority']</code>, Default: <code>'Dine-in'</code>)<br/>
+      • <code>tableNumber</code>: String (Optional, Trim)<br/>
+      • <code>status</code>: String (Enum: <code>['Pending', 'Preparing', 'Ready', 'Served', 'Cancelled']</code>, Default: <code>'Pending'</code>)<br/>
+      • <code>notes</code>: String (Optional, Trim)<br/>
+      • <code>createdAt</code> &amp; <code>updatedAt</code>: Date (<code>timestamps: true</code>)
     </td>
     <td>
-      • <strong>Monotonic State Progression:</strong> Pending &rarr; Preparing &rarr; Ready &rarr; Served.<br/>
-      • Cancelled only allowed while Pending.<br/>
-      • Total calculated from DB prices (client totals untrusted).
+      • <strong>Monotonic State Machine:</strong> Status strictly moves <code>Pending</code> &rarr; <code>Preparing</code> &rarr; <code>Ready</code> &rarr; <code>Served</code>. <code>Cancelled</code> is only valid when currently <code>Pending</code>.<br/>
+      • <strong>Security Rule:</strong> <code>totalAmount</code> is calculated by multiplying DB item prices with quantity on the backend.<br/>
+      • <strong>Indexes:</strong> <code>{user: 1, createdAt: -1}</code>, <code>{status: 1}</code>.
     </td>
   </tr>
 </table>
@@ -210,7 +280,7 @@
 <h2>6. Architectural Diagrams</h2>
 
 <h3>6.1. Sequence Diagram: Customer Places an Order (Q1 Requirement)</h3>
-<p>Shows the end-to-end order placement flow across the <strong>three required lifelines</strong>: Mobile App, Express Server, and MongoDB.</p>
+<p>This diagram illustrates the message sequence with the <strong>three required lifelines</strong>: the <strong>Mobile App</strong>, the <strong>Express Server</strong>, and <strong>MongoDB</strong>.</p>
 
 <pre class="mermaid">
 sequenceDiagram
@@ -220,46 +290,57 @@ sequenceDiagram
     participant Server as Express Server (:5000)
     participant DB as MongoDB (restaurant_app)
 
-    Customer->>App: Tap "Confirm & Place Order"
-    Note over App: Prepare items payload
-    App->>Server: POST /api/orders (Authorization: Bearer token)
+    Customer->>App: Tap "Confirm &amp; Place Order"
+    Note over App: Prepare order payload<br/>with item IDs &amp; quantities
+    App->>Server: POST /api/orders (Authorization: Bearer &lt;token&gt;)
     activate Server
+
     Server->>Server: auth.protect middleware verifies JWT
+    
     loop For each item in payload
         Server->>DB: MenuItem.findById(itemId)
         activate DB
         DB-->>Server: Return MenuItem document (price, isAvailable)
         deactivate DB
         Server->>Server: Verify isAvailable === true
-        Server->>Server: Line total = DB price * quantity
+        Server->>Server: Calculate line total = price * quantity
     end
-    Server->>Server: Compute totalAmount from database prices
+
+    Server->>Server: Compute totalAmount from verified DB prices
+    
     Server->>DB: Order.create({ user, items, totalAmount, status: 'Pending' })
     activate DB
-    DB-->>Server: Return saved Order document with _id
+    DB-->>Server: Return saved Order document with _id &amp; timestamps
     deactivate DB
+
     Server-->>App: HTTP 201 Created (Order JSON)
     deactivate Server
-    App->>App: clearCart() & Navigate to OrderTrackingScreen
-    App->>Customer: Display "Order Received" & start 10s polling
+
+    App->>App: clearCart() &amp; Navigate to OrderTrackingScreen
+    App->>Customer: Display "Order Received" &amp; start 10s polling interval
 </pre>
 
+<hr/>
+
 <h3>6.2. Deployment Diagram (Q1 Requirement)</h3>
-<p>Physical network architecture connecting the mobile device, laptop development server, and MongoDB database.</p>
+<p>This diagram depicts the physical deployment topology linking the <strong>Mobile Device</strong>, the <strong>Development Laptop Server</strong>, and the <strong>Database Host</strong>.</p>
 
 <pre class="mermaid">
 graph TD
     subgraph Client_Tier ["Tier 1: Client Mobile Device"]
-        Phone["Physical Smartphone (iOS / Android) or Emulator<br/>IP: 192.168.x.x<br/><b>AURA Mobile App (Expo / React Native)</b>"]
+        Phone["Physical Smartphone (iOS / Android) or Emulator<br/>IP: LAN IP, e.g. 192.168.x.x<br/><b>AURA Mobile App (Expo / React Native)</b>"]
     end
-    subgraph Server_Tier ["Tier 2: Development Laptop"]
-        Laptop["Host Laptop (Windows / macOS)<br/>IP: 10.0.4.146<br/><b>Node.js (v20+) Runtime</b>"]
-        ExpressApp["Express.js Server (:5000)<br/>CORS, dotenv, Auth Middleware<br/>Routes: /api/auth, /api/menu, /api/orders, /api/reservations"]
+
+    subgraph Server_Tier ["Tier 2: Development Laptop / Workstation"]
+        Laptop["Host Laptop (Windows / macOS)<br/>IP: LAN IP, e.g. 192.168.x.x<br/><b>Node.js (v20+) Runtime</b>"]
+        ExpressApp["Express.js HTTP Server (:5000)<br/>Middleware: helmet, cors, express-mongo-sanitize, NoSQL sanitizer, auth rate limiter<br/>Routes: /api/health, /api/auth, /api/menu, /api/tables, /api/reservations, /api/orders"]
         Laptop --- ExpressApp
     end
+
     subgraph Data_Tier ["Tier 3: Database Storage"]
         Mongo["MongoDB Database Engine<br/>Atlas Cluster or Local Service (:27017)<br/><b>Database: restaurant_app</b><br/>Collections: users, menuitems, tables, orders, reservations"]
     end
+
     Phone -- "HTTP / REST JSON (Port 5000)<br/>Local Wi-Fi Network" --> ExpressApp
     ExpressApp -- "Mongoose Driver / TCP Wire Protocol<br/>Port 27017 or TLS SRV" --> Mongo
 </pre>
@@ -267,27 +348,53 @@ graph TD
 <hr/>
 
 <h2>8. API Endpoints Specification (New Section 8)</h2>
+<p>The table below documents all <strong>23 REST API endpoints</strong> implemented in the backend server:</p>
+
 <table>
-  <tr><th>#</th><th>Method</th><th>Endpoint Route</th><th>Access</th><th>Request Body</th><th>Response &amp; Status Code</th></tr>
-  <tr><td>1</td><td><code>GET</code></td><td><code>/api/health</code></td><td>Public</td><td>None</td><td><code>200 OK</code>: <code>{ status: "ok", time: ... }</code></td></tr>
-  <tr><td>2</td><td><code>POST</code></td><td><code>/api/auth/register</code></td><td>Public</td><td><code>{ name, email, password, role, phone }</code></td><td><code>201 Created</code>: token &amp; user; <code>409</code> if email exists</td></tr>
-  <tr><td>3</td><td><code>POST</code></td><td><code>/api/auth/login</code></td><td>Public</td><td><code>{ email, password }</code></td><td><code>200 OK</code>: token &amp; user; <code>401</code> on wrong credentials</td></tr>
-  <tr><td>4</td><td><code>GET</code></td><td><code>/api/auth/me</code></td><td>Private</td><td>Bearer Token</td><td><code>200 OK</code>: current user profile</td></tr>
-  <tr><td>5</td><td><code>GET</code></td><td><code>/api/menu</code></td><td>Public</td><td>None (Query: ?category, ?search)</td><td><code>200 OK</code>: list of menu items</td></tr>
-  <tr><td>6</td><td><code>GET</code></td><td><code>/api/menu/:id</code></td><td>Public</td><td>None</td><td><code>200 OK</code>: single item; <code>404</code> not found; <code>400</code> invalid ID</td></tr>
-  <tr><td>7</td><td><code>POST</code></td><td><code>/api/menu</code></td><td>Manager Only</td><td><code>{ name, description, price, category, image }</code></td><td><code>201 Created</code>; <code>403 Forbidden</code> for customers</td></tr>
-  <tr><td>8</td><td><code>PUT</code></td><td><code>/api/menu/:id</code></td><td>Manager Only</td><td><code>{ price, isAvailable, ... }</code></td><td><code>200 OK</code>: updated menu item</td></tr>
-  <tr><td>9</td><td><code>DELETE</code></td><td><code>/api/menu/:id</code></td><td>Manager Only</td><td>None</td><td><code>200 OK</code>: deletion confirmation</td></tr>
-  <tr><td>10</td><td><code>POST</code></td><td><code>/api/orders</code></td><td>Private</td><td><code>{ items, orderType, tableNumber, notes }</code></td><td><code>201 Created</code>: order with server-computed total</td></tr>
-  <tr><td>11</td><td><code>GET</code></td><td><code>/api/orders/my</code></td><td>Private</td><td>None</td><td><code>200 OK</code>: customer's own orders</td></tr>
-  <tr><td>12</td><td><code>GET</code></td><td><code>/api/orders</code></td><td>Manager Only</td><td>None</td><td><code>200 OK</code>: all restaurant orders</td></tr>
-  <tr><td>13</td><td><code>PATCH</code></td><td><code>/api/orders/:id/status</code></td><td>Manager Only</td><td><code>{ status: "Preparing"|"Ready"|"Served" }</code></td><td><code>200 OK</code>; <code>400</code> on invalid progression</td></tr>
-  <tr><td>14</td><td><code>GET</code></td><td><code>/api/tables</code></td><td>Public</td><td>None</td><td><code>200 OK</code>: all dining tables</td></tr>
-  <tr><td>15</td><td><code>POST</code></td><td><code>/api/reservations</code></td><td>Private</td><td><code>{ tableId, date, time, guests, specialRequests }</code></td><td><code>201 Created</code>; <code>409 Conflict</code> if double-booked</td></tr>
-  <tr><td>16</td><td><code>GET</code></td><td><code>/api/reservations/my</code></td><td>Private</td><td>None</td><td><code>200 OK</code>: customer's reservations</td></tr>
-  <tr><td>17</td><td><code>GET</code></td><td><code>/api/reservations</code></td><td>Manager Only</td><td>None</td><td><code>200 OK</code>: all reservations</td></tr>
-  <tr><td>18</td><td><code>PATCH</code></td><td><code>/api/reservations/:id</code></td><td>Manager Only</td><td><code>{ status: "Confirmed"|"Declined" }</code></td><td><code>200 OK</code>: updated reservation</td></tr>
+  <tr><th>#</th><th>HTTP Method</th><th>Endpoint Route</th><th>Access Level</th><th>Request Body (Payload)</th><th>Response Structure &amp; Status</th></tr>
+  <tr><td><strong>1</strong></td><td><code>GET</code></td><td><code>/api/health</code></td><td>Public</td><td>None</td><td><code>200 OK</code>: <code>{ "status": "ok", "time": "2026-10-07T..." }</code></td></tr>
+  <tr><td><strong>2</strong></td><td><code>POST</code></td><td><code>/api/auth/register</code></td><td>Public</td><td><code>{ name, email, password, phone? }</code></td><td><code>201 Created</code>: <code>{ token, user: { _id, name, email, role } }</code><br/><code>409 Conflict</code>: If email exists</td></tr>
+  <tr><td><strong>3</strong></td><td><code>POST</code></td><td><code>/api/auth/login</code></td><td>Public</td><td><code>{ email, password }</code></td><td><code>200 OK</code>: <code>{ token, user: { _id, name, email, role } }</code><br/><code>401 Unauthorized</code>: Invalid credentials</td></tr>
+  <tr><td><strong>4</strong></td><td><code>GET</code></td><td><code>/api/auth/me</code></td><td>Private (Customer/Manager)</td><td>None (Bearer Token)</td><td><code>200 OK</code>: <code>{ user: { _id, name, email, role, phone, dob, membership, avatar } }</code></td></tr>
+  <tr><td><strong>5</strong></td><td><code>PUT</code></td><td><code>/api/auth/profile</code></td><td>Private (Customer/Manager)</td><td><code>{ name?, phone?, dob?, avatar? }</code></td><td><code>200 OK</code>: <code>{ message, user }</code> — Updates current user profile.</td></tr>
+  <tr><td><strong>6</strong></td><td><code>DELETE</code></td><td><code>/api/auth/profile</code></td><td>Private (Customer/Manager)</td><td>None (Bearer Token)</td><td><code>200 OK</code>: <code>{ success: true, message }</code> — Permanently removes user account.</td></tr>
+  <tr><td><strong>7</strong></td><td><code>POST</code></td><td><code>/api/auth/staff</code></td><td>Private (Manager Only)</td><td><code>{ name, email, password }</code></td><td><code>201 Created</code>: <code>{ user }</code> — Creates a new manager account.</td></tr>
+  <tr><td><strong>8</strong></td><td><code>POST</code></td><td><code>/api/auth/phone/send-otp</code></td><td>Public</td><td><code>{ phone }</code></td><td><code>200 OK</code>: <code>{ success, message, phone, otp }</code> — Generates 4-digit OTP, prints to server console as simulated SMS.</td></tr>
+  <tr><td><strong>9</strong></td><td><code>POST</code></td><td><code>/api/auth/phone/verify-otp</code></td><td>Public</td><td><code>{ phone, otp, name? }</code></td><td><code>200 OK</code> or <code>201 Created</code>: <code>{ token, user, isNewUser }</code> — Verifies OTP and logs in or creates customer account.</td></tr>
+  <tr><td><strong>10</strong></td><td><code>GET</code></td><td><code>/api/menu</code></td><td>Public</td><td>None (Optional Query: <code>?category=...&amp;search=...</code>)</td><td><code>200 OK</code>: Array of <code>MenuItem</code> objects</td></tr>
+  <tr><td><strong>11</strong></td><td><code>POST</code></td><td><code>/api/menu</code></td><td>Private (Manager Only)</td><td><code>{ name, description, price, category, image, isSpecial?, isAvailable?, prepTime?, rating?, tag? }</code></td><td><code>201 Created</code>: Created <code>MenuItem</code> document<br/><code>403 Forbidden</code>: If called by customer</td></tr>
+  <tr><td><strong>12</strong></td><td><code>GET</code></td><td><code>/api/menu/:id</code></td><td>Public</td><td>None</td><td><code>200 OK</code>: Single <code>MenuItem</code> object<br/><code>400 Bad Request</code>: Invalid ObjectId<br/><code>404 Not Found</code>: Item does not exist</td></tr>
+  <tr><td><strong>13</strong></td><td><code>PUT</code></td><td><code>/api/menu/:id</code></td><td>Private (Manager Only)</td><td>Partial updates: <code>{ price?, isAvailable?, ... }</code></td><td><code>200 OK</code>: Updated <code>MenuItem</code> document</td></tr>
+  <tr><td><strong>14</strong></td><td><code>DELETE</code></td><td><code>/api/menu/:id</code></td><td>Private (Manager Only)</td><td>None</td><td><code>200 OK</code>: <code>{ message: "Menu item deleted successfully" }</code></td></tr>
+  <tr><td><strong>15</strong></td><td><code>GET</code></td><td><code>/api/tables</code></td><td>Public</td><td>None</td><td><code>200 OK</code>: Array of all dining <code>Table</code> objects</td></tr>
+  <tr><td><strong>16</strong></td><td><code>POST</code></td><td><code>/api/reservations</code></td><td>Private (Customer/Manager)</td><td><code>{ tableId, date, time, guests, specialRequests?, customerName?, phone? }</code></td><td><code>201 Created</code>: Populated <code>Reservation</code> document<br/><code>409 Conflict</code>: Table already booked for slot</td></tr>
+  <tr><td><strong>17</strong></td><td><code>GET</code></td><td><code>/api/reservations</code></td><td>Private (Manager Only)</td><td>None</td><td><code>200 OK</code>: Array of all restaurant bookings</td></tr>
+  <tr><td><strong>18</strong></td><td><code>GET</code></td><td><code>/api/reservations/my</code></td><td>Private (Customer)</td><td>None</td><td><code>200 OK</code>: Array of customer's own bookings</td></tr>
+  <tr><td><strong>19</strong></td><td><code>PATCH</code></td><td><code>/api/reservations/:id</code></td><td>Private (Customer/Manager)</td><td><code>{ status }</code> (<code>Confirmed</code>, <code>Declined</code>, <code>Cancelled</code>)</td><td><code>200 OK</code>: Updated <code>Reservation</code> — Manager sets <code>Confirmed</code>/<code>Declined</code>; customer sets only <code>Cancelled</code> on own booking.</td></tr>
+  <tr><td><strong>20</strong></td><td><code>POST</code></td><td><code>/api/orders</code></td><td>Private (Customer/Manager)</td><td><code>{ items: [{ menuItem, quantity, specialInstructions? }], orderType?, tableNumber?, notes? }</code></td><td><code>201 Created</code>: Verified <code>Order</code> document with server-computed <code>totalAmount</code></td></tr>
+  <tr><td><strong>21</strong></td><td><code>GET</code></td><td><code>/api/orders</code></td><td>Private (Manager Only)</td><td>None</td><td><code>200 OK</code>: Array of all restaurant <code>Order</code> documents</td></tr>
+  <tr><td><strong>22</strong></td><td><code>GET</code></td><td><code>/api/orders/my</code></td><td>Private (Customer)</td><td>None</td><td><code>200 OK</code>: Array of customer's own <code>Order</code> documents</td></tr>
+  <tr><td><strong>23</strong></td><td><code>PATCH</code></td><td><code>/api/orders/:id/status</code></td><td>Private (Customer/Manager)</td><td><code>{ status }</code> (<code>Pending</code>, <code>Preparing</code>, <code>Ready</code>, <code>Served</code>, <code>Cancelled</code>)</td><td><code>200 OK</code>: Updated <code>Order</code> — Manager advances status forward monotonically; customer can set only <code>Cancelled</code> on own <code>Pending</code> order within 10-minute window.<br/><code>400 Bad Request</code>: Illegal status jump</td></tr>
 </table>
+
+<hr/>
+
+<h2>9. Verification &amp; Viva Voce Defense Guide</h2>
+
+<h3>Key Questions Evaluators Ask &amp; Verified Implementations:</h3>
+<ol>
+  <li><strong>"Why do we calculate order total on the server instead of accepting the client's cart total?"</strong><br/>
+  <em>Answer:</em> Client applications run on untrusted end-user hardware. A malicious user or tampered request could modify prices in memory (e.g., changing a Rs. 3,650 steak to Rs. 1). The server verifies the authoritative price from MongoDB before writing <code>totalAmount</code> into the database.</li>
+
+  <li><strong>"How do you prevent table double-bookings during peak hours?"</strong><br/>
+  <em>Answer:</em> In <code>server/controllers/reservationController.js</code>, before creating a record, we query MongoDB for any active booking (<code>Pending</code> or <code>Confirmed</code>) matching the same <code>table._id</code>, <code>date</code>, and <code>time</code>. If an overlapping record exists, the server immediately halts and returns an <strong>HTTP 409 Conflict</strong>, preventing concurrent collision.</li>
+
+  <li><strong>"Where is the custom <code>useApi</code> hook used in the mobile client?"</strong><br/>
+  <em>Answer:</em> It is integrated in two distinct screens: <code>MenuScreen.js</code> (for loading menu items and triggering pull-to-refresh) and <code>ManagerDashboardScreen.js</code> (for retrieving all dining reservations with live acceptance and rejection controls).</li>
+
+  <li><strong>"How does the customer receive kitchen status updates in real-time?"</strong><br/>
+  <em>Answer:</em> In <code>OrderTrackingScreen.js</code>, a <code>useEffect</code> hook initializes a 10-second <code>setInterval</code> that polls <code>GET /api/orders/my</code>. As soon as the manager marks an order as <code>Preparing</code> or <code>Ready</code>, the customer's state machine advances automatically without requiring app reloads.</li>
+</ol>
 
 </body>
 </html>

@@ -19,10 +19,10 @@ The `A2/` directory contains all required non-code deliverables:
 * **`A2/SRS_v2.pdf`**: Comprehensive Software Requirements Specification (v2.0) including:
   * Updated Scope & 10+ Technical Definitions
   * Database Schema Design Tables for 5 MongoDB Collections (`users`, `menuitems`, `tables`, `reservations`, `orders`)
-  * Complete REST API Endpoints Specification (21 endpoints)
+  * Complete REST API Endpoints Specification (23 endpoints)
   * UML Sequence Diagram (`App` ➔ `Express Server` ➔ `MongoDB`)
   * UML Deployment Diagram (Physical architecture, protocols, ports)
-* **`A2/restaurant-api.postman_collection.json`**: Postman Collection covering all 21 endpoints across Auth, Menu, Tables, Reservations, Orders, and Health checks. Includes auto-token capture on login.
+* **`A2/restaurant-api.postman_collection.json`**: Postman Collection covering all 23 endpoints across Auth, Menu, Tables, Reservations, Orders, and Health checks. Includes auto-token capture on login.
 
 ---
 
@@ -93,7 +93,7 @@ All passwords in `server/seed.js` are securely hashed using `bcrypt` (10 salt ro
 
 ## 4. API Endpoints Reference Table
 
-Total: **21 endpoints** implemented in `server/routes/`:
+Total: **23 endpoints** implemented in `server/routes/`:
 
 | # | HTTP Method | Endpoint | Access / Auth | Request Body | Response Format & Description |
 |---|---|---|---|---|---|
@@ -104,20 +104,24 @@ Total: **21 endpoints** implemented in `server/routes/`:
 | 5 | `PUT` | `/api/auth/profile` | Protected (`Bearer Token`) | `{ name?, phone?, dob?, avatar? }` | `200 OK`: `{ message, user }` — Updates current user profile. |
 | 6 | `DELETE` | `/api/auth/profile` | Protected (`Bearer Token`) | None | `200 OK`: `{ success: true, message }` — Permanently removes user account from database. |
 | 7 | `POST` | `/api/auth/staff` | Manager Only (`protect, managerOnly`) | `{ name, email, password }` | `201 Created`: `{ user }` — Creates a new manager account with hashed password (password omitted in response). |
-| 8 | `GET` | `/api/menu` | Public | None (Query: `?category=&search=`) | `200 OK`: `MenuItem[]` — Lists menu items with optional category filtering and search. |
-| 9 | `POST` | `/api/menu` | Manager Only (`protect, managerOnly`) | `{ name, description, price, category, isAvailable?, isSpecial?, image?, prepTime?, rating?, tag? }` | `201 Created`: `MenuItem` — Adds a new gourmet dish to catalog. |
-| 10 | `GET` | `/api/menu/:id` | Public | None (`:id` param) | `200 OK`: `MenuItem` — Retrieves single item by MongoDB ObjectId (validates ObjectId format). |
-| 11 | `PUT` | `/api/menu/:id` | Manager Only (`protect, managerOnly`) | `{ name?, price?, isAvailable?, isSpecial?, description?, category?, prepTime?, rating?, tag? }` | `200 OK`: `MenuItem` — Updates dish details, price, availability, or specials. |
-| 12 | `DELETE` | `/api/menu/:id` | Manager Only (`protect, managerOnly`) | None (`:id` param) | `200 OK`: `{ message, id }` — Permanently deletes a menu item. |
-| 13 | `GET` | `/api/tables` | Public | None | `200 OK`: `Table[]` — Lists all restaurant dining tables with seating capacity and zone. |
-| 14 | `POST` | `/api/reservations` | Protected (`Bearer Token`) | `{ tableId, date, time, guests, specialRequests?, customerName?, phone? }` | `201 Created`: `Reservation` — Creates table reservation. Validates capacity and returns `409 Conflict` if double-booked. |
-| 15 | `GET` | `/api/reservations` | Manager Only (`protect, managerOnly`) | None | `200 OK`: `Reservation[]` — Retrieves all reservations across all users and tables. |
-| 16 | `GET` | `/api/reservations/my` | Protected (`Bearer Token`) | None | `200 OK`: `Reservation[]` — Retrieves reservations belonging to the authenticated customer. |
-| 17 | `PATCH` | `/api/reservations/:id` | Protected (`Bearer Token`) | `{ status }` (`Confirmed`, `Declined`, `Cancelled`) | `200 OK`: `Reservation` — Manager can confirm or decline any booking; customer can cancel own booking. |
-| 18 | `POST` | `/api/orders` | Protected (`Bearer Token`) | `{ items: [{ menuItem, name, price, quantity, note? }], orderType?, tableNumber?, notes? }` | `201 Created`: `Order` — Places new order into kitchen queue (`Pending`). Server validates menu items and calculates totals. |
-| 19 | `GET` | `/api/orders` | Manager Only (`protect, managerOnly`) | None | `200 OK`: `Order[]` — Retrieves all restaurant orders in the kitchen pipeline. |
-| 20 | `GET` | `/api/orders/my` | Protected (`Bearer Token`) | None | `200 OK`: `Order[]` — Retrieves order history for the authenticated customer. |
-| 21 | `PATCH` | `/api/orders/:id/status` | Protected (`Bearer Token`) | `{ status }` (`Pending`, `Preparing`, `Ready`, `Served`, `Cancelled`) | `200 OK`: `Order` — Manager advances status monotonically; customer can cancel order while `Pending` within 10-minute window. |
+| 8 | `POST` | `/api/auth/phone/send-otp` | Public | `{ phone }` | `200 OK`: `{ success, message, phone, otp }` — Generates a 4-digit OTP for a Pakistani mobile number. Code is printed to the server console as a simulated SMS. |
+| 9 | `POST` | `/api/auth/phone/verify-otp` | Public | `{ phone, otp, name? }` | `200 OK` or `201 Created`: `{ token, user, isNewUser }` — Verifies OTP and logs in or creates a customer account. Static dev code `1234` is always accepted. |
+| 10 | `GET` | `/api/menu` | Public | None (Query: `?category=&search=`) | `200 OK`: `MenuItem[]` — Lists menu items with optional category filtering and search. |
+| 11 | `POST` | `/api/menu` | Manager Only (`protect, managerOnly`) | `{ name, description, price, category, image, isSpecial?, isAvailable?, prepTime?, rating?, tag? }` | `201 Created`: `MenuItem` — Adds a new gourmet dish to catalog. |
+| 12 | `GET` | `/api/menu/:id` | Public | None (`:id` param) | `200 OK`: `MenuItem` — Retrieves single item by MongoDB ObjectId (validates ObjectId format). |
+| 13 | `PUT` | `/api/menu/:id` | Manager Only (`protect, managerOnly`) | `{ name?, price?, isAvailable?, isSpecial?, description?, category?, prepTime?, rating?, tag? }` | `200 OK`: `MenuItem` — Updates dish details, price, availability, or specials. |
+| 14 | `DELETE` | `/api/menu/:id` | Manager Only (`protect, managerOnly`) | None (`:id` param) | `200 OK`: `{ message, id }` — Permanently deletes a menu item. |
+| 15 | `GET` | `/api/tables` | Public | None | `200 OK`: `Table[]` — Lists all restaurant dining tables with seating capacity and zone. |
+| 16 | `POST` | `/api/reservations` | Protected (`Bearer Token`) | `{ tableId, date, time, guests, specialRequests?, customerName?, phone? }` | `201 Created`: `Reservation` — Creates table reservation. Validates capacity and returns `409 Conflict` if double-booked. |
+| 17 | `GET` | `/api/reservations` | Manager Only (`protect, managerOnly`) | None | `200 OK`: `Reservation[]` — Retrieves all reservations across all users and tables. |
+| 18 | `GET` | `/api/reservations/my` | Protected (`Bearer Token`) | None | `200 OK`: `Reservation[]` — Retrieves reservations belonging to the authenticated customer. |
+| 19 | `PATCH` | `/api/reservations/:id` | Protected (`Bearer Token`) | `{ status }` (`Confirmed`, `Declined`, `Cancelled`) | `200 OK`: `Reservation` — Manager can set `Confirmed` or `Declined` on any booking; customer can set only `Cancelled` on their own booking. |
+| 20 | `POST` | `/api/orders` | Protected (`Bearer Token`) | `{ items: [{ menuItem, name, price, quantity, specialInstructions? }], orderType?, tableNumber?, notes? }` | `201 Created`: `Order` — Places new order into kitchen queue (`Pending`). Server validates menu items and calculates totals. |
+| 21 | `GET` | `/api/orders` | Manager Only (`protect, managerOnly`) | None | `200 OK`: `Order[]` — Retrieves all restaurant orders in the kitchen pipeline. |
+| 22 | `GET` | `/api/orders/my` | Protected (`Bearer Token`) | None | `200 OK`: `Order[]` — Retrieves order history for the authenticated customer. |
+| 23 | `PATCH` | `/api/orders/:id/status` | Protected (`Bearer Token`) | `{ status }` (`Pending`, `Preparing`, `Ready`, `Served`, `Cancelled`) | `200 OK`: `Order` — Manager advances status forward monotonically; customer can set only `Cancelled` on their own `Pending` order within a 10-minute cancellation window. |
+
+**Phone OTP Authentication (Extra Feature):** The server provides Pakistani mobile phone number OTP login as an additional feature beyond the assignment requirements. `POST /api/auth/phone/send-otp` generates a 4-digit numeric code using `crypto.randomInt`, stores it in an in-memory `Map` (not in the database), and prints the code to the server console as a simulated SMS gateway. The OTP is valid for 5 minutes. `POST /api/auth/phone/verify-otp` validates the code (or accepts the static dev code `1234`) and either logs in an existing user or creates a new customer account automatically, returning a JWT token.
 
 ---
 
