@@ -4,7 +4,7 @@
 
 **Document Version:** 2.0.0 (Assignment 2 Submission)  
 **Academic Term:** Fall 2026  
-**Course:** Mobile Application Development (CS-3112 / SE-3112)  
+**Course:** Mobile Application Development (CS-375)  
 **Student Name:** Syed Obaid Ali  
 **Roll Number:** 9321  
 **Instructor:** Dr. Sadaf Tanvir  

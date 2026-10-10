@@ -1,0 +1,13 @@
+{
+  "sonarlint.analyzerProperties": {
+    "sonar.exclusions": "**/.env,**/.env.*"
+  },
+  "sonarlint.rules": {
+    "secrets:S6684": {
+      "level": "off"
+    },
+    "secrets:S6683": {
+      "level": "off"
+    }
+  }
+}
