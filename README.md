@@ -190,7 +190,7 @@ Total: **23 endpoints** implemented in `server/routes/`:
 * **Menu POST with Manager Token (201 Created)**: ![Menu POST Manager Token](A2/screenshots/menu%20201-created.png)
 * **Successful Request (200 OK)**: ![Successful Request](A2/screenshots/menu-success.png)
 * **Menu POST with Negative Price (400 Bad Request)**: ![Negative Price](A2/screenshots/menu-negative-price-400.png)
-* **Menu GET with Invalid ID (400 Bad Request)**: `TODO: add`
+* **Menu GET with Invalid ID (400 Bad Request)**: ![Invalid ID 400](A2/screenshots/menu-invalid-id-400.png)
 * **MongoDB Atlas `menuitems` Collection**: ![MongoDB menuitems Collection](A2/screenshots/menuitemcollection1.png)
 * **Price Change on Manager Device**: ![Price Change Manager](A2/screenshots/price-manager.png)
 * **New Price on Customer Device (Real-Time Sync)**: ![New Price Customer](A2/screenshots/newprice-customer.jpeg)
