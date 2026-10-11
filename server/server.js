@@ -35,7 +35,7 @@ const app = express();
 app.use(helmet());
 
 // ── CORS Policy (S5-A) ──────────────────────────────────────
-const allowedOrigins = [
+const defaultOrigins = [
   'http://localhost:8081',
   'http://localhost:19006',
   'http://localhost:3000',
@@ -44,14 +44,20 @@ const allowedOrigins = [
   'http://192.168.100.17:8081',
 ];
 
+const envOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+  : [];
+
+const allowedOrigins = envOrigins.length > 0 ? envOrigins : defaultOrigins;
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Mobile native apps (React Native / Expo Go) send no origin
+      // Mobile native apps (React Native / Expo Go) and Postman send no origin
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      return callback(null, true); // Permissive in local dev, logs origin
+      return callback(null, true); // Permissive in local dev
     },
     credentials: true,
   })
