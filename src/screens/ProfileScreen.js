@@ -78,14 +78,40 @@ export default function ProfileScreen({ navigation }) {
     input.onchange = (e) => {
       const file = e.target?.files?.[0];
       if (!file) return;
-      if (file.size > 6 * 1024 * 1024) {
-        setEditError('Selected photo is too large (max 6MB).');
+      if (file.size > 10 * 1024 * 1024) {
+        setEditError('Selected photo is too large (max 10MB).');
         return;
       }
       const reader = new FileReader();
       reader.onload = (loadEvent) => {
-        if (loadEvent.target?.result) {
-          setEditAvatar(loadEvent.target.result);
+        const rawDataUrl = loadEvent.target?.result;
+        if (!rawDataUrl) return;
+
+        // Compress and crop image to square at ~0.4 quality using HTML5 canvas
+        try {
+          const img = new window.Image();
+          img.onload = () => {
+            const side = Math.min(img.width, img.height, 400);
+            const canvas = document.createElement('canvas');
+            canvas.width = side;
+            canvas.height = side;
+            const ctx = canvas.getContext('2d');
+            // Center square crop
+            const offsetX = (img.width - side) / 2;
+            const offsetY = (img.height - side) / 2;
+            ctx.drawImage(img, offsetX, offsetY, side, side, 0, 0, side, side);
+            // 0.4 JPEG quality keeps photo well under 200,000 characters
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.4);
+            setEditAvatar(compressedDataUrl);
+            setEditError('');
+          };
+          img.onerror = () => {
+            setEditAvatar(rawDataUrl);
+            setEditError('');
+          };
+          img.src = rawDataUrl;
+        } catch {
+          setEditAvatar(rawDataUrl);
           setEditError('');
         }
       };

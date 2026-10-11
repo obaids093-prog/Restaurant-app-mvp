@@ -191,6 +191,11 @@ const applyEmailUpdate = async (user, email) => {
 // Helper to sanitize avatar to prevent XSS / malicious schemes
 const sanitizeAvatar = (avatar) => {
   if (avatar === undefined || typeof avatar !== 'string') return undefined;
+  if (avatar.length > 200000) {
+    const error = new Error('Profile photo is too large. Please choose a smaller image.');
+    error.status = 400;
+    throw error;
+  }
   const isHttpUrl = /^https?:\/\//i.test(avatar);
   const isDataUrl = /^data:image\/[a-z]+;base64,/i.test(avatar);
   return (isHttpUrl || isDataUrl || avatar === '') ? avatar : undefined;
@@ -217,9 +222,16 @@ const updateProfile = async (req, res) => {
     if (phone !== undefined && typeof phone === 'string') user.phone = phone.trim().slice(0, 30);
     if (dob !== undefined && typeof dob === 'string') user.dob = dob.trim().slice(0, 30);
 
-    const safeAvatar = sanitizeAvatar(avatar);
-    if (safeAvatar !== undefined) {
-      user.avatar = safeAvatar;
+    try {
+      const safeAvatar = sanitizeAvatar(avatar);
+      if (safeAvatar !== undefined) {
+        user.avatar = safeAvatar;
+      }
+    } catch (avatarErr) {
+      if (avatarErr.status === 400) {
+        return res.status(400).json({ message: avatarErr.message });
+      }
+      throw avatarErr;
     }
 
     await user.save();
