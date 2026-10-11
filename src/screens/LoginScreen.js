@@ -344,7 +344,16 @@ export default function LoginScreen({ navigation }) {
   // Skip name entry and proceed with temporary profile
   const handleSkipName = async () => {
     if (pendingUser && completePendingAuth) {
-      await completePendingAuth(pendingUser);
+      setIsSubmitting(true);
+      setPhoneError('');
+      setServerError(null);
+      try {
+        await completePendingAuth(pendingUser);
+      } catch (err) {
+        setPhoneError(err.message || 'Failed to complete authentication.');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 

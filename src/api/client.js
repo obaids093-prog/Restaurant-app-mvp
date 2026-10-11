@@ -15,7 +15,7 @@ import safeStorage from '../utils/safeStorage';
 
 // Laptop's active local network IP on Wi-Fi adapter (192.168.100.6)
 // Using localhost on Web for instant browser testing, and LAN IP on native devices (iOS/Android)
-export const BASE_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'http://192.168.100.3:5000';
+export const BASE_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'http://192.168.100.17:5000';
 
 export const TOKEN_KEY = '@restaurant_app_auth_token';
 
@@ -52,9 +52,15 @@ export const apiClient = async (endpoint, options = {}) => {
     headers.Authorization = `Bearer ${token}`;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, 15000);
+
   const config = {
     method: options.method || 'GET',
     headers,
+    signal: controller.signal,
     ...(Platform.OS === 'web' ? { cache: 'no-store' } : {}),
   };
 
@@ -64,6 +70,7 @@ export const apiClient = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(url, config);
+    clearTimeout(timeoutId);
     let data;
 
     const contentType = response.headers.get('content-type');
@@ -87,6 +94,13 @@ export const apiClient = async (endpoint, options = {}) => {
 
     return data;
   } catch (error) {
+    clearTimeout(timeoutId);
+
+    // Timeout check
+    if (error.name === 'AbortError' || controller.signal.aborted) {
+      throw new Error('Cannot reach server. Check your Wi-Fi and try again.');
+    }
+
     // If it's a network disconnect / server offline error
     if (!error.status) {
       console.warn(`[apiClient] Network connection failed to ${url}:`, error.message);
