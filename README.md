@@ -3,7 +3,7 @@
 ### Student Submission Details
 * **Name:** Syed Obaid Ali
 * **Roll No:** 9321
-* **Subject:** Mobile Application Development (MAD)
+* **Subject:** Mobile Application Development (CS-375)
 * **Assignment:** Assignment 2 (A2 - Fall 2026)
 * **Teacher:** Dr. Sadaf Tanvir
 
@@ -133,12 +133,15 @@ Total: **23 endpoints** implemented in `server/routes/`:
 |---|---|---|---|
 | **LoginScreen** | `useState`, `useEffect`, `useRef`, `useCallback` | `useAuth`, `useTheme`, `useForm`, `useSafeAreaInsets` | Unified authentication for login and customer registration. Live password checklist (min 8 chars, 1 digit, matching confirm), inline error display without popups, remembered email. |
 | **MenuScreen** | `useState`, `useEffect`, `useRef`, `useMemo`, `useCallback` | `useApi`, `useTheme`, `useAuth`, `useCart`, `useMenu`, `useSafeAreaInsets` | Live menu fetch using `useApi('/api/menu')`, category filter chips, debounced search, `React.memo` item cards. |
-| **CartScreen** | `useState`, `useMemo` | `useCart`, `useTheme` | Pure reducer dispatching (`ADD_ITEM`, `REMOVE_ITEM`, `INCREMENT`, `DECREMENT`, `UPDATE_NOTE`, `APPLY_PROMO`, `REMOVE_PROMO`, `CLEAR_CART`), quantity steppers, per-item notes, promo codes (`WELCOME10`, `FEAST20`, `AURA30`), memoized totals. |
+| **CartScreen** | `useState`, `useMemo` | `useCart`, `useTheme` | Pure reducer dispatching (`ADD_ITEM`, `REMOVE_ITEM`, `INCREMENT`, `DECREMENT`, `SET_ORDER_TYPE`, `UPDATE_NOTE`, `APPLY_PROMO`, `REMOVE_PROMO`, `CLEAR_CART`, `SYNC_PRICES`), quantity steppers, per-item notes, promo codes (`WELCOME10`, `FEAST20`, `AURA30`), memoized totals. |
 | **OrderSummaryScreen** | `useState`, `useMemo` | `useCart`, `useOrders`, `useAuth`, `useTheme` | Order financial verification (subtotal, taxes, tip), dispatches live `POST /api/orders` to backend. |
 | **OrderTrackingScreen** | `useState`, `useEffect`, `useRef`, `useCallback`, `useMemo` | `useOrders`, `useAuth`, `useTheme` | Kitchen progression timeline (`Pending` ➔ `Preparing` ➔ `Ready` ➔ `Served`), elapsed timer, cancel countdown (10-minute window), active polling every 10 seconds via `GET /api/orders/my` (stopped when no active order). |
 | **ReservationScreen** | `useState`, `useMemo`, `useEffect` | `useReservation`, `useAuth`, `useTheme`, `useSafeAreaInsets` | Live table selection via `/api/tables`, booking dispatch to `/api/reservations`, `409 Conflict` collision handling. |
 | **ManagerDashboardScreen** | `useState`, `useCallback` | `useApi`, `useAuth`, `useTheme`, `useOrders`, `useMenu` | Fetches live reservations via `useApi('/api/reservations')`, live order status progression (`Start Cooking`, `Mark Ready`, `Mark Served`), menu CRUD with price editing, staff creation via Team tab. |
 | **ProfileScreen** | `useState`, `useEffect` | `useAuth`, `useTheme`, `useOrders`, `useReservation` | User profile details inspection, dark/light theme toggle, role badge, safeStorage session management, JWT logout. |
+
+> **Architecture Note:**  
+> Context API is used for auth, theme, cart and orders to avoid prop drilling across screens. The cart uses `useReducer` with a pure reducer because it has many related transitions (add, remove, quantity, notes, promo, clear), ensuring predictable and atomic state updates. Meanwhile, simple local form fields use `useState`.
 
 ---
 
@@ -159,7 +162,7 @@ Total: **23 endpoints** implemented in `server/routes/`:
 ## 7. Demonstration Video & Screenshots
 
 * **Assignment 1 Video**: [Watch A1 Demo Video on GitHub](https://github.com/obaids093-prog/Restaurant-app/blob/main/A1/demo_video.mp4)
-* **Demo video (max 4 minutes)**: TODO add link
+* **Assignment 2 Demo Video (max 4 minutes)**: [Watch A2 Demo Video](A2/demo-video2.mp4)
 * **UML & Diagrams**: Included in high resolution inside `A2/SRS_v2.pdf` and `uml/Untitled Diagram-Page-1.drawio.png`.
 
 ### Screenshots & Test Evidence
