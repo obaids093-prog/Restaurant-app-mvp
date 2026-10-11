@@ -161,7 +161,7 @@ Total: **23 endpoints** implemented in `server/routes/`:
 
 ## 7. Demonstration Video & Screenshots
 
-* **Assignment 1 Video**: [Watch A1 Demo Video on GitHub](https://github.com/obaids093-prog/Restaurant-app/blob/main/A1/demo_video.mp4)
+* **Assignment 1 Video**: [Watch A1 Demo Video on GitHub](https://github.com/obaids093-prog/Restaurant-app-mvp/blob/main/A1/demo_video.mp4)
 * **Assignment 2 Demo Video (max 4 minutes)**: [Watch A2 Demo Video](A2/demo-video2.mp4)
 * **UML & Diagrams**: Included in high resolution inside `A2/SRS_v2.pdf` and `uml/Untitled Diagram-Page-1.drawio.png`.
 
