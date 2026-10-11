@@ -50,3 +50,7 @@ server/.env.*
 *.http
 api-tests.http
 .claude/api-tests.http
+
+# IDE & temporary document files
+.vscode/
+*.docx
