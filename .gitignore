@@ -54,3 +54,4 @@ api-tests.http
 # IDE & temporary document files
 .vscode/
 *.docx
+server/restaurant-api.postman_collection.json
