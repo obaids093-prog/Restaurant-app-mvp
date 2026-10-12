@@ -1,6 +1,5 @@
-import React from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import React, { useRef, useEffect } from 'react';
+import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../context/ThemeContext';
@@ -17,6 +16,8 @@ import OrderTrackingScreen from '../screens/OrderTrackingScreen';
 import ReservationScreen from '../screens/ReservationScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ManagerDashboardScreen from '../screens/ManagerDashboardScreen';
+
+export const navigationRef = createNavigationContainerRef();
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -84,7 +85,19 @@ function CustomerTabs() {
 
 export default function AppNavigator() {
   const { colors, isDark, typography } = useTheme();
-  const { user, isLoadingAuth } = useAuth();
+  const { user } = useAuth();
+
+  // Watch for logout: whenever authenticated user becomes null, reset stack to Login
+  const prevUserRef = useRef(user);
+  useEffect(() => {
+    if (prevUserRef.current && !user && navigationRef.isReady()) {
+      navigationRef.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    }
+    prevUserRef.current = user;
+  }, [user]);
 
   const navigationTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
@@ -98,85 +111,73 @@ export default function AppNavigator() {
     },
   };
 
-  if (isLoadingAuth) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colors.background,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
   return (
-    <NavigationContainer theme={navigationTheme}>
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}>
-        {!user ? (
-          <>
-            <Stack.Screen
-              name="Splash"
-              component={SplashScreen}
-              options={{ animation: 'none' }}
-            />
-            <Stack.Screen
-              name="Onboarding"
-              component={OnboardingScreen}
-              options={{ animation: 'fade' }}
-            />
-            <Stack.Screen
-              name="Login"
-              component={LoginScreen}
-              options={{ animation: 'fade' }}
-            />
-          </>
-        ) : user.role === 'manager' ? (
-          <Stack.Screen name="ManagerDashboard" component={ManagerDashboardScreen} />
-        ) : (
-          <>
-            <Stack.Screen name="CustomerApp" component={CustomerTabs} />
-            <Stack.Screen
-              name="OrderSummary"
-              component={OrderSummaryScreen}
-              options={{
-                headerShown: true,
-                title: 'Confirm Order',
-                headerStyle: {
-                  backgroundColor: colors.surface,
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.subtleBorder,
-                },
-                headerTintColor: colors.textPrimary,
-                headerTitleStyle: {
-                  ...typography.headingSm,
-                  color: colors.textPrimary,
-                },
-              }}
-            />
-            <Stack.Screen
-              name="OrderTracking"
-              component={OrderTrackingScreen}
-              options={{
-                headerShown: true,
-                title: 'Live Kitchen Tracking',
-                headerStyle: {
-                  backgroundColor: colors.surface,
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.subtleBorder,
-                },
-                headerTintColor: colors.textPrimary,
-                headerTitleStyle: {
-                  ...typography.headingSm,
-                  color: colors.textPrimary,
-                },
-              }}
-            />
-          </>
-        )}
+    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
+      <Stack.Navigator
+        initialRouteName="Splash"
+        screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}
+      >
+        <Stack.Screen
+          name="Splash"
+          component={SplashScreen}
+          options={{ animation: 'none' }}
+        />
+        <Stack.Screen
+          name="Onboarding"
+          component={OnboardingScreen}
+          options={{ animation: 'fade' }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ animation: 'fade' }}
+        />
+        <Stack.Screen
+          name="CustomerApp"
+          component={CustomerTabs}
+          options={{ animation: 'fade' }}
+        />
+        <Stack.Screen
+          name="ManagerDashboard"
+          component={ManagerDashboardScreen}
+          options={{ animation: 'fade' }}
+        />
+        <Stack.Screen
+          name="OrderSummary"
+          component={OrderSummaryScreen}
+          options={{
+            headerShown: true,
+            title: 'Confirm Order',
+            headerStyle: {
+              backgroundColor: colors.surface,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.subtleBorder,
+            },
+            headerTintColor: colors.textPrimary,
+            headerTitleStyle: {
+              ...typography.headingSm,
+              color: colors.textPrimary,
+            },
+          }}
+        />
+        <Stack.Screen
+          name="OrderTracking"
+          component={OrderTrackingScreen}
+          options={{
+            headerShown: true,
+            title: 'Live Kitchen Tracking',
+            headerStyle: {
+              backgroundColor: colors.surface,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.subtleBorder,
+            },
+            headerTintColor: colors.textPrimary,
+            headerTitleStyle: {
+              ...typography.headingSm,
+              color: colors.textPrimary,
+            },
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

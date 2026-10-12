@@ -3,7 +3,10 @@
  * ═══════════════════════════════════════════════════════════
  * AURA Restaurant App — Animated Splash Screen
  * Short in-app splash: logo fades and scales in 600ms, tagline 300ms,
- * thin progress line. Navigates to Onboarding or Login when ready.
+ * thin progress line. Navigates when ready:
+ *   - If valid saved session exists -> CustomerApp or ManagerDashboard
+ *   - If no session and first launch -> Onboarding
+ *   - If no session and returning -> Login
  * ═══════════════════════════════════════════════════════════
  */
 import React, { useEffect, useRef } from 'react';
@@ -18,6 +21,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth, AUTH_USER_KEY } from '../context/AuthContext';
+import { TOKEN_KEY } from '../api/client';
 import brand from '../config/brand';
 import safeStorage from '../utils/safeStorage';
 
@@ -27,6 +32,7 @@ const ONBOARDING_KEY = '@aura_onboarding_complete';
 export default function SplashScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { colors, typography, fonts } = useTheme();
+  const { user, token } = useAuth();
 
   // Animations
   const emblemScale = useRef(new Animated.Value(0.6)).current;
@@ -73,9 +79,37 @@ export default function SplashScreen({ navigation }) {
       useNativeDriver: false,
     }).start();
 
-    // Navigation decision after ~900ms
+    // Navigation decision after ~900ms (waits for splash motion & session check)
     const timer = setTimeout(async () => {
       try {
+        // Step 1: Check for valid saved session (via AuthContext or safeStorage)
+        let activeUser = user;
+        let activeToken = token;
+
+        if (!activeUser || !activeToken) {
+          const storedToken = await safeStorage.getItem(TOKEN_KEY);
+          const storedUserRaw = await safeStorage.getItem(AUTH_USER_KEY);
+          if (storedToken && storedUserRaw) {
+            try {
+              activeUser = JSON.parse(storedUserRaw);
+              activeToken = storedToken;
+            } catch (parseErr) {
+              activeUser = null;
+            }
+          }
+        }
+
+        // If a valid saved session exists -> route straight to the appropriate screen
+        if (activeUser && activeToken) {
+          if (activeUser.role === 'manager') {
+            navigation.replace('ManagerDashboard');
+          } else {
+            navigation.replace('CustomerApp');
+          }
+          return;
+        }
+
+        // Step 2: No saved session -> check onboarding completion
         const seen = await safeStorage.getItem(ONBOARDING_KEY);
         if (seen === 'true') {
           navigation.replace('Login');
@@ -83,12 +117,12 @@ export default function SplashScreen({ navigation }) {
           navigation.replace('Onboarding');
         }
       } catch (err) {
-        navigation.replace('Onboarding');
+        navigation.replace('Login');
       }
     }, 900);
 
     return () => clearTimeout(timer);
-  }, [navigation, emblemScale, emblemOpacity, wordmarkOpacity, taglineOpacity, progressAnim]);
+  }, [navigation, user, token, emblemScale, emblemOpacity, wordmarkOpacity, taglineOpacity, progressAnim]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.primary }]}>
