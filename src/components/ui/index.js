@@ -3,6 +3,7 @@ export { default as Card } from './Card';
 export { default as Chip } from './Chip';
 export { default as CategoryChip } from './CategoryChip';
 export { default as Input } from './Input';
+export { default as PhoneInput } from './PhoneInput';
 export { default as Badge, default as StatusPill } from './Badge';
 export { default as SegmentedControl } from './SegmentedControl';
 export { default as FilterTabs } from './FilterTabs';

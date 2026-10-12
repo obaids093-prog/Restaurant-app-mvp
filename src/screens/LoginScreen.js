@@ -30,6 +30,7 @@ import brand from '../config/brand';
 import {
   Button,
   Input,
+  PhoneInput,
   HeroCard,
   SegmentedControl,
   OtpInput,
@@ -44,13 +45,12 @@ const validateSignupNameAndPhone = (vals, newErrors) => {
     newErrors.name = 'Name must be at least 2 characters.';
   }
 
-  const pakPhoneClean = (vals.phone || '').trim().replace(/[\s-]/g, '');
-  const pakPhoneRegex = /^(\+92|0092|0)?3\d{9}$/;
+  const pakPhoneClean = (vals.phone || '').replace(/\D/g, '');
 
-  if (!vals.phone?.trim()) {
+  if (!pakPhoneClean) {
     newErrors.phone = 'Mobile number is required for order notifications.';
-  } else if (!pakPhoneRegex.test(pakPhoneClean)) {
-    newErrors.phone = 'Enter valid Pakistani mobile number (e.g. 0300-1234567).';
+  } else if (!/^3\d{9}$/.test(pakPhoneClean)) {
+    newErrors.phone = 'Enter a valid 10-digit Pakistani mobile number.';
   }
 };
 
@@ -244,10 +244,9 @@ export default function LoginScreen({ navigation }) {
     setPhoneError('');
     setServerError(null);
 
-    const clean = phoneNumber.trim().replace(/[\s-]/g, '');
-    const pakRegex = /^(\+92|0092|0)?3\d{9}$/;
-    if (!pakRegex.test(clean)) {
-      setPhoneError('Enter a valid Pakistani mobile number (e.g. 0300-1234567).');
+    const clean = phoneNumber.replace(/\D/g, '');
+    if (!/^3\d{9}$/.test(clean)) {
+      setPhoneError('Enter a valid 10-digit Pakistani mobile number.');
       return;
     }
 
@@ -515,14 +514,10 @@ export default function LoginScreen({ navigation }) {
                       editable={!isSubmitting}
                     />
 
-                    <Input
-                      label="Mobile Number"
+                    <PhoneInput
                       value={values.phone}
                       onChangeText={(val) => handleChange('phone', val)}
-                      placeholder="0300-1234567"
                       error={errors.phone}
-                      icon={<Ionicons name="call-outline" size={18} color={colors.primary} />}
-                      keyboardType="phone-pad"
                       editable={!isSubmitting}
                     />
                   </>
@@ -731,13 +726,9 @@ export default function LoginScreen({ navigation }) {
                       />
                     )}
 
-                    <Input
-                      label="Mobile Number"
+                    <PhoneInput
                       value={phoneNumber}
                       onChangeText={setPhoneNumber}
-                      placeholder="0300-1234567"
-                      icon={<Ionicons name="call-outline" size={18} color={colors.primary} />}
-                      keyboardType="phone-pad"
                       editable={!isSubmitting}
                     />
 
