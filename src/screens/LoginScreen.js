@@ -308,7 +308,13 @@ export default function LoginScreen({ navigation }) {
 
     setIsSubmitting(true);
     try {
-      await updateProfile({ name: trimmedName });
+      const updatedUser = await updateProfile({ name: trimmedName });
+      const activeUser = updatedUser || pendingUser || user;
+      if (activeUser?.role === 'manager') {
+        navigation.navigate('ManagerDashboard');
+      } else {
+        navigation.navigate('CustomerApp', { screen: 'Menu' });
+      }
     } catch (err) {
       setPhoneError(err.message || 'Failed to save your name. Please try again.');
     } finally {
@@ -323,6 +329,11 @@ export default function LoginScreen({ navigation }) {
       setServerError(null);
       try {
         await completePendingAuth(pendingUser);
+        if (pendingUser.role === 'manager') {
+          navigation.navigate('ManagerDashboard');
+        } else {
+          navigation.navigate('CustomerApp', { screen: 'Menu' });
+        }
       } catch (err) {
         setPhoneError(err.message || 'Failed to complete authentication.');
       } finally {

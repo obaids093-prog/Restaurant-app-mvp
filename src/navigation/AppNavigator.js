@@ -87,7 +87,9 @@ export default function AppNavigator() {
   const { colors, isDark, typography } = useTheme();
   const { user } = useAuth();
 
-  // Watch for logout: whenever authenticated user becomes null, reset stack to Login
+  // Watch for auth state changes:
+  // - If user logs out (non-null -> null), reset stack to Login
+  // - If user logs in (null -> non-null) while on Login/Onboarding, reset stack to CustomerApp / ManagerDashboard
   const prevUserRef = useRef(user);
   useEffect(() => {
     if (prevUserRef.current && !user && navigationRef.isReady()) {
@@ -95,6 +97,15 @@ export default function AppNavigator() {
         index: 0,
         routes: [{ name: 'Login' }],
       });
+    } else if (!prevUserRef.current && user && navigationRef.isReady()) {
+      const currentRoute = navigationRef.getCurrentRoute();
+      if (currentRoute?.name === 'Login' || currentRoute?.name === 'Onboarding') {
+        if (user.role === 'manager') {
+          navigationRef.reset({ index: 0, routes: [{ name: 'ManagerDashboard' }] });
+        } else {
+          navigationRef.reset({ index: 0, routes: [{ name: 'CustomerApp' }] });
+        }
+      }
     }
     prevUserRef.current = user;
   }, [user]);
