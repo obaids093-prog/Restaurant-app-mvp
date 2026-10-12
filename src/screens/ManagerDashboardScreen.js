@@ -112,7 +112,7 @@ function OrderItemCard({ order, colors, shadows, onUpdateStatus, onCancelOrder }
         {isPending && (
           <TouchableOpacity
             onPress={() => onUpdateStatus(order.id, 'Preparing')}
-            style={[styles.actionBtn, { backgroundColor: colors.secondary }]}
+            style={[styles.actionBtn, { backgroundColor: colors.secondary || colors.primary }]}
           >
             <Ionicons name="flame" size={14} color="#FFF" />
             <Text style={styles.actionBtnText}>Start Cooking</Text>
@@ -122,7 +122,7 @@ function OrderItemCard({ order, colors, shadows, onUpdateStatus, onCancelOrder }
         {isPrep && (
           <TouchableOpacity
             onPress={() => onUpdateStatus(order.id, 'Ready')}
-            style={[styles.actionBtn, { backgroundColor: '#0284C7' }]}
+            style={[styles.actionBtn, { backgroundColor: colors.preparing || '#0284C7' }]}
           >
             <Ionicons name="checkmark-circle" size={14} color="#FFF" />
             <Text style={styles.actionBtnText}>Mark Ready</Text>

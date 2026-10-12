@@ -21,6 +21,7 @@ export const colors = {
     primary: '#FC5834',
     primaryPressed: '#E04A27',
     primaryTint: '#FFEDE8',
+    secondary: '#F59E0B',
     onPrimary: '#FFFFFF',
 
     // Surfaces & Backgrounds
@@ -81,6 +82,7 @@ export const colors = {
     primary: '#FF6B4A',
     primaryPressed: '#FF8266',
     primaryTint: '#3A1F18',
+    secondary: '#F59E0B',
     onPrimary: '#FFFFFF',
 
     // Surfaces & Backgrounds
