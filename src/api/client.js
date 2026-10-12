@@ -20,6 +20,55 @@ export const BASE_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'http:
 export const TOKEN_KEY = '@restaurant_app_auth_token';
 
 /**
+ * Helper to retrieve stored token if not explicitly provided
+ */
+const resolveAuthToken = async (customToken) => {
+  if (customToken) return customToken;
+  try {
+    return await safeStorage.getItem(TOKEN_KEY);
+  } catch (e) {
+    return null;
+  }
+};
+
+/**
+ * Helper to parse response body according to content-type
+ */
+const parseResponseBody = async (response) => {
+  const contentType = response.headers.get('content-type');
+  if (contentType?.includes('application/json')) {
+    return response.json();
+  }
+  const text = await response.text();
+  return { message: text };
+};
+
+/**
+ * Helper to extract descriptive server error message
+ */
+const extractErrorMessage = (data, status) => {
+  const detail = data?.error || data?.message;
+  if (data?.message && data?.error && data.message !== data.error) {
+    return `${data.message} (${data.error})`;
+  }
+  return detail || `Request failed with status ${status}`;
+};
+
+/**
+ * Helper to handle network disconnects and request timeouts
+ */
+const handleRequestError = (error, isAborted, url) => {
+  if (error.name === 'AbortError' || isAborted) {
+    throw new Error('Cannot reach server. Check your Wi-Fi and try again.');
+  }
+  if (!error.status) {
+    console.warn(`[apiClient] Network connection failed to ${url}:`, error.message);
+    throw new Error(`Unable to reach server at ${BASE_URL}. Ensure backend is running.`);
+  }
+  throw error;
+};
+
+/**
  * Core HTTP client helper
  * @param {string} endpoint - API endpoint (e.g. '/api/menu' or 'menu')
  * @param {object} options - fetch options (method, body, headers, customToken)
@@ -29,15 +78,7 @@ export const apiClient = async (endpoint, options = {}) => {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${BASE_URL}${cleanEndpoint}`;
 
-  // Retrieve JWT auth token from safe storage if not explicitly provided
-  let token = options.token;
-  if (!token) {
-    try {
-      token = await safeStorage.getItem(TOKEN_KEY);
-    } catch (e) {
-      // Storage access error, continue without token
-    }
-  }
+  const token = await resolveAuthToken(options.token);
 
   const headers = {
     'Content-Type': 'application/json',
@@ -45,7 +86,7 @@ export const apiClient = async (endpoint, options = {}) => {
     'Cache-Control': 'no-cache, no-store, must-revalidate',
     Pragma: 'no-cache',
     Expires: '0',
-    ...(options.headers || {}),
+    ...options.headers,
   };
 
   if (token) {
@@ -71,22 +112,11 @@ export const apiClient = async (endpoint, options = {}) => {
   try {
     const response = await fetch(url, config);
     clearTimeout(timeoutId);
-    let data;
 
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      data = await response.json();
-    } else {
-      const text = await response.text();
-      data = { message: text };
-    }
+    const data = await parseResponseBody(response);
 
     if (!response.ok) {
-      const detail = data?.error || data?.message;
-      const errorMessage = data?.message && data?.error && data.message !== data.error
-        ? `${data.message} (${data.error})`
-        : (detail || `Request failed with status ${response.status}`);
-      const error = new Error(errorMessage);
+      const error = new Error(extractErrorMessage(data, response.status));
       error.status = response.status;
       error.data = data;
       throw error;
@@ -95,18 +125,7 @@ export const apiClient = async (endpoint, options = {}) => {
     return data;
   } catch (error) {
     clearTimeout(timeoutId);
-
-    // Timeout check
-    if (error.name === 'AbortError' || controller.signal.aborted) {
-      throw new Error('Cannot reach server. Check your Wi-Fi and try again.');
-    }
-
-    // If it's a network disconnect / server offline error
-    if (!error.status) {
-      console.warn(`[apiClient] Network connection failed to ${url}:`, error.message);
-      throw new Error(`Unable to reach server at ${BASE_URL}. Ensure backend is running.`);
-    }
-    throw error;
+    handleRequestError(error, controller.signal.aborted, url);
   }
 };
 
