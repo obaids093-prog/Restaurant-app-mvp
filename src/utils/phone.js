@@ -44,4 +44,45 @@ export const toPakServerPhone = (phone) => {
   return phone.trim();
 };
 
+/**
+ * Normalizes any Pakistani phone format into display and raw forms.
+ *
+ * Accepted inputs:
+ *   0312-8556555, 03128556555, 3128556555,
+ *   +923128556555, 923128556555, 0312 8556555
+ *
+ * @param {string} input - Raw phone input string
+ * @returns {{ display: string, raw: string, isValid: true } | { error: string, isValid: false }}
+ */
+export const normalizePkPhone = (input) => {
+  if (!input || typeof input !== 'string') {
+    return { error: 'Phone number is required.', isValid: false };
+  }
+  const digits = input.replace(/\D/g, '');
+  if (!digits) {
+    return { error: 'Phone number is required.', isValid: false };
+  }
+
+  let tenDigit = ''; // target: 3XXXXXXXXX
+
+  if (/^3\d{9}$/.test(digits)) {
+    // 3001234567
+    tenDigit = digits;
+  } else if (/^03\d{9}$/.test(digits)) {
+    // 03001234567
+    tenDigit = digits.slice(1);
+  } else if (/^923\d{9}$/.test(digits)) {
+    // 923001234567
+    tenDigit = digits.slice(2);
+  } else if (/^00923\d{9}$/.test(digits)) {
+    // 0092 3001234567
+    tenDigit = digits.slice(4);
+  } else {
+    return { error: 'Phone must be a valid Pakistani mobile number (03XX-XXXXXXX).', isValid: false };
+  }
+
+  const display = `0${tenDigit.slice(0, 3)}-${tenDigit.slice(3)}`;
+  return { display, raw: tenDigit, isValid: true };
+};
+
 export default toPakServerPhone;

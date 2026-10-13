@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import apiClient from '../api/client';
 import safeStorage from '../utils/safeStorage';
+import { normalizePkPhone } from '../utils/phone';
 
 const RESERVATIONS_STORAGE_KEY = '@aura_reservations_data';
 
@@ -40,7 +41,14 @@ export function useReservation(currentUser) {
   const [tablesList, setTablesList] = useState([]);
   const [selectedTable, setSelectedTable] = useState(null);
   const [contactName, setContactName] = useState(currentUser?.name || 'Zainab Malik');
-  const [contactPhone, setContactPhone] = useState(currentUser?.phone || '0302-8877665');
+  // Store raw 10 digits for PhoneInput compatibility; pre-fill from user profile
+  const [contactPhone, setContactPhone] = useState(() => {
+    if (currentUser?.phone) {
+      const parsed = normalizePkPhone(currentUser.phone);
+      return parsed.isValid ? parsed.raw : '';
+    }
+    return '';
+  });
   const [specialRequests, setSpecialRequests] = useState('');
   const [reservationsList, setReservationsList] = useState([]);
   const [validationErrors, setValidationErrors] = useState({});
@@ -202,12 +210,10 @@ export function useReservation(currentUser) {
       errors.partySize = 'Party size must be between 1 and 12 guests.';
     }
 
-    // 4. Pakistani phone format: 03XX-XXXXXXX
-    const pakPhoneRegex = /^03\d{2}-\d{7}$/;
-    if (!contactPhone.trim()) {
-      errors.phone = 'Contact phone number is required.';
-    } else if (!pakPhoneRegex.test(contactPhone.trim())) {
-      errors.phone = 'Phone must match Pakistani mobile format (03XX-XXXXXXX).';
+    // 4. Pakistani phone via normalizePkPhone (raw 10 digits from PhoneInput)
+    const phoneResult = normalizePkPhone(contactPhone);
+    if (!phoneResult.isValid) {
+      errors.phone = phoneResult.error;
     }
 
     // 5. Contact Name
@@ -239,7 +245,7 @@ export function useReservation(currentUser) {
       guests: Number(partySize),
       specialRequests: specialRequests.trim(),
       customerName: contactName.trim(),
-      phone: contactPhone.trim(),
+      phone: normalizePkPhone(contactPhone).display || contactPhone.trim(),
     };
 
     // Calls backend POST /api/reservations (throws error on 409 Conflict if double booked)

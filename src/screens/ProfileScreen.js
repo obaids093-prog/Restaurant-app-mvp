@@ -18,6 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import PhoneInput from '../components/ui/PhoneInput';
+import { normalizePkPhone } from '../utils/phone';
 import { useOrders } from '../context/OrdersContext';
 
 const { width } = Dimensions.get('window');
@@ -56,7 +58,9 @@ export default function ProfileScreen({ navigation }) {
   const openEditModal = () => {
     setEditName(user?.name || '');
     setEditEmail(user?.email || '');
-    setEditPhone(user?.phone || '');
+    // Convert stored phone (e.g. '03001234567') to raw 10 digits for PhoneInput
+    const phoneParsed = normalizePkPhone(user?.phone || '');
+    setEditPhone(phoneParsed.isValid ? phoneParsed.raw : (user?.phone || ''));
     setEditDob(user?.dob || '');
     setEditAvatar(user?.avatar || CURATED_AVATARS[0].uri);
     setEditError('');
@@ -748,18 +752,11 @@ function EditProfileModal({
 
             {/* Form Input: Phone Number */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Phone Number</Text>
-              <View style={[styles.inputContainer, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
-                <Ionicons name="call-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.textInput, { color: colors.textPrimary }]}
-                  placeholder="e.g. 0300-1234567"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="phone-pad"
-                  value={editPhone}
-                  onChangeText={setEditPhone}
-                />
-              </View>
+              <PhoneInput
+                value={editPhone}
+                onChangeText={setEditPhone}
+                label="Phone Number"
+              />
             </View>
 
             {/* Action Buttons */}

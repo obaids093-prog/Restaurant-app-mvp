@@ -20,6 +20,8 @@ import { LinearGradient } from '../utils/SafeLinearGradient';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useReservation } from '../hooks/useReservation';
+import PhoneInput from '../components/ui/PhoneInput';
+import { normalizePkPhone } from '../utils/phone';
 
 const DINING_SLOT_GROUPS = [
   {
@@ -482,30 +484,14 @@ function BookTabContent({
           )}
         </View>
 
-        {/* PAKISTANI PHONE */}
+        {/* PAKISTANI PHONE — PhoneInput stores raw 10 digits */}
         <View style={styles.inputGroup}>
-          <Text style={styles.fieldLabel}>MOBILE NUMBER (03XX-XXXXXXX)</Text>
-          <View
-            style={[
-              styles.inputWrapper,
-              validationErrors.phone && styles.inputWrapperError,
-            ]}
-          >
-            <Ionicons name="call-outline" size={18} color="#ffc174" />
-            <TextInput
-              style={styles.textInput}
-              value={contactPhone}
-              onChangeText={setContactPhone}
-              placeholder="0302-8877665"
-              placeholderTextColor="#a08e7a"
-              keyboardType="phone-pad"
-            />
-          </View>
-          {validationErrors.phone && (
-            <Text style={[styles.errorMsg, { color: colors.error }]}>
-              {validationErrors.phone}
-            </Text>
-          )}
+          <PhoneInput
+            value={contactPhone}
+            onChangeText={setContactPhone}
+            label="MOBILE NUMBER (03XX-XXXXXXX)"
+            error={validationErrors.phone}
+          />
         </View>
 
         {/* SPECIAL REQUESTS */}
@@ -811,7 +797,7 @@ function ConfirmBookingModal({
             <View style={styles.modalRow}>
               <Text style={[styles.modalRowLabel, { color: colors.textMuted }]}>SMS Confirmation:</Text>
               <Text style={[styles.modalRowVal, { color: colors.textPrimary }]}>
-                {contactPhone}
+                {normalizePkPhone(contactPhone).display || contactPhone}
               </Text>
             </View>
           </View>
