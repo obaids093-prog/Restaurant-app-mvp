@@ -161,9 +161,14 @@ export function useReservation(currentUser) {
     const availableTables = getAvailableTablesForSlot(selectedDate, selectedTimeSlot, partySize);
     if (availableTables.length > 0) {
       const sortedByFit = [...availableTables].sort((a, b) => a.seats - b.seats);
-      setSelectedTable(sortedByFit[0]);
+      const best = sortedByFit[0];
+      setSelectedTable((prev) => {
+        const prevId = prev && (prev._id || prev.id);
+        const bestId = best._id || best.id;
+        return prevId === bestId ? prev : best;
+      });
     } else {
-      setSelectedTable(null);
+      setSelectedTable((prev) => (prev === null ? prev : null));
     }
   }, [selectedDate, selectedTimeSlot, partySize, getAvailableTablesForSlot]);
 
