@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import safeStorage from '../utils/safeStorage';
 import { apiClient, TOKEN_KEY } from '../api/client';
+import { toPakServerPhone } from '../utils/phone';
 
+export { toPakServerPhone };
 export const AuthContext = createContext(null);
 
 export const AUTH_USER_KEY = '@restaurant_app_auth_user';
@@ -88,7 +90,7 @@ export const AuthProvider = ({ children }) => {
           name: name.trim(),
           email: email.trim().toLowerCase(),
           password: password.trim(),
-          phone: phone ? phone.trim() : '',
+          phone: phone ? toPakServerPhone(phone) : '',
         },
       });
 
@@ -112,9 +114,13 @@ export const AuthProvider = ({ children }) => {
    */
   const updateProfile = async (profileData) => {
     try {
+      const payload = { ...profileData };
+      if (payload.phone) {
+        payload.phone = toPakServerPhone(payload.phone);
+      }
       const response = await apiClient('/api/auth/profile', {
         method: 'PUT',
-        body: profileData,
+        body: payload,
       });
 
       if (response && response.user) {
@@ -164,7 +170,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await apiClient('/api/auth/phone/send-otp', {
         method: 'POST',
-        body: { phone: phone.trim() },
+        body: { phone: toPakServerPhone(phone) },
       });
       return response;
     } catch (error) {
@@ -180,7 +186,7 @@ export const AuthProvider = ({ children }) => {
       const response = await apiClient('/api/auth/phone/verify-otp', {
         method: 'POST',
         body: {
-          phone: phone.trim(),
+          phone: toPakServerPhone(phone),
           otp: otp.trim(),
           name: name ? name.trim() : '',
         },
