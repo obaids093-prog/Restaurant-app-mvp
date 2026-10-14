@@ -173,9 +173,11 @@ export default function MenuScreen({ navigation }) {
   // Check accessibility reduce motion
   useEffect(() => {
     let isMounted = true;
-    AccessibilityInfo.isReduceMotionEnabled?.().then((enabled) => {
-      if (isMounted) setReduceMotion(!!enabled);
-    });
+    AccessibilityInfo.isReduceMotionEnabled?.()
+      .then((enabled) => {
+        if (isMounted) setReduceMotion(!!enabled);
+      })
+      .catch(() => {});
     const sub = AccessibilityInfo.addEventListener?.(
       'reduceMotionChanged',
       (enabled) => {
@@ -190,7 +192,7 @@ export default function MenuScreen({ navigation }) {
 
   // Load favourites from safeStorage on mount
   useEffect(() => {
-    (async () => {
+    void (async () => {
       try {
         const stored = await safeStorage.getItem(FAVOURITES_KEY);
         if (stored) {
@@ -513,12 +515,16 @@ export default function MenuScreen({ navigation }) {
 
     if (shouldShow !== showBackToTop) {
       setShowBackToTop(shouldShow);
-      Animated.spring(backToTopAnim, {
-        toValue: shouldShow ? 1 : 0,
-        friction: 6,
-        tension: 50,
-        useNativeDriver: true,
-      }).start();
+      if (reduceMotion) {
+        backToTopAnim.setValue(shouldShow ? 1 : 0);
+      } else {
+        Animated.spring(backToTopAnim, {
+          toValue: shouldShow ? 1 : 0,
+          friction: 6,
+          tension: 50,
+          useNativeDriver: true,
+        }).start();
+      }
     }
   };
 
@@ -921,9 +927,9 @@ export default function MenuScreen({ navigation }) {
 
                 {/* Hero Carousel Dots */}
                 <View style={styles.heroDotsRow}>
-                  {chefPicks.map((_, i) => (
+                  {chefPicks.map((pick, i) => (
                     <View
-                      key={`hdot-${i}`}
+                      key={`hdot-${pick.id || pick._id || i}`}
                       style={[
                         styles.heroDot,
                         {
