@@ -19,6 +19,7 @@ import {
   ScrollView,
   Animated,
   StatusBar,
+  AccessibilityInfo,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -118,6 +119,14 @@ export default function LoginScreen({ navigation }) {
   // Theme toggle 180-degree rotation animation
   const themeRotateAnim = useRef(new Animated.Value(isDark ? 1 : 0)).current;
 
+  // Accessibility: reduce-motion preference
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => sub?.remove?.();
+  }, []);
+
   // Form validation function
   const validateForm = useCallback(
     (vals) => {
@@ -185,18 +194,23 @@ export default function LoginScreen({ navigation }) {
 
   // Restore remembered email on mount & card slide-up 16px entrance
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(cardOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(cardTranslateY, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    if (reduceMotion) {
+      cardOpacity.setValue(1);
+      cardTranslateY.setValue(0);
+    } else {
+      Animated.parallel([
+        Animated.timing(cardOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardTranslateY, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
 
     const loadRememberedEmail = async () => {
       try {

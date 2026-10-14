@@ -90,7 +90,7 @@ const DEALS_FOR_YOU = [
   {
     code: 'GOURMET30',
     discountPercent: 30,
-    description: 'VIP Connoisseur Privilege on curated trays',
+    description: 'VIP Chef\'s Privilege on curated trays',
   },
   {
     code: 'WELCOME10',
