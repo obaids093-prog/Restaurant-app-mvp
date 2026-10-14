@@ -415,6 +415,8 @@ export default function MenuScreen({ navigation }) {
             m.name.toLowerCase() === (orderItem.name || '').toLowerCase()
         );
 
+        if (currentDish && currentDish.isAvailable !== false) {
+          const qty = orderItem.quantity || 1;
           for (let i = 0; i < qty; i++) {
             addItem({
               ...currentDish,
