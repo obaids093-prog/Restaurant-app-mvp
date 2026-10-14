@@ -523,7 +523,7 @@ export default function LoginScreen({ navigation }) {
                 >
                   {serverError}
                 </Text>
-              </View>
+              </Animated.View>
             ) : null}
 
             {phoneError ? (
@@ -546,7 +546,7 @@ export default function LoginScreen({ navigation }) {
                 >
                   {phoneError}
                 </Text>
-              </View>
+              </Animated.View>
             ) : null}
 
             {phoneSuccessMsg && phoneStep === 'otp' ? (
