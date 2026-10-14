@@ -36,6 +36,7 @@ import {
   SegmentedControl,
   OtpInput,
 } from '../components/ui';
+import { SafeLinearGradient } from '../utils/SafeLinearGradient';
 
 // Validation helpers
 const validateSignupNameAndPhone = (vals, newErrors) => {
@@ -119,6 +120,10 @@ export default function LoginScreen({ navigation }) {
   // Theme toggle 180-degree rotation animation
   const themeRotateAnim = useRef(new Animated.Value(isDark ? 1 : 0)).current;
 
+  // Ambient emblem breathing & slow orbit ring animations
+  const emblemPulseAnim = useRef(new Animated.Value(1)).current;
+  const orbitRotateAnim = useRef(new Animated.Value(0)).current;
+
   // Accessibility: reduce-motion preference
   const [reduceMotion, setReduceMotion] = useState(false);
   useEffect(() => {
@@ -126,6 +131,45 @@ export default function LoginScreen({ navigation }) {
     const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
     return () => sub?.remove?.();
   }, []);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(emblemPulseAnim, {
+          toValue: 1.05,
+          duration: 2200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(emblemPulseAnim, {
+          toValue: 1,
+          duration: 2200,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulseLoop.start();
+
+    const orbitLoop = Animated.loop(
+      Animated.timing(orbitRotateAnim, {
+        toValue: 1,
+        duration: 24000,
+        useNativeDriver: true,
+      })
+    );
+    orbitLoop.start();
+
+    return () => {
+      pulseLoop.stop();
+      orbitLoop.stop();
+    };
+  }, [reduceMotion, emblemPulseAnim, orbitRotateAnim]);
+
+  const orbitSpin = orbitRotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   // Form validation function
   const validateForm = useCallback(
@@ -409,7 +453,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={[styles.rootContainer, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -418,94 +462,205 @@ export default function LoginScreen({ navigation }) {
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: insets.top, paddingBottom: insets.bottom + 24 },
+            { paddingBottom: insets.bottom + 28 },
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Top Bar with Brand Badge & Theme Toggle */}
-          <View style={styles.topUtilityRow}>
-            <View
-              style={[
-                styles.brandBadge,
-                { backgroundColor: colors.surfaceSubtle, borderColor: colors.subtleBorder },
-              ]}
-            >
-              <View style={[styles.liveDot, { backgroundColor: colors.success }]} />
-              <Text
-                style={[
-                  styles.brandBadgeText,
-                  { color: colors.textSecondary, fontFamily: fonts.semiBold },
-                ]}
-              >
-                {brand.appName}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={() => {
-                const nextVal = isDark ? 0 : 1;
-                Animated.timing(themeRotateAnim, {
-                  toValue: nextVal,
-                  duration: 250,
-                  useNativeDriver: true,
-                }).start();
-                toggleTheme();
-              }}
-              style={[
-                styles.themeToggleBtn,
-                { backgroundColor: colors.surfaceSubtle, borderColor: colors.subtleBorder },
-              ]}
-              accessibilityLabel="Toggle Theme"
-              activeOpacity={0.7}
-            >
-              <Animated.View
-                style={{
-                  transform: [
-                    {
-                      rotate: themeRotateAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0deg', '180deg'],
-                      }),
-                    },
-                  ],
-                }}
-              >
-                <Ionicons
-                  name={isDark ? 'sunny-outline' : 'moon-outline'}
-                  size={18}
-                  color={colors.primary}
-                />
-              </Animated.View>
-            </TouchableOpacity>
-          </View>
-
-          {/* Brand Header HeroCard with Gradient */}
-          <HeroCard
-            title={brand.appName}
-            subtitle={brand.tagline}
-            icon="flame"
-            curvedBottom={true}
-            style={styles.heroCard}
-          />
-
-          {/* Auth Card Container: slides up 16px and fades in 300ms; shakes on error */}
-          <Animated.View
+          {/* ══════════ SENIOR LUXURY BRAND CANOPY ══════════ */}
+          <SafeLinearGradient
+            colors={
+              isDark
+                ? ['#261510', '#1C0E0A', '#130805']
+                : ['#FC5834', '#EB4F2B', '#D43C19']
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={[
-              styles.formCard,
+              styles.canopyContainer,
               {
-                backgroundColor: colors.card,
-                borderColor: colors.cardBorder,
-                borderRadius: radius.card,
-                opacity: cardOpacity,
-                transform: [
-                  { translateY: cardTranslateY },
-                  { translateX: shakeAnim },
-                ],
+                paddingTop: Math.max(insets.top, 16) + 10,
               },
-              shadows.cardLight,
             ]}
           >
+            {/* Ambient Decorative Blurs & Concentric Arches */}
+            <View
+              style={[
+                styles.ambientOrb1,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(252, 88, 52, 0.16)'
+                    : 'rgba(255, 255, 255, 0.16)',
+                },
+              ]}
+            />
+            <View
+              style={[
+                styles.ambientOrb2,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(245, 158, 11, 0.12)'
+                    : 'rgba(255, 255, 255, 0.10)',
+                },
+              ]}
+            />
+            <View
+              style={[
+                styles.ambientArchRing,
+                {
+                  borderColor: isDark
+                    ? 'rgba(245, 158, 11, 0.14)'
+                    : 'rgba(255, 255, 255, 0.12)',
+                },
+              ]}
+            />
+
+            {/* Top Utility Bar with Glassmorphic Artisan Guild & Theme Toggle */}
+            <View style={styles.topUtilityRow}>
+              <View style={styles.glassBadge}>
+                <Ionicons
+                  name="sparkles"
+                  size={11}
+                  color={isDark ? '#F59E0B' : '#FFF3B0'}
+                />
+                <Text style={styles.glassBadgeText}>ARTISAN KITCHEN</Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => {
+                  const nextVal = isDark ? 0 : 1;
+                  Animated.timing(themeRotateAnim, {
+                    toValue: nextVal,
+                    duration: 250,
+                    useNativeDriver: true,
+                  }).start();
+                  toggleTheme();
+                }}
+                style={styles.themeToggleGlassBtn}
+                accessibilityLabel="Toggle Theme"
+                activeOpacity={0.7}
+              >
+                <Animated.View
+                  style={{
+                    transform: [
+                      {
+                        rotate: themeRotateAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '180deg'],
+                        }),
+                      },
+                    ],
+                  }}
+                >
+                  <Ionicons
+                    name={isDark ? 'sunny' : 'moon'}
+                    size={17}
+                    color={isDark ? '#F59E0B' : '#FFFFFF'}
+                  />
+                </Animated.View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Center Artisan Emblem with Orbit Compass Ring */}
+            <View style={styles.emblemContainer}>
+              <Animated.View
+                style={[
+                  styles.orbitRing,
+                  {
+                    borderColor: isDark
+                      ? 'rgba(245, 158, 11, 0.32)'
+                      : 'rgba(255, 255, 255, 0.38)',
+                    transform: [{ rotate: orbitSpin }],
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.orbitDiamond,
+                    { top: -7, color: isDark ? '#F59E0B' : '#FFFFFF' },
+                  ]}
+                >
+                  ✦
+                </Text>
+                <Text
+                  style={[
+                    styles.orbitDiamond,
+                    { bottom: -7, color: isDark ? '#F59E0B' : '#FFFFFF' },
+                  ]}
+                >
+                  ✦
+                </Text>
+                <Text
+                  style={[
+                    styles.orbitDiamond,
+                    { left: -7, color: isDark ? '#F59E0B' : '#FFFFFF' },
+                  ]}
+                >
+                  ✦
+                </Text>
+                <Text
+                  style={[
+                    styles.orbitDiamond,
+                    { right: -7, color: isDark ? '#F59E0B' : '#FFFFFF' },
+                  ]}
+                >
+                  ✦
+                </Text>
+              </Animated.View>
+
+              {/* Glowing Squircle Center Emblem */}
+              <Animated.View
+                style={[
+                  styles.emblemSquircle,
+                  {
+                    backgroundColor: isDark ? '#23130F' : '#FFFFFF',
+                    borderColor: isDark
+                      ? 'rgba(252, 88, 52, 0.35)'
+                      : 'rgba(255, 255, 255, 0.8)',
+                    transform: [{ scale: emblemPulseAnim }],
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="restaurant"
+                  size={26}
+                  color={isDark ? '#FF6B4A' : '#FC5834'}
+                />
+              </Animated.View>
+            </View>
+
+            {/* Brand Title & Refined Subtitle Lockup */}
+            <View style={styles.brandTitleBlock}>
+              <Text style={styles.brandTitleText}>A U R A</Text>
+              <View style={styles.taglineDividerRow}>
+                <View style={styles.taglineDividerLine} />
+                <Text style={styles.brandSubtitleText}>
+                  ARTISAN KITCHEN & FINE DINING
+                </Text>
+                <View style={styles.taglineDividerLine} />
+              </View>
+            </View>
+          </SafeLinearGradient>
+
+          {/* ══════════ OVERLAPPING FORM SHEET ══════════ */}
+          <View style={styles.formSheetWrapper}>
+            {/* Auth Card Container: slides up 16px and fades in 300ms; shakes on error */}
+            <Animated.View
+              style={[
+                styles.formCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.cardBorder,
+                  borderRadius: 24,
+                  opacity: cardOpacity,
+                  transform: [
+                    { translateY: cardTranslateY },
+                    { translateX: shakeAnim },
+                  ],
+                },
+                shadows.cardLight,
+              ]}
+            >
             {/* Segmented Control for Login / Sign Up */}
             {phoneStep !== 'nameEntry' && (
               <SegmentedControl
@@ -1003,10 +1158,21 @@ export default function LoginScreen({ navigation }) {
             </Text>
             <Ionicons name="arrow-forward" size={13} color={colors.primary} />
           </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
-  );
+
+          {/* Discreet Luxury Legal Notice */}
+          <Text
+            style={[
+              styles.legalNoticeText,
+              { color: colors.textSecondary, fontFamily: fonts.regular },
+            ]}
+          >
+            By continuing, you agree to AURA's Terms of Dining and Privacy Charter.
+          </Text>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  </View>
+);
 }
 
 const styles = StyleSheet.create({
@@ -1017,54 +1183,167 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
     alignItems: 'center',
     width: '100%',
-    maxWidth: 520,
+  },
+  canopyContainer: {
+    width: '100%',
+    paddingBottom: 54,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  ambientOrb1: {
+    position: 'absolute',
+    top: -50,
+    right: -40,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+  },
+  ambientOrb2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -40,
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+  },
+  ambientArchRing: {
+    position: 'absolute',
+    top: -80,
     alignSelf: 'center',
+    width: 380,
+    height: 380,
+    borderRadius: 190,
+    borderWidth: 1,
   },
   topUtilityRow: {
     width: '100%',
+    maxWidth: 480,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    paddingHorizontal: 20,
+    marginBottom: 8,
+    zIndex: 10,
   },
-  brandBadge: {
+  glassBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     borderWidth: 1,
-    gap: 6,
+    borderColor: 'rgba(255, 255, 255, 0.32)',
   },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  brandBadgeText: {
-    fontSize: 11,
+  glassBadgeText: {
+    fontSize: 10.5,
     letterSpacing: 1.2,
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
-  themeToggleBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  themeToggleGlassBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.32)',
+  },
+  emblemContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 86,
+    height: 86,
+    marginTop: 6,
+    marginBottom: 10,
+    position: 'relative',
+  },
+  orbitRing: {
+    position: 'absolute',
+    width: 82,
+    height: 82,
+    borderRadius: 41,
+    borderWidth: 1,
+    borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroCard: {
+  orbitDiamond: {
+    position: 'absolute',
+    fontSize: 10,
+    lineHeight: 12,
+  },
+  emblemSquircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  brandTitleBlock: {
+    alignItems: 'center',
+  },
+  brandTitleText: {
+    fontSize: 27,
+    letterSpacing: 8,
+    color: '#FFFFFF',
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  taglineDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 5,
+  },
+  taglineDividerLine: {
+    width: 20,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  brandSubtitleText: {
+    fontSize: 10,
+    letterSpacing: 2.2,
+    color: 'rgba(255, 255, 255, 0.92)',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  formSheetWrapper: {
     width: '100%',
-    marginBottom: 20,
+    maxWidth: 480,
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+    marginTop: -28,
   },
   formCard: {
     width: '100%',
-    padding: 20,
+    padding: 22,
     borderWidth: 1,
-    marginBottom: 24,
+    marginBottom: 20,
+  },
+  legalNoticeText: {
+    fontSize: 11,
+    textAlign: 'center',
+    letterSpacing: 0.2,
+    lineHeight: 16,
+    opacity: 0.7,
+    marginTop: 4,
+    marginBottom: 16,
   },
   segmentedControl: {
     marginBottom: 20,
