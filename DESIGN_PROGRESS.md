@@ -16,7 +16,7 @@ Tracking log for the complete redesign, brand centralisation, and sale-ready pre
 | **Step 5** | **Order Tracking & Reorder** | Completed | `5483dc5` | OrderStepper timeline, FilterTabs (All/Active/Completed), 10s polling with cleanup, cancel while Pending, Reorder re-adding to cart, empty state. |
 | **Step 6** | **Reserve & My Bookings** | Completed | `96adfc7` | Table reservation flow (slots 12:00-22:00 disabled when full, no past date, party 1-12, phone 03XX-XXXXXXX, 1hr ahead), SegmentedControl, FilterTabs (Upcoming/Past/Cancelled), Confirmation modal, Reservation Confirmed sheet, and cancellation confirmation. |
 | **Step 7** | **Profile & Edit Profile** | Completed | `91935bc` | Stitch variant 2 profile with initials avatar (ZM), vibrant gradient card, verified phone pill, dietary preferences tags, appearance toggle, and personal info edit modal. |
-| **Step 8** | **Manager Console** | Pending | — | Overview KPI cards (Active Orders, Pending Bookings, Today's Revenue from live data), Orders, Reservations, Menu management, Team accounts. |
+| **Step 8** | **Manager Console** | Completed | `01e91d8` | Executive overview, live KPI cards (Active Orders, Pending Bookings, Today's Revenue), Orders progression, Reservations management, Menu catalog & pricing, and Team staff accounts. |
 | **Step 9** | **Sale-Ready Documentation** | Pending | — | `docs/SETUP.md`, `docs/WHITE_LABEL.md`, `docs/ASSETS_LICENSES.md`, `docs/ARCHITECTURE.md`, `README.md` documentation link list, `LICENSE` review note. |
 | **Step 10** | **Full Regression & Verification** | Pending | — | Full regression testing of MUST KEEP list, bundle/syntax checks, accessibility and motion checks, issue audit. |
 
