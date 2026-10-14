@@ -56,7 +56,7 @@ function CustomerTabs() {
         name="Reservations"
         component={ReservationScreen}
         options={{
-          title: 'Table Booking',
+          headerShown: false,
         }}
       />
       <Tab.Screen
