@@ -105,9 +105,18 @@ export default function LoginScreen({ navigation }) {
   // Submission & server error state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState(null);
+  const [isAuthSuccess, setIsAuthSuccess] = useState(false);
 
-  // Entrance animation
-  const cardScale = useRef(new Animated.Value(0.96)).current;
+  // Entrance animation: card slides up 16px and fades in over 300ms on mount
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+  const cardTranslateY = useRef(new Animated.Value(16)).current;
+
+  // Card shake animation on error (200ms)
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const errorFadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Theme toggle 180-degree rotation animation
+  const themeRotateAnim = useRef(new Animated.Value(isDark ? 1 : 0)).current;
 
   // Form validation function
   const validateForm = useCallback(
@@ -155,14 +164,39 @@ export default function LoginScreen({ navigation }) {
     originalHandleChange(field, val);
   };
 
-  // Restore remembered email on mount
-  useEffect(() => {
-    Animated.spring(cardScale, {
+  // Card shake helper triggered on validation/server errors (200ms)
+  const triggerCardShake = useCallback(() => {
+    shakeAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: -10, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -7, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 7, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
+    ]).start();
+
+    errorFadeAnim.setValue(0);
+    Animated.timing(errorFadeAnim, {
       toValue: 1,
-      friction: 8,
-      tension: 40,
+      duration: 200,
       useNativeDriver: true,
     }).start();
+  }, [shakeAnim, errorFadeAnim]);
+
+  // Restore remembered email on mount & card slide-up 16px entrance
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(cardOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardTranslateY, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
     const loadRememberedEmail = async () => {
       try {
@@ -175,7 +209,7 @@ export default function LoginScreen({ navigation }) {
       }
     };
     void loadRememberedEmail();
-  }, []);
+  }, [cardOpacity, cardTranslateY]);
 
   // Mode change handler via SegmentedControl
   const handleSegmentChange = (index) => {
@@ -189,6 +223,18 @@ export default function LoginScreen({ navigation }) {
       password: '',
       confirmPassword: '',
     });
+  };
+
+  // Navigate after brief checkmark success animation
+  const navigateWithSuccess = (role) => {
+    setIsAuthSuccess(true);
+    setTimeout(() => {
+      if (role === 'manager') {
+        navigation.navigate('ManagerDashboard');
+      } else {
+        navigation.navigate('CustomerApp', { screen: 'Menu' });
+      }
+    }, 450);
   };
 
   // Submit Handler for Email/Password
@@ -208,11 +254,7 @@ export default function LoginScreen({ navigation }) {
           await safeStorage.removeItem('@restaurant_last_email');
         }
 
-        if (loggedUser.role === 'manager') {
-          navigation.navigate('ManagerDashboard');
-        } else {
-          navigation.navigate('CustomerApp', { screen: 'Menu' });
-        }
+        navigateWithSuccess(loggedUser.role);
       } else {
         await signup({
           name: formValues.name.trim(),
@@ -226,17 +268,22 @@ export default function LoginScreen({ navigation }) {
           await safeStorage.setItem('@restaurant_last_email', cleanEmail);
         }
 
-        navigation.navigate('CustomerApp', { screen: 'Menu' });
+        navigateWithSuccess('customer');
       }
     } catch (err) {
       setServerError(err.message || 'Authentication failed. Please verify your credentials.');
+      triggerCardShake();
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const onSubmitEmailForm = () => {
-    handleFormSubmit(onFormValid);
+    handleFormSubmit((vals) => {
+      onFormValid(vals);
+    }, () => {
+      triggerCardShake();
+    });
   };
 
   // Phone OTP Flow Handlers
@@ -283,13 +330,12 @@ export default function LoginScreen({ navigation }) {
         setPendingUser(loggedUser);
         setPhoneName(phoneName ? phoneName.trim() : '');
         setPhoneStep('nameEntry');
-      } else if (loggedUser.role === 'manager') {
-        navigation.navigate('ManagerDashboard');
       } else {
-        navigation.navigate('CustomerApp', { screen: 'Menu' });
+        navigateWithSuccess(loggedUser.role);
       }
     } catch (err) {
       setPhoneError(err.message || 'Invalid or expired OTP code.');
+      triggerCardShake();
     } finally {
       setIsSubmitting(false);
     }
@@ -383,7 +429,15 @@ export default function LoginScreen({ navigation }) {
             </View>
 
             <TouchableOpacity
-              onPress={toggleTheme}
+              onPress={() => {
+                const nextVal = isDark ? 0 : 1;
+                Animated.timing(themeRotateAnim, {
+                  toValue: nextVal,
+                  duration: 250,
+                  useNativeDriver: true,
+                }).start();
+                toggleTheme();
+              }}
               style={[
                 styles.themeToggleBtn,
                 { backgroundColor: colors.surfaceSubtle, borderColor: colors.subtleBorder },
@@ -391,11 +445,24 @@ export default function LoginScreen({ navigation }) {
               accessibilityLabel="Toggle Theme"
               activeOpacity={0.7}
             >
-              <Ionicons
-                name={isDark ? 'sunny-outline' : 'moon-outline'}
-                size={18}
-                color={colors.primary}
-              />
+              <Animated.View
+                style={{
+                  transform: [
+                    {
+                      rotate: themeRotateAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '180deg'],
+                      }),
+                    },
+                  ],
+                }}
+              >
+                <Ionicons
+                  name={isDark ? 'sunny-outline' : 'moon-outline'}
+                  size={18}
+                  color={colors.primary}
+                />
+              </Animated.View>
             </TouchableOpacity>
           </View>
 
@@ -408,7 +475,7 @@ export default function LoginScreen({ navigation }) {
             style={styles.heroCard}
           />
 
-          {/* Auth Card Container */}
+          {/* Auth Card Container: slides up 16px and fades in 300ms; shakes on error */}
           <Animated.View
             style={[
               styles.formCard,
@@ -416,7 +483,11 @@ export default function LoginScreen({ navigation }) {
                 backgroundColor: colors.card,
                 borderColor: colors.cardBorder,
                 borderRadius: radius.card,
-                transform: [{ scale: cardScale }],
+                opacity: cardOpacity,
+                transform: [
+                  { translateY: cardTranslateY },
+                  { translateX: shakeAnim },
+                ],
               },
               shadows.cardLight,
             ]}
@@ -433,12 +504,13 @@ export default function LoginScreen({ navigation }) {
 
             {/* Error & Info Banners */}
             {serverError ? (
-              <View
+              <Animated.View
                 style={[
                   styles.banner,
                   {
                     backgroundColor: colors.cancelledTint,
                     borderColor: colors.cancelled,
+                    opacity: errorFadeAnim,
                   },
                 ]}
               >
@@ -455,12 +527,13 @@ export default function LoginScreen({ navigation }) {
             ) : null}
 
             {phoneError ? (
-              <View
+              <Animated.View
                 style={[
                   styles.banner,
                   {
                     backgroundColor: colors.cancelledTint,
                     borderColor: colors.cancelled,
+                    opacity: errorFadeAnim,
                   },
                 ]}
               >
@@ -680,7 +753,8 @@ export default function LoginScreen({ navigation }) {
                 <Button
                   title={mode === 'login' ? `Sign In to ${brand.appName}` : 'Create Account'}
                   onPress={onSubmitEmailForm}
-                  loading={isSubmitting}
+                  loading={isSubmitting && !isAuthSuccess}
+                  success={isAuthSuccess}
                   variant="primary"
                   size="large"
                   icon={<Ionicons name="arrow-forward" size={18} color={colors.onPrimary} />}
@@ -776,7 +850,8 @@ export default function LoginScreen({ navigation }) {
                     <Button
                       title="Verify & Continue"
                       onPress={handleVerifyOtp}
-                      loading={isSubmitting}
+                      loading={isSubmitting && !isAuthSuccess}
+                      success={isAuthSuccess}
                       variant="primary"
                       size="large"
                       icon={<Ionicons name="arrow-forward" size={18} color={colors.onPrimary} />}

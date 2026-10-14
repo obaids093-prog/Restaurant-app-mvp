@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -7,6 +7,7 @@ import {
   Animated,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../../utils/SafeLinearGradient';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -17,6 +18,7 @@ export default function Button({
   size = 'large', // 'large' | 'medium' | 'small'
   disabled = false,
   loading = false,
+  success = false,
   icon,
   iconPosition = 'left',
   style,
@@ -27,8 +29,32 @@ export default function Button({
   const { colors, typography, radius } = useTheme();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  // Shimmer loop for loading state
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let loop = null;
+    if (loading) {
+      shimmerAnim.setValue(0);
+      loop = Animated.loop(
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 1200,
+          useNativeDriver: true,
+        })
+      );
+      loop.start();
+    } else {
+      shimmerAnim.setValue(0);
+    }
+
+    return () => {
+      if (loop) loop.stop();
+    };
+  }, [loading, shimmerAnim]);
+
   const handlePressIn = () => {
-    if (disabled || loading) return;
+    if (disabled || loading || success) return;
     Animated.timing(scaleAnim, {
       toValue: 0.97,
       duration: 100,
@@ -37,7 +63,7 @@ export default function Button({
   };
 
   const handlePressOut = () => {
-    if (disabled || loading) return;
+    if (disabled || loading || success) return;
     Animated.timing(scaleAnim, {
       toValue: 1,
       duration: 100,
@@ -50,12 +76,47 @@ export default function Button({
 
   const renderContent = () => (
     <View style={styles.contentRow}>
-      {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={variant === 'primary' ? colors.onPrimary : colors.primary}
-          style={styles.loader}
-        />
+      {success ? (
+        <View style={styles.successRow}>
+          <Ionicons
+            name="checkmark-circle"
+            size={22}
+            color={variant === 'primary' ? colors.onPrimary : colors.success}
+            style={styles.successIcon}
+          />
+          <Text
+            style={[
+              typography.button,
+              {
+                color: variant === 'primary' ? colors.onPrimary : colors.success,
+                fontWeight: '700',
+              },
+              textStyle,
+            ]}
+          >
+            Success
+          </Text>
+        </View>
+      ) : loading ? (
+        <>
+          <ActivityIndicator
+            size="small"
+            color={variant === 'primary' ? colors.onPrimary : colors.primary}
+            style={styles.loader}
+          />
+          <Text
+            style={[
+              typography.button,
+              {
+                color: variant === 'primary' ? colors.onPrimary : colors.primary,
+                fontWeight: '600',
+              },
+              textStyle,
+            ]}
+          >
+            {title}
+          </Text>
+        </>
       ) : (
         <>
           {icon && iconPosition === 'left' ? (
@@ -92,6 +153,7 @@ export default function Button({
       minHeight,
       width: fullWidth ? '100%' : 'auto',
       opacity: disabled ? 0.6 : 1,
+      overflow: 'hidden',
     },
     variant === 'outline' && {
       borderWidth: 1.5,
@@ -109,6 +171,11 @@ export default function Button({
     style,
   ];
 
+  const shimmerTranslateX = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-120, 360],
+  });
+
   return (
     <Animated.View
       style={[
@@ -119,20 +186,36 @@ export default function Button({
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        disabled={disabled || loading}
+        disabled={disabled || loading || success}
         activeOpacity={0.88}
         accessibilityLabel={accessibilityLabel || title}
         accessibilityRole="button"
-        accessibilityState={{ disabled: Boolean(disabled || loading) }}
+        accessibilityState={{ disabled: Boolean(disabled || loading || success) }}
         style={variant === 'primary' && !disabled ? undefined : buttonShapeStyle}
       >
         {variant === 'primary' && !disabled ? (
           <LinearGradient
-            colors={[colors.primary, colors.primaryPressed]}
+            colors={
+              success
+                ? [colors.success, colors.success]
+                : [colors.primary, colors.primaryPressed]
+            }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[buttonShapeStyle, styles.gradientShadow]}
           >
+            {/* Loading Shimmer Bar */}
+            {loading && (
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.shimmerBar,
+                  {
+                    transform: [{ translateX: shimmerTranslateX }, { skewX: '-22deg' }],
+                  },
+                ]}
+              />
+            )}
             {renderContent()}
           </LinearGradient>
         ) : (
@@ -149,11 +232,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
     flexDirection: 'row',
+    position: 'relative',
   },
   contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 2,
+  },
+  successRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successIcon: {
+    marginRight: 6,
   },
   gradientShadow: {
     shadowColor: 'rgba(252, 88, 52, 0.35)',
@@ -161,6 +254,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 10,
     elevation: 4,
+  },
+  shimmerBar: {
+    position: 'absolute',
+    top: -10,
+    bottom: -10,
+    width: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.28)',
+    zIndex: 1,
   },
   loader: {
     marginRight: 8,

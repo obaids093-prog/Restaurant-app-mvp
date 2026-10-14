@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   TextInput,
   Text,
   StyleSheet,
   TouchableOpacity,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -33,6 +34,42 @@ export default function Input({
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
+  // Animated focus border and glow (200ms with useNativeDriver)
+  const focusOpacity = useRef(new Animated.Value(0)).current;
+
+  // Animated inline error fade-in (200ms with useNativeDriver)
+  const errorOpacity = useRef(new Animated.Value(error ? 1 : 0)).current;
+
+  useEffect(() => {
+    if (error) {
+      Animated.timing(errorOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      errorOpacity.setValue(0);
+    }
+  }, [error, errorOpacity]);
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    Animated.timing(focusOpacity, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    Animated.timing(focusOpacity, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
   const isPassword = secureTextEntry;
   const isInputSecure = isPassword && !isPasswordVisible;
 
@@ -56,15 +93,25 @@ export default function Input({
           {
             backgroundColor: colors.inputBackground,
             borderRadius: radius.input,
-            borderColor: error
-              ? colors.error
-              : isFocused
-              ? colors.inputFocusBorder
-              : colors.inputBorder,
+            borderColor: error ? colors.error : colors.inputBorder,
           },
           multiline && { minHeight: 88, alignItems: 'flex-start' },
         ]}
       >
+        {/* Soft Glow & Primary Focus Border Overlay (200ms transition) */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.focusGlowOverlay,
+            {
+              borderRadius: radius.input,
+              borderColor: error ? colors.error : colors.inputFocusBorder,
+              shadowColor: error ? colors.error : colors.primary,
+              opacity: error ? 0 : focusOpacity,
+            },
+          ]}
+        />
+
         {icon ? <View style={styles.leftIcon}>{icon}</View> : null}
 
         <TextInput
@@ -80,8 +127,8 @@ export default function Input({
           numberOfLines={numberOfLines}
           editable={editable}
           maxLength={maxLength}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           accessibilityLabel={accessibilityLabel || label || placeholder}
           style={[
             typography.body,
@@ -113,8 +160,24 @@ export default function Input({
         ) : null}
       </View>
 
+      {/* Inline error message with smooth 200ms fade-in */}
       {error ? (
-        <View style={styles.errorRow}>
+        <Animated.View
+          style={[
+            styles.errorRow,
+            {
+              opacity: errorOpacity,
+              transform: [
+                {
+                  translateY: errorOpacity.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-4, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <Ionicons
             name="alert-circle-outline"
             size={14}
@@ -129,7 +192,7 @@ export default function Input({
           >
             {error}
           </Text>
-        </View>
+        </Animated.View>
       ) : null}
     </View>
   );
@@ -147,18 +210,33 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputWrapper: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.2,
     minHeight: 50,
     paddingHorizontal: 14,
   },
+  focusGlowOverlay: {
+    position: 'absolute',
+    top: -1,
+    left: -1,
+    right: -1,
+    bottom: -1,
+    borderWidth: 1.8,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 3,
+  },
   textInput: {
     flex: 1,
     paddingVertical: 10,
+    zIndex: 1,
   },
   leftIcon: {
     marginRight: 10,
+    zIndex: 1,
   },
   rightAction: {
     marginLeft: 10,
@@ -166,6 +244,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 1,
   },
   errorRow: {
     flexDirection: 'row',

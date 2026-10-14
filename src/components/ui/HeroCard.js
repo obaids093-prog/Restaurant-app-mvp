@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../../utils/SafeLinearGradient';
 import { useTheme } from '../../context/ThemeContext';
@@ -15,6 +15,65 @@ export default function HeroCard({
 }) {
   const { colors, typography, radius } = useTheme();
 
+  // 6-second slow ambient drift loop (opacity & transform only with useNativeDriver)
+  const driftAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(driftAnim, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(driftAnim, {
+          toValue: 0,
+          duration: 3000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+
+    return () => {
+      loop.stop();
+    };
+  }, [driftAnim]);
+
+  const circle1TranslateX = driftAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 16],
+  });
+  const circle1TranslateY = driftAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 12],
+  });
+  const circle1Scale = driftAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.1],
+  });
+  const circle1Opacity = driftAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.10, 0.20],
+  });
+
+  const circle2TranslateX = driftAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -14],
+  });
+  const circle2TranslateY = driftAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -10],
+  });
+  const circle2Scale = driftAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.14],
+  });
+  const circle2Opacity = driftAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.08, 0.16],
+  });
+
   return (
     <LinearGradient
       colors={[colors.primary, colors.primaryPressed]}
@@ -29,9 +88,33 @@ export default function HeroCard({
         style,
       ]}
     >
-      {/* Decorative ambient background rings */}
-      <View style={styles.ambientCircle1} />
-      <View style={styles.ambientCircle2} />
+      {/* Decorative ambient background rings drifting slowly in a 6s loop */}
+      <Animated.View
+        style={[
+          styles.ambientCircle1,
+          {
+            opacity: circle1Opacity,
+            transform: [
+              { translateX: circle1TranslateX },
+              { translateY: circle1TranslateY },
+              { scale: circle1Scale },
+            ],
+          },
+        ]}
+      />
+      <Animated.View
+        style={[
+          styles.ambientCircle2,
+          {
+            opacity: circle2Opacity,
+            transform: [
+              { translateX: circle2TranslateX },
+              { translateY: circle2TranslateY },
+              { scale: circle2Scale },
+            ],
+          },
+        ]}
+      />
 
       {/* Monogram Cloche Emblem */}
       <View
@@ -90,7 +173,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    backgroundColor: '#FFFFFF',
   },
   ambientCircle2: {
     position: 'absolute',
@@ -99,7 +182,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#FFFFFF',
   },
   emblemWrapper: {
     width: 58,
