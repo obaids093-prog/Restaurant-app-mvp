@@ -1,29 +1,32 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  Animated,
+  Easing,
+  Image,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { SafeLinearGradient } from '../../utils/SafeLinearGradient';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function OnboardingSlide({
-  title,
-  description,
-  icon = 'restaurant-outline',
+  item,
   index = 0,
   scrollX,
   isActive = false,
   reduceMotion = false,
 }) {
-  const { colors, typography, radius, fonts } = useTheme();
+  const { colors, typography, fonts, isDark } = useTheme();
 
-  // Entrance animations for title & subtitle (fade + 12px rise)
+  // Entrance animations for title & subtitle
   const titleAnim = useRef(new Animated.Value(0)).current;
   const subAnim = useRef(new Animated.Value(0)).current;
-
-  // Small looping motions for each slide illustration
-  const tickAnim = useRef(new Animated.Value(0)).current;
-  const steamAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(0)).current;
 
   // Title & Subtitle entrance on active slide
   useEffect(() => {
@@ -37,13 +40,13 @@ export default function OnboardingSlide({
         const animation = Animated.stagger(80, [
           Animated.timing(titleAnim, {
             toValue: 1,
-            duration: 250,
+            duration: 260,
             easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }),
           Animated.timing(subAnim, {
             toValue: 1,
-            duration: 250,
+            duration: 260,
             easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }),
@@ -57,467 +60,384 @@ export default function OnboardingSlide({
     }
   }, [isActive, reduceMotion, titleAnim, subAnim]);
 
-  // Looping illustration motion: started only when visible, stopped when not
-  useEffect(() => {
-    if (!isActive || reduceMotion) {
-      tickAnim.setValue(0);
-      steamAnim.setValue(0);
-      pulseAnim.setValue(0);
-      return;
-    }
-
-    let loop = null;
-
-    if (index === 0) {
-      // Slide 1: Ticking clock hand (360 deg rotation loop)
-      loop = Animated.loop(
-        Animated.timing(tickAnim, {
-          toValue: 1,
-          duration: 3600,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        })
-      );
-      loop.start();
-    } else if (index === 1) {
-      // Slide 2: Plate steam curve rising & fading
-      loop = Animated.loop(
-        Animated.timing(steamAnim, {
-          toValue: 1,
-          duration: 1800,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        })
-      );
-      loop.start();
-    } else if (index === 2) {
-      // Slide 3: Pulsing status dot & expanding halo
-      loop = Animated.loop(
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1400,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        })
-      );
-      loop.start();
-    }
-
-    return () => {
-      if (loop) loop.stop();
-    };
-  }, [isActive, reduceMotion, index, tickAnim, steamAnim, pulseAnim]);
-
-  // Parallax interpolations: illustration moves slightly slower than swipe, text moves faster
+  // Parallax interpolations
   const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
 
-  const illustrationTranslateX =
+  const imageTranslateX =
     scrollX && !reduceMotion
       ? scrollX.interpolate({
           inputRange,
-          outputRange: [width * 0.22, 0, -width * 0.22],
+          outputRange: [width * 0.18, 0, -width * 0.18],
           extrapolate: 'clamp',
         })
       : 0;
 
-  const textTranslateX =
+  const heroContentTranslateX =
     scrollX && !reduceMotion
       ? scrollX.interpolate({
           inputRange,
-          outputRange: [-width * 0.14, 0, width * 0.14],
+          outputRange: [-width * 0.12, 0, width * 0.12],
           extrapolate: 'clamp',
         })
       : 0;
-
-  // Title & Subtitle translateY (12px rise)
-  const titleTranslateY = reduceMotion
-    ? 0
-    : titleAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [12, 0],
-      });
-
-  const subTranslateY = reduceMotion
-    ? 0
-    : subAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [12, 0],
-      });
-
-  // Clock hand rotation
-  const clockRotate = tickAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
-  // Steam curve translateY & opacity
-  const steamTranslateY = steamAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [4, -20],
-  });
-  const steamOpacity = steamAnim.interpolate({
-    inputRange: [0, 0.25, 0.8, 1],
-    outputRange: [0, 0.75, 0.4, 0],
-  });
-
-  // Status pulse scale & opacity
-  const pulseScale = pulseAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.95, 1.6],
-  });
-  const pulseOpacity = pulseAnim.interpolate({
-    inputRange: [0, 0.35, 1],
-    outputRange: [0.7, 0.4, 0],
-  });
-  const dotPulseScale = pulseAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [1, 1.15, 1],
-  });
 
   return (
     <View style={[styles.slideContainer, { width }]}>
-      {/* Visual Composition / Illustration with Parallax */}
-      <Animated.View
-        style={[
-          styles.illustrationOuter,
-          {
-            backgroundColor: colors.primaryTint,
-            borderRadius: radius.card + 10,
-            transform: [{ translateX: illustrationTranslateX }],
-          },
-        ]}
-      >
-        <View
+      {/* ─── TOP 52% CINEMATIC PHOTOGRAPHY & HERO ─── */}
+      <View style={styles.heroWrapper}>
+        {/* Photographic Background with slight parallax */}
+        <Animated.View
           style={[
-            styles.illustrationMiddle,
+            StyleSheet.absoluteFill,
             {
-              backgroundColor: colors.card,
-              borderColor: colors.subtleBorder,
-              borderRadius: radius.card,
+              transform: [{ translateX: imageTranslateX }],
             },
           ]}
         >
-          {/* Slide 0: Ticking Clock Hand Dial */}
-          {index === 0 && (
-            <View style={[styles.dialContainer, { borderColor: colors.subtleBorder }]}>
-              {/* Dial markings */}
-              <View style={[styles.dialTickTop, { backgroundColor: colors.mutedText }]} />
-              <View style={[styles.dialTickRight, { backgroundColor: colors.mutedText }]} />
-              <View style={[styles.dialTickBottom, { backgroundColor: colors.mutedText }]} />
-              <View style={[styles.dialTickLeft, { backgroundColor: colors.mutedText }]} />
+          <Image
+            source={{ uri: item.image }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+          />
+        </Animated.View>
 
-              {/* Ticking Clock Hand Needle */}
-              <Animated.View
-                style={[
-                  styles.clockHandWrapper,
-                  {
-                    transform: [{ rotate: clockRotate }],
-                  },
-                ]}
-              >
-                <View style={[styles.clockHandNeedle, { backgroundColor: colors.primary }]} />
-              </Animated.View>
+        {/* Ambient Gradient Scrim (dark at top for header, dark in middle, transitions to sheet) */}
+        <SafeLinearGradient
+          colors={[
+            'rgba(18, 5, 2, 0.65)',
+            'rgba(18, 5, 2, 0.35)',
+            'rgba(18, 5, 2, 0.85)',
+            isDark ? '#1E1E1E' : '#FFFFFF',
+          ]}
+          locations={[0, 0.35, 0.75, 1]}
+          style={StyleSheet.absoluteFill}
+        />
 
-              {/* Center Hub */}
-              <View style={[styles.dialCenterHub, { backgroundColor: colors.primary }]} />
+        {/* Floating Hero Content */}
+        <Animated.View
+          style={[
+            styles.heroContent,
+            {
+              transform: [{ translateX: heroContentTranslateX }],
+            },
+          ]}
+        >
+          {/* Top Pill Badges */}
+          <View style={styles.pillRow}>
+            {/* Pillar Badge */}
+            <View style={styles.pillarBadge}>
+              <View style={[styles.pillarDot, { backgroundColor: colors.primary }]} />
+              <Text style={[styles.pillarText, { fontFamily: fonts.medium }]}>
+                {item.pillar}
+              </Text>
             </View>
-          )}
 
-          {/* Slide 1: Gourmet Coupe Plate with Animated Steam Curve */}
-          {index === 1 && (
-            <View style={styles.plateContainer}>
-              {/* Animated Steam Curves */}
-              <Animated.View
-                style={[
-                  styles.steamCluster,
-                  {
-                    transform: [{ translateY: steamTranslateY }],
-                    opacity: steamOpacity,
-                  },
-                ]}
-              >
-                <View style={[styles.steamCurve, styles.steamLeft, { borderColor: colors.primary }]} />
-                <View style={[styles.steamCurve, styles.steamCenter, { borderColor: colors.secondary }]} />
-                <View style={[styles.steamCurve, styles.steamRight, { borderColor: colors.primary }]} />
-              </Animated.View>
+            {/* VIP Concierge Badge */}
+            <View style={styles.vipBadge}>
+              <Ionicons
+                name={item.badgeIcon || 'ribbon-outline'}
+                size={13}
+                color={colors.secondary}
+              />
+              <Text style={[styles.vipBadgeText, { fontFamily: fonts.semiBold }]}>
+                {item.badge}
+              </Text>
+            </View>
+          </View>
 
-              {/* Coupe Plate Rim & Base */}
-              <View
-                style={[
-                  styles.plateBase,
-                  {
-                    backgroundColor: colors.surfaceSubtle,
-                    borderColor: colors.subtleBorder,
-                  },
-                ]}
-              >
+          {/* Category Tag */}
+          <Text
+            style={[
+              styles.categoryTag,
+              { color: colors.primary, fontFamily: fonts.bold },
+            ]}
+          >
+            {item.category}
+          </Text>
+
+          {/* Hero Title */}
+          <Animated.Text
+            style={[
+              styles.heroTitle,
+              {
+                fontFamily: fonts.bold,
+                opacity: titleAnim,
+              },
+            ]}
+            numberOfLines={2}
+          >
+            {item.heroTitle}
+          </Animated.Text>
+
+          {/* Hero Tagline */}
+          <Animated.Text
+            style={[
+              styles.heroTagline,
+              {
+                fontFamily: fonts.regular,
+                opacity: subAnim,
+              },
+            ]}
+            numberOfLines={2}
+          >
+            {item.heroTagline}
+          </Animated.Text>
+        </Animated.View>
+      </View>
+
+      {/* ─── BOTTOM 48% CURVED SHEET & 3 FEATURE TILES ─── */}
+      <View
+        style={[
+          styles.sheetContainer,
+          {
+            backgroundColor: isDark ? colors.card : colors.surface,
+            borderColor: colors.subtleBorder,
+          },
+        ]}
+      >
+        {/* Handle Bar */}
+        <View style={[styles.handleBar, { backgroundColor: colors.subtleBorder }]} />
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          contentContainerStyle={styles.sheetScrollContent}
+        >
+          {/* Sheet Section Header */}
+          <View style={styles.sheetHeader}>
+            <Text
+              style={[
+                styles.sheetTitle,
+                { color: colors.textPrimary, fontFamily: fonts.bold },
+              ]}
+            >
+              {item.sheetTitle}
+            </Text>
+            <Text
+              style={[
+                styles.sheetDescription,
+                { color: colors.mutedText, fontFamily: fonts.regular },
+              ]}
+            >
+              {item.sheetDescription}
+            </Text>
+          </View>
+
+          {/* 3 Feature Checklist Tiles */}
+          <View style={styles.featuresList}>
+            {item.features?.map((feat, featIdx) => {
+              // Alternate subtle tints for micro-diversity
+              const tintBg =
+                featIdx === 1
+                  ? colors.pendingTint
+                  : colors.primaryTint;
+              const iconColor =
+                featIdx === 1 ? colors.secondary : colors.primary;
+
+              return (
                 <View
+                  key={`feat-${featIdx}`}
                   style={[
-                    styles.plateInner,
+                    styles.featureTile,
                     {
-                      backgroundColor: colors.primaryTint,
+                      backgroundColor: isDark ? colors.surfaceSubtle : '#FAFAFA',
                       borderColor: colors.subtleBorder,
                     },
                   ]}
                 >
-                  <Ionicons name="restaurant" size={24} color={colors.primary} />
+                  {/* Icon Box */}
+                  <View
+                    style={[
+                      styles.featureIconBox,
+                      { backgroundColor: tintBg },
+                    ]}
+                  >
+                    <Ionicons name={feat.icon} size={18} color={iconColor} />
+                  </View>
+
+                  {/* Feature Text */}
+                  <View style={styles.featureTextCol}>
+                    <Text
+                      style={[
+                        styles.featureTitle,
+                        { color: colors.textPrimary, fontFamily: fonts.semiBold },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {feat.title}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.featureDesc,
+                        { color: colors.mutedText, fontFamily: fonts.regular },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {feat.desc}
+                    </Text>
+                  </View>
+
+                  {/* Checkmark */}
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={17}
+                    color={colors.ready}
+                    style={styles.featureCheckmark}
+                  />
                 </View>
-              </View>
-            </View>
-          )}
-
-          {/* Slide 2: Live Kitchen Tracking with Pulsing Status Dot */}
-          {index === 2 && (
-            <View style={styles.radarContainer}>
-              {/* Expanding Halo */}
-              <Animated.View
-                style={[
-                  styles.radarHalo,
-                  {
-                    borderColor: colors.primary,
-                    backgroundColor: colors.primaryTint,
-                    transform: [{ scale: pulseScale }],
-                    opacity: pulseOpacity,
-                  },
-                ]}
-              />
-
-              {/* Core Pulsing Status Badge */}
-              <Animated.View
-                style={[
-                  styles.radarCenter,
-                  {
-                    backgroundColor: colors.primary,
-                    transform: [{ scale: dotPulseScale }],
-                  },
-                ]}
-              >
-                <Ionicons name="timer-outline" size={28} color={colors.onPrimary} />
-              </Animated.View>
-
-              {/* Status Ring Ping */}
-              <View style={[styles.radarOuterRing, { borderColor: colors.subtleBorder }]} />
-            </View>
-          )}
-        </View>
-      </Animated.View>
-
-      {/* Text Group with Faster Parallax and Staggered Rise */}
-      <Animated.View
-        style={[
-          styles.textGroup,
-          {
-            transform: [{ translateX: textTranslateX }],
-          },
-        ]}
-      >
-        <Animated.Text
-          style={[
-            typography.headingLg,
-            styles.title,
-            {
-              color: colors.textPrimary,
-              fontFamily: fonts.bold,
-              opacity: titleAnim,
-              transform: [{ translateY: titleTranslateY }],
-            },
-          ]}
-        >
-          {title}
-        </Animated.Text>
-
-        <Animated.Text
-          style={[
-            typography.body,
-            styles.description,
-            {
-              color: colors.mutedText,
-              fontFamily: fonts.regular,
-              opacity: subAnim,
-              transform: [{ translateY: subTranslateY }],
-            },
-          ]}
-        >
-          {description}
-        </Animated.Text>
-      </Animated.View>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   slideContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 20,
+    height: '100%',
+    flexDirection: 'column',
   },
-  illustrationOuter: {
-    width: 210,
-    height: 210,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 36,
-  },
-  illustrationMiddle: {
-    width: 160,
-    height: 160,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
+  heroWrapper: {
+    flex: 1.15,
+    position: 'relative',
     overflow: 'hidden',
+    justifyContent: 'flex-end',
   },
-  textGroup: {
+  heroContent: {
+    paddingHorizontal: 22,
+    paddingBottom: 20,
+    zIndex: 10,
+  },
+  pillRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
-  title: {
-    textAlign: 'center',
+  pillarBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    paddingHorizontal: 10,
+    paddingVertical: 4.5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+  },
+  pillarDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  pillarText: {
+    color: '#FFFFFF',
+    fontSize: 10.5,
+    letterSpacing: 0.3,
+  },
+  vipBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4.5,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    paddingHorizontal: 9,
+    paddingVertical: 4.5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  vipBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  categoryTag: {
+    fontSize: 10.5,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  heroTitle: {
+    fontSize: 22,
+    color: '#FFFFFF',
+    lineHeight: 28,
+    letterSpacing: -0.2,
+    marginBottom: 6,
+    textShadowColor: 'rgba(0, 0, 0, 0.45)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  heroTagline: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.82)',
+    lineHeight: 17,
+  },
+  sheetContainer: {
+    flex: 1,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    borderTopWidth: 1,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 110, // space for sticky bottom action dock
+  },
+  handleBar: {
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
     marginBottom: 12,
   },
-  description: {
-    textAlign: 'center',
-    lineHeight: 24,
-    maxWidth: 300,
+  sheetScrollContent: {
+    paddingBottom: 16,
   },
-
-  // Slide 0: Clock Dial styles
-  dialContainer: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+  sheetHeader: {
+    marginBottom: 12,
   },
-  dialTickTop: {
-    position: 'absolute',
-    top: 6,
-    width: 2,
-    height: 8,
-    borderRadius: 1,
+  sheetTitle: {
+    fontSize: 17,
+    letterSpacing: -0.2,
+    marginBottom: 4,
   },
-  dialTickBottom: {
-    position: 'absolute',
-    bottom: 6,
-    width: 2,
-    height: 8,
-    borderRadius: 1,
+  sheetDescription: {
+    fontSize: 11.5,
+    lineHeight: 16.5,
   },
-  dialTickLeft: {
-    position: 'absolute',
-    left: 6,
-    width: 8,
-    height: 2,
-    borderRadius: 1,
+  featuresList: {
+    gap: 7.5,
   },
-  dialTickRight: {
-    position: 'absolute',
-    right: 6,
-    width: 8,
-    height: 2,
-    borderRadius: 1,
-  },
-  clockHandWrapper: {
-    width: 70,
-    height: 70,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    position: 'absolute',
-  },
-  clockHandNeedle: {
-    width: 3,
-    height: 35,
-    borderRadius: 1.5,
-  },
-  dialCenterHub: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    zIndex: 2,
-  },
-
-  // Slide 1: Plate & Steam styles
-  plateContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 130,
-    height: 130,
-  },
-  steamCluster: {
+  featureTile: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 8,
-    height: 36,
-  },
-  steamCurve: {
-    width: 8,
-    height: 24,
-    borderLeftWidth: 2,
-    borderTopLeftRadius: 6,
-    borderBottomRightRadius: 6,
-  },
-  steamLeft: {
-    transform: [{ rotate: '-12deg' }],
-    height: 20,
-  },
-  steamCenter: {
-    transform: [{ rotate: '6deg' }],
-    height: 28,
-  },
-  steamRight: {
-    transform: [{ rotate: '-8deg' }],
-    height: 22,
-  },
-  plateBase: {
-    width: 120,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1.5,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  plateInner: {
-    width: 90,
-    height: 32,
-    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 14,
     borderWidth: 1,
+  },
+  featureIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 10,
   },
-
-  // Slide 2: Radar & Pulsing Status styles
-  radarContainer: {
-    width: 130,
-    height: 130,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+  featureTextCol: {
+    flex: 1,
+    paddingRight: 6,
   },
-  radarOuterRing: {
-    position: 'absolute',
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    borderWidth: 1,
-    borderStyle: 'dashed',
+  featureTitle: {
+    fontSize: 12,
+    letterSpacing: 0.1,
+    marginBottom: 2,
   },
-  radarHalo: {
-    position: 'absolute',
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    borderWidth: 1.5,
+  featureDesc: {
+    fontSize: 10.5,
   },
-  radarCenter: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
+  featureCheckmark: {
+    opacity: 0.9,
   },
 });

@@ -25,6 +25,8 @@ import {
   StatusBar,
   Dimensions,
   AccessibilityInfo,
+  TouchableOpacity,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,6 +35,7 @@ import { useAuth, AUTH_USER_KEY } from '../context/AuthContext';
 import { TOKEN_KEY } from '../api/client';
 import brand from '../config/brand';
 import safeStorage from '../utils/safeStorage';
+import { SafeLinearGradient } from '../utils/SafeLinearGradient';
 
 const { width } = Dimensions.get('window');
 const ONBOARDING_KEY = '@aura_onboarding_complete';
@@ -40,7 +43,7 @@ const SPLASH_SEEN_KEY = '@aura_splash_seen';
 
 export default function SplashScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { colors, typography, fonts } = useTheme();
+  const { colors, typography, fonts, isDark } = useTheme();
   const { user, token } = useAuth();
 
   const appLetters = useMemo(() => brand.appName.split(''), []);
@@ -54,6 +57,10 @@ export default function SplashScreen({ navigation }) {
   const clocheLift = useRef(new Animated.Value(0)).current;
   const clocheTilt = useRef(new Animated.Value(0)).current;
   const clocheOpacity = useRef(new Animated.Value(1)).current;
+
+  // Orbit ring rotation & steam continuous loops
+  const ringRotation = useRef(new Animated.Value(0)).current;
+  const amberPulse = useRef(new Animated.Value(1)).current;
 
   // Flame emblem & 3D tilt
   const emblemScale = useRef(new Animated.Value(0.1)).current;
@@ -409,6 +416,40 @@ export default function SplashScreen({ navigation }) {
     navigateNext,
   ]);
 
+  // Start loops for orbit ring and amber pulse
+  useEffect(() => {
+    const ringLoop = Animated.loop(
+      Animated.timing(ringRotation, {
+        toValue: 1,
+        duration: 18000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    ringLoop.start();
+
+    const amberLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(amberPulse, {
+          toValue: 1.4,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(amberPulse, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    amberLoop.start();
+
+    return () => {
+      ringLoop.stop();
+      amberLoop.stop();
+    };
+  }, [ringRotation, amberPulse]);
+
   // Interpolated Transforms
   const clocheTranslateY = clocheLift.interpolate({
     inputRange: [0, 1],
@@ -426,6 +467,11 @@ export default function SplashScreen({ navigation }) {
   const emblemRotateY = emblemTilt.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '-15deg'],
+  });
+
+  const ringRotateDeg = ringRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
   });
 
   // Parallax for the two large background ambient circles
@@ -466,25 +512,37 @@ export default function SplashScreen({ navigation }) {
     outputRange: [0, 0.9, 0],
   });
 
+  const bgGradientColors = isDark
+    ? ['#1C0B06', '#120502', '#0A0301']
+    : [colors.primary, colors.primaryPressed, '#1C0B06'];
+
   return (
     <Animated.View
       style={[
         styles.container,
         {
-          backgroundColor: colors.primary,
+          backgroundColor: isDark ? '#120502' : colors.primary,
           opacity: masterFade,
         },
       ]}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      <StatusBar barStyle="light-content" backgroundColor={isDark ? '#120502' : colors.primary} />
 
-      {/* Ambient background decoration with slow parallax */}
+      {/* Luxury Background Gradient Scrim */}
+      <SafeLinearGradient
+        colors={bgGradientColors}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Ambient glowing vignette halos */}
       <Animated.View
         style={[
           styles.glowTopLeft,
           {
-            backgroundColor: colors.onPrimary,
-            opacity: 0.12,
+            backgroundColor: '#FFFFFF',
+            opacity: isDark ? 0.08 : 0.16,
             transform: [{ translateY: bgTopTranslate }, { translateX: bgTopTranslate }],
           },
         ]}
@@ -493,8 +551,8 @@ export default function SplashScreen({ navigation }) {
         style={[
           styles.glowBottomRight,
           {
-            backgroundColor: colors.primaryPressed,
-            opacity: 0.45,
+            backgroundColor: colors.primary,
+            opacity: isDark ? 0.35 : 0.5,
             transform: [{ translateY: bgBottomTranslate }, { translateX: bgBottomTranslate }],
           },
         ]}
@@ -513,8 +571,24 @@ export default function SplashScreen({ navigation }) {
           },
         ]}
       >
-        {/* Emblem Stage: Cloche, Flame, Glow & Extrusion */}
+        {/* Emblem Stage: Rotating Orbit, Cloche, Flame, Steam */}
         <View style={styles.stageWrapper}>
+          {/* Rotating Outer Dashed Orbit Ring with Compass Accents */}
+          <Animated.View
+            style={[
+              styles.orbitRing,
+              {
+                borderColor: 'rgba(255, 255, 255, 0.25)',
+                transform: [{ rotate: ringRotateDeg }],
+              },
+            ]}
+          >
+            <View style={[styles.orbitAccent, styles.orbitAccentTop]} />
+            <View style={[styles.orbitAccent, styles.orbitAccentRight]} />
+            <View style={[styles.orbitAccent, styles.orbitAccentBottom]} />
+            <View style={[styles.orbitAccent, styles.orbitAccentLeft]} />
+          </Animated.View>
+
           {/* Soft Glow Ring */}
           <Animated.View
             style={[
@@ -532,7 +606,7 @@ export default function SplashScreen({ navigation }) {
             style={[
               styles.steamCurve,
               {
-                left: 28,
+                left: 36,
                 opacity: steamOpacity,
                 transform: [{ translateY: steamTranslate1 }, { rotate: '-8deg' }],
               },
@@ -542,8 +616,8 @@ export default function SplashScreen({ navigation }) {
             style={[
               styles.steamCurve,
               {
-                left: 44,
-                height: 22,
+                left: 54,
+                height: 24,
                 opacity: steamOpacity,
                 transform: [{ translateY: steamTranslate2 }],
               },
@@ -553,7 +627,7 @@ export default function SplashScreen({ navigation }) {
             style={[
               styles.steamCurve,
               {
-                left: 60,
+                left: 72,
                 opacity: steamOpacity,
                 transform: [{ translateY: steamTranslate3 }, { rotate: '8deg' }],
               },
@@ -565,8 +639,8 @@ export default function SplashScreen({ navigation }) {
             style={[
               styles.sparkDot,
               {
-                top: 20,
-                left: 18,
+                top: 24,
+                left: 24,
                 opacity: sparkOpacity,
                 transform: [{ translateY: sparkDistance }, { translateX: -12 }],
               },
@@ -576,8 +650,8 @@ export default function SplashScreen({ navigation }) {
             style={[
               styles.sparkDot,
               {
-                top: 14,
-                left: 44,
+                top: 18,
+                left: 54,
                 opacity: sparkOpacity,
                 transform: [{ translateY: sparkDistance }, { translateX: -4 }],
               },
@@ -587,8 +661,8 @@ export default function SplashScreen({ navigation }) {
             style={[
               styles.sparkDot,
               {
-                top: 22,
-                right: 18,
+                top: 26,
+                right: 24,
                 opacity: sparkOpacity,
                 transform: [{ translateY: sparkDistance }, { translateX: 14 }],
               },
@@ -598,8 +672,8 @@ export default function SplashScreen({ navigation }) {
             style={[
               styles.sparkDot,
               {
-                top: 36,
-                left: 14,
+                top: 42,
+                left: 18,
                 opacity: sparkOpacity,
                 transform: [{ translateY: sparkDistance }, { translateX: -16 }],
               },
@@ -609,8 +683,8 @@ export default function SplashScreen({ navigation }) {
             style={[
               styles.sparkDot,
               {
-                top: 40,
-                right: 14,
+                top: 46,
+                right: 18,
                 opacity: sparkOpacity,
                 transform: [{ translateY: sparkDistance }, { translateX: 16 }],
               },
@@ -620,8 +694,8 @@ export default function SplashScreen({ navigation }) {
             style={[
               styles.sparkDot,
               {
-                top: 52,
-                left: 44,
+                top: 58,
+                left: 54,
                 opacity: sparkOpacity,
                 transform: [{ translateY: sparkDistance }, { translateX: 6 }],
               },
@@ -634,8 +708,8 @@ export default function SplashScreen({ navigation }) {
               styles.emblemOuter,
               {
                 position: 'absolute',
-                top: 5,
-                left: 3,
+                top: 28,
+                left: 27,
                 opacity: emblemOpacity.interpolate({
                   inputRange: [0, 1],
                   outputRange: [0, 0.2],
@@ -650,29 +724,6 @@ export default function SplashScreen({ navigation }) {
             ]}
           >
             <View style={[styles.emblemInner, { backgroundColor: '#000000' }]} />
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              styles.emblemOuter,
-              {
-                position: 'absolute',
-                top: 2.5,
-                left: 1.5,
-                opacity: emblemOpacity.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 0.3],
-                }),
-                transform: [
-                  { perspective: 800 },
-                  { rotateX: emblemRotateX },
-                  { rotateY: emblemRotateY },
-                  { scale: emblemScale },
-                ],
-              },
-            ]}
-          >
-            <View style={[styles.emblemInner, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
           </Animated.View>
 
           {/* Main Flame Emblem (ignites underneath cloche) */}
@@ -723,7 +774,6 @@ export default function SplashScreen({ navigation }) {
 
             {/* Cloche Dome Shell */}
             <View style={styles.clocheDome}>
-              {/* Metallic highlight streak */}
               <View style={styles.clocheHighlight} />
             </View>
 
@@ -764,7 +814,7 @@ export default function SplashScreen({ navigation }) {
           })}
         </View>
 
-        {/* Brand Tagline */}
+        {/* Brand Subtitle */}
         <Animated.Text
           style={[
             styles.tagline,
@@ -775,40 +825,101 @@ export default function SplashScreen({ navigation }) {
             },
           ]}
         >
-          {brand.tagline.toUpperCase()}
+          ARTISAN KITCHEN & MODERN BOTANICA
         </Animated.Text>
 
-        {/* Thin progress line */}
-        <View
+        {/* Geographic Divider Badge */}
+        <Animated.View
           style={[
-            styles.progressTrack,
-            { backgroundColor: colors.onPrimary, opacity: 0.25 },
+            styles.locationDividerRow,
+            {
+              opacity: taglineOpacity,
+            },
           ]}
         >
-          <Animated.View
-            style={[
-              styles.progressBar,
-              {
-                backgroundColor: colors.onPrimary,
-                width: progressAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0%', '100%'],
-                }),
-              },
-            ]}
-          />
-        </View>
+          <View style={styles.locationLine} />
+          <Text style={[styles.locationText, { color: colors.onPrimary, fontFamily: fonts.medium }]}>
+            LAHORE • ISLAMABAD
+          </Text>
+          <View style={styles.locationLine} />
+        </Animated.View>
       </Animated.View>
 
-      {/* Bottom subtle copyright / establishment */}
-      <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 20 }]}>
+      {/* Bottom Glassmorphic Telemetry Card & Metadata */}
+      <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 16 }]}>
+        <TouchableOpacity
+          activeOpacity={0.88}
+          onPress={() => navigateNext()}
+          style={styles.telemetryCard}
+          accessibilityLabel="Enter application"
+        >
+          <View style={styles.telemetryHeader}>
+            <View style={styles.pulseWrapper}>
+              <Animated.View
+                style={[
+                  styles.amberPulseRing,
+                  {
+                    backgroundColor: colors.secondary,
+                    transform: [{ scale: amberPulse }],
+                  },
+                ]}
+              />
+              <View style={[styles.amberDot, { backgroundColor: colors.secondary }]} />
+            </View>
+            <Text
+              style={[
+                styles.telemetryStatusText,
+                { color: colors.onPrimary, fontFamily: fonts.medium },
+              ]}
+              numberOfLines={1}
+            >
+              Curating culinary craft & table telemetry...
+            </Text>
+          </View>
+
+          {/* Shimmer Progress Track */}
+          <View style={styles.telemetryProgressTrack}>
+            <Animated.View
+              style={[
+                styles.telemetryProgressBar,
+                {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }),
+                },
+              ]}
+            >
+              <SafeLinearGradient
+                colors={['#FC5834', '#FFA048', '#FFFFFF']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
+            </Animated.View>
+          </View>
+
+          {/* Tap to enter hint */}
+          <View style={styles.telemetryTapRow}>
+            <Text
+              style={[
+                styles.telemetryTapText,
+                { color: colors.onPrimary, fontFamily: fonts.medium },
+              ]}
+            >
+              Tap anywhere to enter
+            </Text>
+            <Ionicons name="arrow-forward" size={12} color={colors.onPrimary} style={{ opacity: 0.8 }} />
+          </View>
+        </TouchableOpacity>
+
         <Text
           style={[
-            typography.caption,
-            { color: colors.onPrimary, opacity: 0.75, letterSpacing: 0.8 },
+            styles.fineDiningMeta,
+            { color: colors.onPrimary, fontFamily: fonts.regular },
           ]}
         >
-          {brand.restaurantName}
+          v2.4.1 Fine Dining Edition • Licensed Hospitality
         </Text>
       </View>
     </Animated.View>
@@ -842,21 +953,52 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 28,
     width: '100%',
   },
   stageWrapper: {
-    width: 120,
-    height: 120,
+    width: 144,
+    height: 144,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 22,
+    marginBottom: 20,
+    position: 'relative',
+  },
+  orbitRing: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orbitAccent: {
+    position: 'absolute',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+    opacity: 0.85,
+  },
+  orbitAccentTop: {
+    top: -3,
+  },
+  orbitAccentRight: {
+    right: -3,
+  },
+  orbitAccentBottom: {
+    bottom: -3,
+  },
+  orbitAccentLeft: {
+    left: -3,
   },
   glowRing: {
     position: 'absolute',
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
     borderWidth: 2.5,
   },
   emblemOuter: {
@@ -876,10 +1018,9 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 10,
   },
-  // Silver-Style Cloche Dome Styles (Views only, no images)
   clocheContainer: {
     position: 'absolute',
-    top: 10,
+    top: 22,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
@@ -925,16 +1066,14 @@ const styles = StyleSheet.create({
     borderColor: '#8E94A2',
     marginTop: -1,
   },
-  // Steam Curves
   steamCurve: {
     position: 'absolute',
-    top: 8,
+    top: 18,
     width: 3,
     height: 18,
     borderRadius: 2,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
-  // Sparks
   sparkDot: {
     position: 'absolute',
     width: 5,
@@ -942,37 +1081,118 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
     backgroundColor: '#FFE3A8',
   },
-  // Wordmark letters
   wordmarkRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   wordmarkLetter: {
-    fontSize: 44,
-    letterSpacing: 6,
+    fontSize: 42,
+    letterSpacing: 10,
     textAlign: 'center',
   },
   tagline: {
-    fontSize: 12,
-    letterSpacing: 2.6,
+    fontSize: 11,
+    letterSpacing: 2.8,
     textAlign: 'center',
-    maxWidth: 280,
-    marginBottom: 28,
+    maxWidth: 290,
+    opacity: 0.9,
+    marginBottom: 8,
   },
-  progressTrack: {
-    width: 140,
-    height: 3,
+  locationDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
+  locationLine: {
+    width: 24,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  locationText: {
+    fontSize: 9.5,
+    letterSpacing: 2.2,
+    opacity: 0.75,
+  },
+  bottomSection: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  telemetryCard: {
+    width: '100%',
+    maxWidth: 330,
+    backgroundColor: 'rgba(0, 0, 0, 0.42)',
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    gap: 10,
+    marginBottom: 12,
+  },
+  telemetryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pulseWrapper: {
+    width: 12,
+    height: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  amberPulseRing: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    opacity: 0.6,
+  },
+  amberDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  telemetryStatusText: {
+    fontSize: 11.5,
+    letterSpacing: 0.2,
+    flex: 1,
+  },
+  telemetryProgressTrack: {
+    width: '100%',
+    height: 4,
     borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     overflow: 'hidden',
   },
-  progressBar: {
+  telemetryProgressBar: {
     height: '100%',
     borderRadius: 2,
   },
-  bottomSection: {
+  telemetryTapRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    justifyContent: 'center',
+    gap: 5,
+    paddingTop: 2,
+  },
+  telemetryTapText: {
+    fontSize: 10.5,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  fineDiningMeta: {
+    fontSize: 9.5,
+    letterSpacing: 0.8,
+    textAlign: 'center',
+    opacity: 0.6,
   },
 });

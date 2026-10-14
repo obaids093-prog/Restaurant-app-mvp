@@ -1,10 +1,13 @@
 /**
  * src/screens/OnboardingScreen.js
  * ═══════════════════════════════════════════════════════════
- * AURA Restaurant App — 3-Slide Onboarding Polish
- * Parallax slide layers, looping custom vector illustrations,
- * stretching pill dots, smooth button cross-fade, background
- * gradient shifting, and reduce-motion accessibility.
+ * AURA Restaurant App — Luxury Photographic Onboarding
+ * 58/42 split architecture:
+ * • Top: Cinematic food photography, dark scrim, pillar badge,
+ *   VIP concierge badge, and atmosphere sound toggle.
+ * • Bottom: Curved sheet, 3 feature checklist tiles, expanding
+ *   pill indicators, step counter 01/03, primary gradient CTA,
+ *   and "Already a Member? Sign in" shortcut.
  * ═══════════════════════════════════════════════════════════
  */
 import React, { useRef, useState, useCallback, useEffect } from 'react';
@@ -36,6 +39,7 @@ export default function OnboardingScreen({ navigation }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   const slides = brand.onboardingSlides;
 
@@ -113,13 +117,11 @@ export default function OnboardingScreen({ navigation }) {
 
   const isLast = currentIndex === slides.length - 1;
 
-  // Render individual slide with parallax and active states
+  // Render individual slide with photography and 3 feature tiles
   const renderSlide = useCallback(
     ({ item, index }) => (
       <OnboardingSlide
-        title={item.title}
-        description={item.description}
-        icon={item.icon}
+        item={item}
         index={index}
         scrollX={scrollX}
         isActive={currentIndex === index}
@@ -131,24 +133,7 @@ export default function OnboardingScreen({ navigation }) {
 
   const keyExtractor = useCallback((item) => item.id, []);
 
-  // Parallax: background shapes drift at a third speed
-  const bgShapeTranslateX = reduceMotion
-    ? 0
-    : scrollX.interpolate({
-        inputRange: [0, 2 * width],
-        outputRange: [0, -width * 0.33],
-        extrapolate: 'clamp',
-      });
-
-  const bgShapeTranslateXReverse = reduceMotion
-    ? 0
-    : scrollX.interpolate({
-        inputRange: [0, 2 * width],
-        outputRange: [0, width * 0.25],
-        extrapolate: 'clamp',
-      });
-
-  // Smooth CTA button cross-fade: Next -> Get Started
+  // Smooth CTA button cross-fade: Begin Artisan Journey -> Enter Artisan Concierge
   const nextOpacity = scrollX.interpolate({
     inputRange: [width, 1.8 * width, 2 * width],
     outputRange: [1, 0.2, 0],
@@ -168,120 +153,62 @@ export default function OnboardingScreen({ navigation }) {
     extrapolate: 'clamp',
   });
 
-  // Background gradient opacities shifting gently across the 3 slides
-  const grad0Opacity = scrollX.interpolate({
-    inputRange: [0, width],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-
-  const grad1Opacity = scrollX.interpolate({
-    inputRange: [0, width, 2 * width],
-    outputRange: [0, 1, 0],
-    extrapolate: 'clamp',
-  });
-
-  const grad2Opacity = scrollX.interpolate({
-    inputRange: [width, 2 * width],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+    <View style={[styles.container, { backgroundColor: isDark ? '#141211' : '#F8F9FA' }]}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Background Gradient Shifts Gently */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: grad0Opacity }]}>
-          <SafeLinearGradient
-            colors={isDark ? ['#1A1310', '#121212', '#121212'] : ['#FFF5F1', '#FFFFFF', '#FFFFFF']}
-            style={StyleSheet.absoluteFill}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 0.7 }}
-          />
-        </Animated.View>
-
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: grad1Opacity }]}>
-          <SafeLinearGradient
-            colors={isDark ? ['#1B1710', '#121212', '#121212'] : ['#FFF9EE', '#FFFFFF', '#FFFFFF']}
-            style={StyleSheet.absoluteFill}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 0.7 }}
-          />
-        </Animated.View>
-
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: grad2Opacity }]}>
-          <SafeLinearGradient
-            colors={isDark ? ['#1E1210', '#121212', '#121212'] : ['#FFF2EE', '#FFFFFF', '#FFFFFF']}
-            style={StyleSheet.absoluteFill}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 0.7 }}
-          />
-        </Animated.View>
-      </View>
-
-      {/* Background Shapes drifting at a third speed */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Animated.View
-          style={[
-            styles.ambientCircleTop,
-            {
-              backgroundColor: colors.primaryTint,
-              transform: [{ translateX: bgShapeTranslateX }],
-            },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.ambientCircleBottom,
-            {
-              backgroundColor: colors.surfaceSubtle,
-              transform: [{ translateX: bgShapeTranslateXReverse }],
-            },
-          ]}
-        />
-      </View>
-
-      {/* Top Bar: Brand badge + Fading Skip */}
+      {/* Floating Top Bar (Brand + Atmosphere Toggle + Skip) */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <View
-          style={[
-            styles.brandBadge,
-            { backgroundColor: colors.surfaceSubtle, borderColor: colors.subtleBorder },
-          ]}
-        >
-          <Ionicons name="sparkles" size={12} color={colors.primary} />
-          <Text
-            style={[
-              styles.brandBadgeText,
-              { color: colors.textSecondary, fontFamily: fonts.semiBold },
-            ]}
-          >
-            {brand.appName}
-          </Text>
+        {/* Left: Brand Badge */}
+        <View style={styles.brandBadge}>
+          <View style={[styles.brandIconBox, { backgroundColor: colors.primaryTint }]}>
+            <Ionicons name="restaurant" size={15} color={colors.primary} />
+          </View>
+          <View style={styles.brandBadgeCol}>
+            <Text style={[styles.brandBadgeTitle, { fontFamily: fonts.bold }]}>
+              {brand.appName}
+            </Text>
+            <Text style={[styles.brandBadgeSub, { fontFamily: fonts.semiBold }]}>
+              ARTISAN KITCHEN
+            </Text>
+          </View>
         </View>
 
-        <Animated.View style={{ opacity: skipOpacity }} pointerEvents={isLast ? 'none' : 'auto'}>
+        {/* Right Controls: Atmosphere audio toggle + Skip */}
+        <View style={styles.topRightControls}>
           <TouchableOpacity
-            onPress={handleSkip}
-            style={styles.skipBtn}
+            onPress={() => setIsMuted((prev) => !prev)}
+            style={styles.soundToggleBtn}
             activeOpacity={0.7}
-            accessibilityLabel="Skip Onboarding"
+            accessibilityLabel={isMuted ? 'Unmute atmosphere' : 'Mute atmosphere'}
           >
-            <Text
-              style={[
-                styles.skipText,
-                { color: colors.mutedText, fontFamily: fonts.medium },
-              ]}
-            >
-              Skip
+            <Ionicons
+              name={isMuted ? 'volume-mute' : 'volume-high'}
+              size={14}
+              color={colors.primary}
+            />
+            <Text style={[styles.soundToggleText, { fontFamily: fonts.semiBold }]}>
+              {isMuted ? 'Muted' : 'Atmosphere'}
             </Text>
           </TouchableOpacity>
-        </Animated.View>
+
+          <Animated.View style={{ opacity: skipOpacity }} pointerEvents={isLast ? 'none' : 'auto'}>
+            <TouchableOpacity
+              onPress={handleSkip}
+              style={styles.skipBtn}
+              activeOpacity={0.7}
+              accessibilityLabel="Skip Onboarding"
+            >
+              <Text style={[styles.skipText, { fontFamily: fonts.medium }]}>
+                Skip
+              </Text>
+              <Ionicons name="arrow-forward" size={12} color="#FFFFFF" />
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
       </View>
 
-      {/* Slide content */}
+      {/* Horizontal Slides */}
       <Animated.FlatList
         ref={flatListRef}
         data={slides}
@@ -301,102 +228,130 @@ export default function OnboardingScreen({ navigation }) {
         onMomentumScrollEnd={handleMomentumScrollEnd}
       />
 
-      {/* Bottom: Dots + CTA */}
-      <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 24 }]}>
-        {/* Pill dots: stretch and fill */}
-        <View style={styles.dotsRow}>
-          {slides.map((_, i) => {
-            const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
-            const dotWidth = scrollX.interpolate({
-              inputRange,
-              outputRange: [8, 28, 8],
-              extrapolate: 'clamp',
-            });
-            const dotOpacity = scrollX.interpolate({
-              inputRange,
-              outputRange: [0.35, 1, 0.35],
-              extrapolate: 'clamp',
-            });
+      {/* Sticky Bottom Dock: Expanding pill dots, step counter, Gradient CTA, and Sign In */}
+      <View
+        style={[
+          styles.bottomDock,
+          {
+            backgroundColor: isDark ? colors.card : colors.surface,
+            borderTopColor: colors.subtleBorder,
+            paddingBottom: Math.max(insets.bottom, 14) + 4,
+          },
+        ]}
+      >
+        {/* Pagination Dots & Step Counter */}
+        <View style={styles.paginationRow}>
+          <View style={styles.dotsRow}>
+            {slides.map((_, i) => {
+              const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
+              const dotWidth = scrollX.interpolate({
+                inputRange,
+                outputRange: [8, 28, 8],
+                extrapolate: 'clamp',
+              });
+              const dotOpacity = scrollX.interpolate({
+                inputRange,
+                outputRange: [0.35, 1, 0.35],
+                extrapolate: 'clamp',
+              });
 
-            return (
-              <Animated.View
-                key={`dot-${i}`}
-                style={[
-                  styles.dot,
-                  {
-                    width: dotWidth,
-                    opacity: dotOpacity,
-                    backgroundColor: colors.primary,
-                  },
-                ]}
-              />
-            );
-          })}
+              return (
+                <Animated.View
+                  key={`dot-${i}`}
+                  style={[
+                    styles.dot,
+                    {
+                      width: dotWidth,
+                      opacity: dotOpacity,
+                      backgroundColor: colors.primary,
+                    },
+                  ]}
+                />
+              );
+            })}
+          </View>
+
+          {/* 01 / 03 Step Counter */}
+          <Text
+            style={[
+              styles.stepCounterText,
+              { color: colors.mutedText, fontFamily: fonts.semiBold },
+            ]}
+          >
+            {`0${currentIndex + 1} / 0${slides.length}`}
+          </Text>
         </View>
 
-        {/* CTA Button: Smoothly transitions Next -> Get Started */}
+        {/* Gradient CTA Button */}
         <TouchableOpacity
           onPress={handleNext}
-          style={[
-            styles.ctaButton,
-            { backgroundColor: colors.primary },
-            shadows.buttonPrimary,
-          ]}
-          activeOpacity={0.85}
-          accessibilityLabel={isLast ? 'Get Started' : 'Next Slide'}
+          activeOpacity={0.88}
+          style={[styles.ctaButtonWrapper, shadows.buttonPrimary]}
+          accessibilityLabel={isLast ? 'Enter Artisan Concierge' : 'Begin Artisan Journey'}
         >
-          <View style={styles.ctaContentWrapper}>
-            {/* Next state */}
-            <Animated.View style={[styles.ctaRow, { opacity: nextOpacity }]}>
-              <Text
-                style={[
-                  styles.ctaText,
-                  { color: colors.onPrimary, fontFamily: fonts.semiBold },
-                ]}
-              >
-                Next
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={colors.onPrimary}
-              />
-            </Animated.View>
+          <SafeLinearGradient
+            colors={colors.gradientPrimary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.ctaGradient}
+          >
+            <View style={styles.ctaContentWrapper}>
+              <Animated.View style={[styles.ctaRow, { opacity: nextOpacity }]}>
+                <Text
+                  style={[
+                    styles.ctaText,
+                    { color: colors.onPrimary, fontFamily: fonts.semiBold },
+                  ]}
+                >
+                  Begin Artisan Journey
+                </Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={18}
+                  color={colors.onPrimary}
+                />
+              </Animated.View>
 
-            {/* Get Started state */}
-            <Animated.View
-              style={[
-                styles.ctaRow,
-                styles.ctaAbsolute,
-                { opacity: getStartedOpacity },
-              ]}
-            >
-              <Text
+              <Animated.View
                 style={[
-                  styles.ctaText,
-                  { color: colors.onPrimary, fontFamily: fonts.semiBold },
+                  styles.ctaRow,
+                  styles.ctaAbsolute,
+                  { opacity: getStartedOpacity },
                 ]}
               >
-                Get Started
-              </Text>
-              <Ionicons
-                name="arrow-forward"
-                size={18}
-                color={colors.onPrimary}
-              />
-            </Animated.View>
-          </View>
+                <Text
+                  style={[
+                    styles.ctaText,
+                    { color: colors.onPrimary, fontFamily: fonts.semiBold },
+                  ]}
+                >
+                  Enter Artisan Concierge
+                </Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={18}
+                  color={colors.onPrimary}
+                />
+              </Animated.View>
+            </View>
+          </SafeLinearGradient>
         </TouchableOpacity>
 
-        {/* Progress label */}
-        <Text
-          style={[
-            styles.progressLabel,
-            { color: colors.mutedText, fontFamily: fonts.regular },
-          ]}
-        >
-          {currentIndex + 1} of {slides.length}
-        </Text>
+        {/* Already a Member? Sign in */}
+        <View style={styles.signInRow}>
+          <Text style={[styles.memberPrompt, { color: colors.mutedText, fontFamily: fonts.regular }]}>
+            Already a Member?{' '}
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.replace('Login')}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={[styles.signInLink, { color: colors.primary, fontFamily: fonts.bold }]}>
+              Sign in
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -406,64 +361,111 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  ambientCircleTop: {
-    position: 'absolute',
-    top: -40,
-    right: -40,
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    opacity: 0.45,
-  },
-  ambientCircleBottom: {
-    position: 'absolute',
-    bottom: 80,
-    left: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    opacity: 0.5,
-  },
   topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 8,
-    zIndex: 10,
+    paddingHorizontal: 18,
+    zIndex: 30,
   },
   brandBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    gap: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.52)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 22,
     borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  brandBadgeText: {
-    fontSize: 11,
-    letterSpacing: 1,
-  },
-  skipBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    minHeight: 44,
+  brandIconBox: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  skipText: {
-    fontSize: 14,
+  brandBadgeCol: {
+    justifyContent: 'center',
   },
-  bottomSection: {
+  brandBadgeTitle: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    letterSpacing: 1.5,
+    lineHeight: 14,
+  },
+  brandBadgeSub: {
+    color: 'rgba(255, 255, 255, 0.72)',
+    fontSize: 8,
+    letterSpacing: 0.8,
+  },
+  topRightControls: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    gap: 16,
-    zIndex: 10,
+    gap: 8,
+  },
+  soundToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0, 0, 0, 0.52)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  soundToggleText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    letterSpacing: 0.2,
+  },
+  skipBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+  },
+  skipText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    letterSpacing: 0.3,
+  },
+  bottomDock: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopWidth: 1,
+    paddingHorizontal: 22,
+    paddingTop: 12,
+    zIndex: 25,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 8,
+    gap: 10,
+  },
+  paginationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
   },
   dotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 6,
     height: 12,
   },
@@ -471,14 +473,21 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
-  ctaButton: {
+  stepCounterText: {
+    fontSize: 11,
+    letterSpacing: 0.8,
+  },
+  ctaButtonWrapper: {
+    width: '100%',
     height: 52,
     borderRadius: 14,
-    paddingHorizontal: 28,
+    overflow: 'hidden',
+  },
+  ctaGradient: {
     width: '100%',
-    maxWidth: 380,
-    justifyContent: 'center',
+    height: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   ctaContentWrapper: {
     width: '100%',
@@ -497,10 +506,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   ctaText: {
-    fontSize: 16,
-    letterSpacing: 0.3,
+    fontSize: 15,
+    letterSpacing: 0.2,
   },
-  progressLabel: {
+  signInRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+  },
+  memberPrompt: {
+    fontSize: 12,
+  },
+  signInLink: {
     fontSize: 12,
   },
 });
