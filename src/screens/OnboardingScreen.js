@@ -143,7 +143,7 @@ export default function OnboardingScreen({ navigation }) {
     <View style={[styles.container, { backgroundColor: isDark ? '#141211' : '#F8F9FA' }]}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Floating Top Bar (Brand + Atmosphere Toggle + Skip) */}
+      {/* Floating Top Bar (Brand + Skip) */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         {/* Left: Brand Badge */}
         <View style={styles.brandBadge}>
@@ -160,38 +160,20 @@ export default function OnboardingScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Right Controls: Atmosphere audio toggle + Skip */}
-        <View style={styles.topRightControls}>
+        {/* Right: Clean Skip Button */}
+        <Animated.View style={{ opacity: skipOpacity }} pointerEvents={isLast ? 'none' : 'auto'}>
           <TouchableOpacity
-            onPress={() => setIsMuted((prev) => !prev)}
-            style={styles.soundToggleBtn}
+            onPress={handleSkip}
+            style={styles.skipBtn}
             activeOpacity={0.7}
-            accessibilityLabel={isMuted ? 'Unmute atmosphere' : 'Mute atmosphere'}
+            accessibilityLabel="Skip Onboarding"
           >
-            <Ionicons
-              name={isMuted ? 'volume-mute' : 'volume-high'}
-              size={14}
-              color={colors.primary}
-            />
-            <Text style={[styles.soundToggleText, { fontFamily: fonts.semiBold }]}>
-              {isMuted ? 'Muted' : 'Atmosphere'}
+            <Text style={[styles.skipText, { fontFamily: fonts.medium }]}>
+              Skip
             </Text>
+            <Ionicons name="arrow-forward" size={12} color="#FFFFFF" />
           </TouchableOpacity>
-
-          <Animated.View style={{ opacity: skipOpacity }} pointerEvents={isLast ? 'none' : 'auto'}>
-            <TouchableOpacity
-              onPress={handleSkip}
-              style={styles.skipBtn}
-              activeOpacity={0.7}
-              accessibilityLabel="Skip Onboarding"
-            >
-              <Text style={[styles.skipText, { fontFamily: fonts.medium }]}>
-                Skip
-              </Text>
-              <Ionicons name="arrow-forward" size={12} color="#FFFFFF" />
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
+        </Animated.View>
       </View>
 
       {/* Horizontal Slides */}
@@ -273,7 +255,7 @@ export default function OnboardingScreen({ navigation }) {
           onPress={handleNext}
           activeOpacity={0.88}
           style={[styles.ctaButtonWrapper, shadows.buttonPrimary]}
-          accessibilityLabel={isLast ? 'Enter Artisan Concierge' : 'Begin Artisan Journey'}
+          accessibilityLabel={isLast ? 'Get Started' : 'Continue'}
         >
           <SafeLinearGradient
             colors={colors.gradientPrimary}
@@ -289,7 +271,7 @@ export default function OnboardingScreen({ navigation }) {
                     { color: colors.onPrimary, fontFamily: fonts.semiBold },
                   ]}
                 >
-                  Begin Artisan Journey
+                  Continue
                 </Text>
                 <Ionicons
                   name="arrow-forward"
@@ -311,7 +293,7 @@ export default function OnboardingScreen({ navigation }) {
                     { color: colors.onPrimary, fontFamily: fonts.semiBold },
                   ]}
                 >
-                  Enter Artisan Concierge
+                  Get Started
                 </Text>
                 <Ionicons
                   name="arrow-forward"
@@ -346,6 +328,10 @@ export default function OnboardingScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+    position: 'relative',
   },
   topBar: {
     position: 'absolute',
@@ -357,6 +343,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 18,
     zIndex: 30,
+    maxWidth: 480,
+    alignSelf: 'center',
+    width: '100%',
   },
   brandBadge: {
     flexDirection: 'row',
@@ -390,33 +379,12 @@ const styles = StyleSheet.create({
     fontSize: 8,
     letterSpacing: 0.8,
   },
-  topRightControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  soundToggleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(0, 0, 0, 0.52)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.18)',
-  },
-  soundToggleText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    letterSpacing: 0.2,
-  },
   skipBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    paddingHorizontal: 11,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
@@ -442,6 +410,9 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
     gap: 10,
+    maxWidth: 480,
+    alignSelf: 'center',
+    width: '100%',
   },
   paginationRow: {
     flexDirection: 'row',
