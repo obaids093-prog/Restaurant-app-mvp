@@ -77,7 +77,7 @@ function CustomerTabs() {
         name="Profile"
         component={ProfileScreen}
         options={{
-          title: 'Guest Account',
+          headerShown: false,
         }}
       />
     </Tab.Navigator>
