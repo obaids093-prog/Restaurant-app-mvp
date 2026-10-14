@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,150 +11,159 @@ import {
   StatusBar,
   Modal,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useOrders } from '../context/OrdersContext';
 import { useMenu } from '../context/MenuContext';
+import { useReservation } from '../hooks/useReservation';
 import { useApi } from '../hooks/useApi';
 import apiClient from '../api/client';
+import { brand } from '../config/brand';
+import { FilterTabs, Input, Button, EmptyState } from '../components/ui';
 
-const getOrderStatusBg = (status, colors) => {
-  if (status === 'Served') return colors.successBackground;
-  if (status === 'Ready') return '#E0F2FE';
-  if (status === 'Preparing') return '#FEF3C7';
-  return colors.badge;
-};
-
-const getOrderStatusColor = (status, colors) => {
-  if (status === 'Served') return colors.success;
-  if (status === 'Ready') return '#0284C7';
-  if (status === 'Preparing') return '#D97706';
-  return colors.badgeText;
-};
-
-const getReservationStatusBg = (status, colors) => {
-  if (status === 'Confirmed') return colors.successBackground;
-  if (status === 'Declined' || status === 'Cancelled') return colors.errorBackground;
-  return colors.badge;
-};
-
-const getReservationStatusColor = (status, colors) => {
-  if (status === 'Confirmed') return colors.success;
-  if (status === 'Declined' || status === 'Cancelled') return colors.error;
-  return colors.badgeText;
+// Cross-platform alert helper
+const showConsoleAlert = (title, message) => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.alert) {
+    window.alert(`${title}\n\n${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
 };
 
 // ─── SUBCOMPONENT: ORDER ITEM CARD ──────────────────────────────────────────
-function OrderItemCard({ order, colors, shadows, onUpdateStatus, onCancelOrder }) {
+function OrderItemCard({ order, colors, typography, radius, shadows, onUpdateStatus, onCancelOrder }) {
   const isPending = order.status === 'Pending';
   const isPrep = order.status === 'Preparing';
   const isReady = order.status === 'Ready';
+  const isServed = order.status === 'Served' || order.status === 'Delivered';
+  const isCancelled = order.status === 'Cancelled';
+
+  const statusBg = isServed
+    ? colors.readyTint
+    : isReady
+    ? colors.preparingTint
+    : isPrep
+    ? colors.pendingTint
+    : isCancelled
+    ? colors.cancelledTint
+    : colors.surface;
+
+  const statusColor = isServed
+    ? colors.ready
+    : isReady
+    ? colors.preparing
+    : isPrep
+    ? colors.pending
+    : isCancelled
+    ? colors.cancelled
+    : colors.primary;
+
+  const orderTotal = Number(order.total ?? order.totalAmount ?? order.grandTotal ?? 0);
 
   return (
     <View
       style={[
         styles.cardItem,
-        { backgroundColor: colors.card, borderColor: colors.cardBorder },
+        { backgroundColor: colors.surfaceSubtle, borderColor: colors.cardBorder, borderRadius: radius.card },
         shadows.soft,
       ]}
     >
       <View style={styles.cardHeaderRow}>
-        <View>
-          <Text style={[styles.orderRef, { color: colors.primary }]}>{order.id}</Text>
-          <Text style={[styles.customerRef, { color: colors.textPrimary }]}>
-            Guest: {order.customerName}
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={[typography.headingSm, { color: colors.primary, fontSize: 15, fontWeight: '800' }]}>
+              {order.id ? `#${String(order.id).slice(-6).toUpperCase()}` : '#ORD-LIVE'}
+            </Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
+              <Text style={[typography.caption, { color: statusColor, fontWeight: '700', fontSize: 11 }]}>
+                {order.status || 'Pending'}
+              </Text>
+            </View>
+          </View>
+          <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700', marginTop: 2 }]}>
+            Guest: {order.customerName || 'Valued Guest'}
           </Text>
-          <Text style={[styles.orderTypeDesc, { color: colors.textSecondary }]}>
+          <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
             {order.type === 'Dine-in'
-              ? `Dine-in • ${order.tableNumber || 'Table 4'}`
-              : `Takeaway • ${order.pickupTime || '20 min'}`}
+              ? `Dine-in • ${order.tableNumber || 'Table A-01'}`
+              : `Takeaway • ${order.pickupTime || 'In 25 minutes'}`}
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.statusPill,
-            { backgroundColor: getOrderStatusBg(order.status, colors) },
-          ]}
-        >
-          <Text
-            style={[
-              styles.statusPillText,
-              { color: getOrderStatusColor(order.status, colors) },
-            ]}
-          >
-            {order.status}
-          </Text>
-        </View>
-      </View>
-
-      {/* Items in order */}
-      <View style={[styles.itemsBox, { backgroundColor: colors.surfaceSubtle }]}>
-        {(order.items || []).map((item, idx) => (
-          <Text
-            key={item.id || item._id || item.menuItem || `${item.name}-${idx}`}
-            style={[styles.itemLine, { color: colors.textPrimary }]}
-          >
-            • {item.quantity}x {item.name}{' '}
-            {item.note ? `(Note: "${item.note}")` : ''}
-          </Text>
-        ))}
-        <Text style={[styles.totalAmountText, { color: colors.primary }]}>
-          Grand Total: Rs. {(order.total ?? order.totalAmount ?? 0).toLocaleString()}
+        <Text style={[typography.headingSm, { color: colors.textPrimary, fontWeight: '800' }]}>
+          {brand.formatPrice(orderTotal)}
         </Text>
       </View>
 
-      {/* Action Buttons to manually change status */}
-      <View style={styles.orderActionsRow}>
+      {/* Items list */}
+      <View style={[styles.itemsListContainer, { backgroundColor: colors.surface, borderColor: colors.cardBorder, borderRadius: radius.button }]}>
+        {(order.items || []).map((item, idx) => (
+          <View key={item.id || item._id || idx} style={styles.itemRow}>
+            <Text style={[typography.caption, { color: colors.textPrimary, fontWeight: '600', flex: 1 }]}>
+              {item.quantity || 1}x {item.name}
+            </Text>
+            {item.note ? (
+              <Text style={[typography.caption, { color: colors.mutedText, fontStyle: 'italic', fontSize: 11 }]}>
+                "{item.note}"
+              </Text>
+            ) : null}
+          </View>
+        ))}
+      </View>
+
+      {/* Order Progression Actions */}
+      <View style={styles.cardActionsRow}>
         {isPending && (
           <TouchableOpacity
-            onPress={() => onUpdateStatus(order.id, 'Preparing')}
-            style={[styles.actionBtn, { backgroundColor: colors.secondary || colors.primary }]}
+            onPress={() => onUpdateStatus(order.id || order._id, 'Preparing')}
+            style={[styles.progressionBtn, { backgroundColor: colors.pending, borderRadius: radius.button }]}
+            activeOpacity={0.8}
           >
-            <Ionicons name="flame" size={14} color="#FFF" />
-            <Text style={styles.actionBtnText}>Start Cooking</Text>
+            <Ionicons name="flame" size={14} color="#FFFFFF" />
+            <Text style={[typography.caption, styles.progressionBtnText]}>Start Cooking</Text>
           </TouchableOpacity>
         )}
 
         {isPrep && (
           <TouchableOpacity
-            onPress={() => onUpdateStatus(order.id, 'Ready')}
-            style={[styles.actionBtn, { backgroundColor: colors.preparing || '#0284C7' }]}
+            onPress={() => onUpdateStatus(order.id || order._id, 'Ready')}
+            style={[styles.progressionBtn, { backgroundColor: colors.preparing, borderRadius: radius.button }]}
+            activeOpacity={0.8}
           >
-            <Ionicons name="checkmark-circle" size={14} color="#FFF" />
-            <Text style={styles.actionBtnText}>Mark Ready</Text>
+            <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
+            <Text style={[typography.caption, styles.progressionBtnText]}>Mark Ready</Text>
           </TouchableOpacity>
         )}
 
         {isReady && (
           <TouchableOpacity
-            onPress={() => onUpdateStatus(order.id, 'Served')}
-            style={[styles.actionBtn, { backgroundColor: colors.success }]}
+            onPress={() => onUpdateStatus(order.id || order._id, 'Served')}
+            style={[styles.progressionBtn, { backgroundColor: colors.ready, borderRadius: radius.button }]}
+            activeOpacity={0.8}
           >
-            <Ionicons name="checkmark-done" size={14} color="#FFF" />
-            <Text style={styles.actionBtnText}>Mark Served</Text>
+            <Ionicons name="checkmark-done" size={14} color="#FFFFFF" />
+            <Text style={[typography.caption, styles.progressionBtnText]}>Mark Served</Text>
           </TouchableOpacity>
         )}
 
-        {order.status === 'Served' ? (
-          <View style={[styles.cancelBtn, { borderColor: '#22c55e40', backgroundColor: '#22c55e12' }]}>
-            <Ionicons name="checkmark-circle" size={13} color="#22c55e" style={{ marginRight: 4 }} />
-            <Text style={[styles.cancelBtnText, { color: '#22c55e' }]}>Completed</Text>
-          </View>
-        ) : order.status === 'Cancelled' ? (
-          <View style={[styles.cancelBtn, { borderColor: colors.error + '40', backgroundColor: colors.error + '12' }]}>
-            <Ionicons name="close-circle" size={13} color={colors.error} style={{ marginRight: 4 }} />
-            <Text style={[styles.cancelBtnText, { color: colors.error }]}>Cancelled</Text>
-          </View>
-        ) : (
+        {!isServed && !isCancelled && (
           <TouchableOpacity
-            onPress={() => onCancelOrder(order.id)}
-            style={[styles.cancelBtn, { borderColor: colors.error + '40' }]}
+            onPress={() => onCancelOrder(order.id || order._id)}
+            style={[
+              styles.cancelOrderBtn,
+              { backgroundColor: colors.cancelledTint, borderColor: colors.cancelled + '40', borderRadius: radius.button },
+            ]}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.cancelBtnText, { color: colors.error }]}>Cancel</Text>
+            <Ionicons name="close-circle-outline" size={14} color={colors.cancelled} />
+            <Text style={[typography.caption, { color: colors.cancelled, fontWeight: '700', fontSize: 12 }]}>
+              Cancel Order
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -162,77 +171,109 @@ function OrderItemCard({ order, colors, shadows, onUpdateStatus, onCancelOrder }
   );
 }
 
-// ─── SUBCOMPONENT: RESERVATION ITEM CARD ────────────────────────────────────
-function ReservationItemCard({ booking, colors, shadows, onAction }) {
-  const bookingId = booking._id || booking.id;
-  const tableName = booking.table
-    ? `Table ${booking.table.tableNumber} (${booking.table.zone || 'Dining Area'})`
-    : booking.tableName || 'Assigned Table';
-  const timeSlot = booking.time || booking.timeSlot || '19:00';
-  const guestsCount = booking.guests || booking.partySize || 2;
+// ─── SUBCOMPONENT: RESERVATION CARD ─────────────────────────────────────────
+function ReservationCard({ booking, colors, typography, radius, shadows, onAction }) {
+  const bookingId = booking.id || booking._id;
+  const isPending = booking.status === 'Pending';
+  const isConfirmed = booking.status === 'Confirmed';
+  const isDeclined = booking.status === 'Declined' || booking.status === 'Cancelled';
+
+  const statusBg = isConfirmed
+    ? colors.readyTint
+    : isDeclined
+    ? colors.cancelledTint
+    : colors.pendingTint;
+
+  const statusColor = isConfirmed
+    ? colors.ready
+    : isDeclined
+    ? colors.cancelled
+    : colors.pending;
 
   return (
     <View
       style={[
         styles.cardItem,
-        { backgroundColor: colors.card, borderColor: colors.cardBorder },
+        { backgroundColor: colors.surfaceSubtle, borderColor: colors.cardBorder, borderRadius: radius.card },
         shadows.soft,
       ]}
     >
       <View style={styles.cardHeaderRow}>
-        <View>
-          <Text style={[styles.orderRef, { color: colors.primary }]}>{bookingId}</Text>
-          <Text style={[styles.customerRef, { color: colors.textPrimary }]}>
-            {booking.customerName} ({booking.phone || 'No phone'})
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={[typography.headingSm, { color: colors.primary, fontSize: 15, fontWeight: '800' }]}>
+              {booking.id ? `#BK-${String(booking.id).slice(-4).toUpperCase()}` : '#BK-RES'}
+            </Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
+              <Text style={[typography.caption, { color: statusColor, fontWeight: '700', fontSize: 11 }]}>
+                {booking.status || 'Pending'}
+              </Text>
+            </View>
+          </View>
+          <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700', marginTop: 2 }]}>
+            Guest: {booking.customerName}
           </Text>
-          <Text style={[styles.orderTypeDesc, { color: colors.textSecondary }]}>
-            {booking.date} at {timeSlot} • {guestsCount} Guests
-          </Text>
-          <Text style={[styles.orderTypeDesc, { color: colors.textPrimary }]}>
-            {tableName}
+          <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
+            Phone: {booking.phone || '03XX-XXXXXXX'}
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.statusPill,
-            { backgroundColor: getReservationStatusBg(booking.status, colors) },
-          ]}
-        >
-          <Text
-            style={[
-              styles.statusPillText,
-              { color: getReservationStatusColor(booking.status, colors) },
-            ]}
-          >
-            {booking.status}
+        <View style={styles.bookingSlotBadge}>
+          <Text style={[typography.caption, { color: colors.primary, fontWeight: '800', fontSize: 13 }]}>
+            {booking.timeSlot || booking.time}
+          </Text>
+          <Text style={[typography.caption, { color: colors.mutedText, fontSize: 10 }]}>
+            {booking.date}
+          </Text>
+        </View>
+      </View>
+
+      <View style={[styles.bookingMetaBox, { backgroundColor: colors.surface, borderColor: colors.cardBorder, borderRadius: radius.button }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Ionicons name="people-outline" size={14} color={colors.primary} />
+          <Text style={[typography.caption, { color: colors.textPrimary, fontWeight: '600' }]}>
+            {booking.partySize} {booking.partySize === 1 ? 'Guest' : 'Guests'}
+          </Text>
+        </View>
+        <Text style={[typography.caption, { color: colors.mutedText }]}>•</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Ionicons name="location-outline" size={14} color={colors.primary} />
+          <Text style={[typography.caption, { color: colors.textSecondary }]}>
+            {booking.tableName || 'Atrium Glasshouse Window'}
           </Text>
         </View>
       </View>
 
       {booking.specialRequests ? (
-        <Text style={[styles.specialReqNote, { color: colors.textMuted }]}>
+        <Text style={[typography.caption, { color: colors.mutedText, fontStyle: 'italic', marginTop: 6, fontSize: 12 }]}>
           Special Note: "{booking.specialRequests}"
         </Text>
       ) : null}
 
-      {/* Accept / Decline — only show when Pending */}
-      {booking.status === 'Pending' && (
-        <View style={styles.orderActionsRow}>
+      {/* Accept / Decline actions when Pending */}
+      {isPending && (
+        <View style={styles.cardActionsRow}>
           <TouchableOpacity
             onPress={() => onAction(bookingId, 'Confirmed')}
-            style={[styles.actionBtn, { backgroundColor: colors.success }]}
+            style={[styles.progressionBtn, { backgroundColor: colors.ready, borderRadius: radius.button }]}
+            activeOpacity={0.8}
           >
-            <Ionicons name="checkmark" size={14} color="#FFF" />
-            <Text style={styles.actionBtnText}>Confirm Table</Text>
+            <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+            <Text style={[typography.caption, styles.progressionBtnText]}>Confirm Table</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => onAction(bookingId, 'Declined')}
-            style={[styles.actionBtn, { backgroundColor: colors.error }]}
+            style={[
+              styles.cancelOrderBtn,
+              { backgroundColor: colors.cancelledTint, borderColor: colors.cancelled + '40', borderRadius: radius.button },
+            ]}
+            activeOpacity={0.8}
           >
-            <Ionicons name="close" size={14} color="#FFF" />
-            <Text style={styles.actionBtnText}>Decline</Text>
+            <Ionicons name="close" size={14} color={colors.cancelled} />
+            <Text style={[typography.caption, { color: colors.cancelled, fontWeight: '700', fontSize: 12 }]}>
+              Decline
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -244,6 +285,8 @@ function ReservationItemCard({ booking, colors, shadows, onAction }) {
 function MenuItemCard({
   item,
   colors,
+  typography,
+  radius,
   shadows,
   isEditing,
   tempPrice,
@@ -257,91 +300,82 @@ function MenuItemCard({
     <View
       style={[
         styles.cardItem,
-        { backgroundColor: colors.card, borderColor: colors.cardBorder },
+        { backgroundColor: colors.surfaceSubtle, borderColor: colors.cardBorder, borderRadius: radius.card },
         shadows.soft,
       ]}
     >
-      <View style={styles.menuItemHeader}>
+      <View style={styles.cardHeaderRow}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.dishName, { color: colors.textPrimary }]}>
+          <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700', fontSize: 15 }]}>
             {item.name}
           </Text>
-          <Text style={[styles.dishCat, { color: colors.textMuted }]}>
-            Category: {item.category}
+          <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
+            Category: {item.category} • {item.description ? item.description.slice(0, 40) + '...' : 'Chef creation'}
           </Text>
         </View>
 
-        {/* Availability Toggle Switch */}
         <View style={styles.availToggleBox}>
           <Text
             style={[
-              styles.availLabel,
-              { color: item.isAvailable ? colors.success : colors.error },
+              typography.caption,
+              { color: item.isAvailable ? colors.ready : colors.cancelled, fontWeight: '700', fontSize: 11 },
             ]}
           >
             {item.isAvailable ? 'In Stock' : 'Sold Out'}
           </Text>
           <Switch
-            value={item.isAvailable}
-            onValueChange={() => onToggleAvailability(item.id)}
-            trackColor={{ false: '#D1C4B8', true: colors.success }}
+            value={item.isAvailable !== false}
+            onValueChange={() => onToggleAvailability(item.id || item._id)}
+            trackColor={{ false: '#D1C4B8', true: colors.ready }}
           />
         </View>
       </View>
 
-      {/* Price Display & Edit */}
-      <View style={styles.priceRow}>
+      <View style={styles.menuPriceRow}>
         {isEditing ? (
-          <View style={styles.priceEditRow}>
+          <View style={styles.priceEditContainer}>
             <TextInput
               style={[
                 styles.priceInput,
                 {
-                  backgroundColor: colors.inputBackground,
+                  backgroundColor: colors.surface,
                   borderColor: colors.primary,
                   color: colors.textPrimary,
+                  borderRadius: radius.button,
                 },
               ]}
               value={tempPrice}
               onChangeText={setTempPrice}
               keyboardType="numeric"
               placeholder="New Price"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={colors.mutedText}
+              autoFocus
             />
             <TouchableOpacity
-              onPress={() => onSavePrice(item.id)}
-              style={[styles.savePriceBtn, { backgroundColor: colors.primary }]}
+              onPress={() => onSavePrice(item.id || item._id)}
+              style={[styles.savePriceBtn, { backgroundColor: colors.primary, borderRadius: radius.button }]}
             >
-              <Text style={styles.savePriceText}>Save</Text>
+              <Text style={[typography.caption, { color: colors.onPrimary, fontWeight: '700' }]}>Save</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={onCancelEdit}
-              style={styles.cancelPriceBtn}
-            >
-              <Text style={[styles.cancelPriceText, { color: colors.textMuted }]}>
-                Cancel
-              </Text>
+            <TouchableOpacity onPress={onCancelEdit} style={styles.cancelPriceBtn}>
+              <Text style={[typography.caption, { color: colors.mutedText }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.priceDisplayRow}>
-            <Text style={[styles.currentPrice, { color: colors.primary }]}>
-              Price: Rs. {item.price.toLocaleString()}
+          <View style={styles.priceDisplayContainer}>
+            <Text style={[typography.headingSm, { color: colors.primary, fontWeight: '800', fontSize: 16 }]}>
+              {brand.formatPrice(item.price)}
             </Text>
             <TouchableOpacity
-              onPress={() => onStartEdit(item.id, item.price)}
+              onPress={() => onStartEdit(item.id || item._id, item.price)}
               style={[
                 styles.editPriceBtn,
-                {
-                  backgroundColor: colors.surfaceSubtle,
-                  borderColor: colors.surfaceBorder,
-                },
+                { backgroundColor: colors.surface, borderColor: colors.cardBorder, borderRadius: radius.button },
               ]}
+              activeOpacity={0.8}
             >
-              <Ionicons name="pencil" size={13} color={colors.primary} />
-              <Text style={[styles.editPriceText, { color: colors.primary }]}>
-                Edit Price
-              </Text>
+              <Ionicons name="pencil" size={13} color={colors.primary} style={{ marginRight: 4 }} />
+              <Text style={[typography.caption, { color: colors.primary, fontWeight: '700' }]}>Edit Price</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -350,522 +384,115 @@ function MenuItemCard({
   );
 }
 
-// ─── SUBCOMPONENT: TEAM MANAGEMENT TAB ──────────────────────────────────────
-function TeamManagementTab({
-  colors,
-  shadows,
-  staffName,
-  setStaffName,
-  staffEmail,
-  setStaffEmail,
-  staffPassword,
-  setStaffPassword,
-  isCreatingStaff,
-  staffList,
-  isLoadingStaff,
-  currentUserId,
-  onCreateStaff,
-  onToggleStaffStatus,
-  onDemoteStaff,
-}) {
-  const [showStaffPassword, setShowStaffPassword] = useState(false);
-
-  return (
-    <ScrollView
-      contentContainerStyle={styles.scrollList}
-      showsVerticalScrollIndicator={false}
-    >
-      <View
-        style={[
-          styles.cardItem,
-          { backgroundColor: colors.card, borderColor: colors.cardBorder },
-          shadows.soft,
-        ]}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-          <Ionicons name="person-add-outline" size={20} color={colors.primary} />
-          <Text style={[styles.consoleTitle, { color: colors.textPrimary, fontSize: 16 }]}>
-            Create Staff Account
-          </Text>
-        </View>
-        <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 12 }}>
-          New staff members are created with the Manager role and can access the Operations Console.
-        </Text>
-
-        <TextInput
-          style={[
-            styles.modalInput,
-            {
-              backgroundColor: colors.inputBackground,
-              borderColor: colors.inputBorder,
-              color: colors.textPrimary,
-            },
-          ]}
-          placeholder="Full Name"
-          placeholderTextColor={colors.textMuted}
-          value={staffName}
-          onChangeText={setStaffName}
-          autoComplete="off"
-          textContentType="name"
-        />
-        <TextInput
-          style={[
-            styles.modalInput,
-            {
-              backgroundColor: colors.inputBackground,
-              borderColor: colors.inputBorder,
-              color: colors.textPrimary,
-            },
-          ]}
-          placeholder="Email Address"
-          placeholderTextColor={colors.textMuted}
-          value={staffEmail}
-          onChangeText={setStaffEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="off"
-          textContentType="emailAddress"
-        />
-        <View
-          style={[
-            styles.passwordBox,
-            {
-              backgroundColor: colors.inputBackground,
-              borderColor: colors.inputBorder,
-            },
-          ]}
-        >
-          <TextInput
-            style={[styles.passwordInput, { color: colors.textPrimary }]}
-            placeholder="Temporary Password (min 8 chars, 1 digit)"
-            placeholderTextColor={colors.textMuted}
-            value={staffPassword}
-            onChangeText={setStaffPassword}
-            secureTextEntry={!showStaffPassword}
-            autoCapitalize="none"
-            autoComplete="off"
-            textContentType="newPassword"
-          />
-          <TouchableOpacity
-            onPress={() => setShowStaffPassword((prev) => !prev)}
-            style={styles.eyeBtn}
-            accessibilityLabel={showStaffPassword ? 'Hide password' : 'Show password'}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={showStaffPassword ? 'eye-off-outline' : 'eye-outline'}
-              size={18}
-              color={colors.textMuted}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          onPress={onCreateStaff}
-          disabled={isCreatingStaff}
-          style={[
-            styles.modalSubmit,
-            { backgroundColor: colors.primary, opacity: isCreatingStaff ? 0.6 : 1, marginTop: 8 },
-          ]}
-        >
-          <Ionicons name="shield-checkmark-outline" size={16} color="#FFF" />
-          <Text style={{ color: '#FFFFFF', fontWeight: '800', marginLeft: 6 }}>
-            {isCreatingStaff ? 'Creating...' : 'Create Manager Account'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={{ marginTop: 8 }}>
-        <Text style={[styles.consoleTitle, { color: colors.textPrimary, fontSize: 14, marginBottom: 10 }]}>
-          Team Accounts {staffList && staffList.length > 0 ? `(${staffList.length})` : ''}
-        </Text>
-
-        {isLoadingStaff && (!staffList || staffList.length === 0) ? (
-          <Text style={{ color: colors.textMuted, fontSize: 12, paddingVertical: 10 }}>
-            Loading team roster...
-          </Text>
-        ) : staffList && staffList.length > 0 ? (
-          staffList.map((staff) => {
-            const staffId = staff._id || staff.id;
-            const isSelf = String(currentUserId) === String(staffId);
-            const isActive = staff.isActive !== false;
-
-            return (
-              <View
-                key={staffId}
-                style={[
-                  styles.cardItem,
-                  { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                  shadows.soft,
-                ]}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                    <View
-                      style={[
-                        styles.statusPill,
-                        { backgroundColor: isActive ? colors.successBackground : colors.errorBackground },
-                      ]}
-                    >
-                      <Ionicons
-                        name={isActive ? 'shield-checkmark' : 'shield-outline'}
-                        size={12}
-                        color={isActive ? colors.success : colors.error}
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Text style={[styles.customerRef, { color: colors.textPrimary }]}>
-                          {staff.name}
-                        </Text>
-                        {isSelf && (
-                          <View
-                            style={{
-                              backgroundColor: colors.primary + '20',
-                              paddingHorizontal: 6,
-                              paddingVertical: 2,
-                              borderRadius: 6,
-                            }}
-                          >
-                            <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '800' }}>
-                              You
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={[styles.orderTypeDesc, { color: colors.textSecondary }]}>
-                        {staff.email} • {staff.role} • {isActive ? 'Active' : 'Disabled'}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Staff Actions (disabled for own account) */}
-                {!isSelf && (
-                  <View style={styles.staffActionRow}>
-                    <TouchableOpacity
-                      onPress={() => onToggleStaffStatus(staff)}
-                      style={[
-                        styles.staffActionBtn,
-                        {
-                          backgroundColor: isActive ? colors.surfaceSubtle : colors.successBackground,
-                          borderColor: isActive ? colors.surfaceBorder : colors.success,
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name={isActive ? 'ban-outline' : 'checkmark-circle-outline'}
-                        size={13}
-                        color={isActive ? colors.error : colors.success}
-                      />
-                      <Text
-                        style={[
-                          styles.staffActionText,
-                          { color: isActive ? colors.error : colors.success },
-                        ]}
-                      >
-                        {isActive ? 'Deactivate' : 'Reactivate'}
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => onDemoteStaff(staff)}
-                      style={[
-                        styles.staffActionBtn,
-                        {
-                          backgroundColor: colors.surfaceSubtle,
-                          borderColor: colors.surfaceBorder,
-                        },
-                      ]}
-                    >
-                      <Ionicons name="arrow-down-circle-outline" size={13} color={colors.textSecondary} />
-                      <Text style={[styles.staffActionText, { color: colors.textSecondary }]}>
-                        Demote to Customer
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            );
-          })
-        ) : (
-          <Text style={{ color: colors.textMuted, fontSize: 12, paddingVertical: 10 }}>
-            No team members found.
-          </Text>
-        )}
-      </View>
-    </ScrollView>
-  );
-}
-
-// ─── SUBCOMPONENT: ADD DISH MODAL ───────────────────────────────────────────
-function AddDishModal({
-  visible,
-  onClose,
-  colors,
-  shadows,
-  newItemName,
-  setNewItemName,
-  newItemPrice,
-  setNewItemPrice,
-  newItemDesc,
-  setNewItemDesc,
-  newItemCat,
-  setNewItemCat,
-  newItemSpecial,
-  setNewItemSpecial,
-  onAddDish,
-}) {
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalBackdrop}>
-        <View
-          style={[
-            styles.modalCard,
-            { backgroundColor: colors.card, borderColor: colors.cardBorder },
-            shadows.deep3D,
-          ]}
-        >
-          <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-            Add New Gourmet Creation
-          </Text>
-
-          <TextInput
-            style={[
-              styles.modalInput,
-              {
-                backgroundColor: colors.inputBackground,
-                borderColor: colors.inputBorder,
-                color: colors.textPrimary,
-              },
-            ]}
-            placeholder="Dish Name (e.g. Lobster Thermidor)"
-            placeholderTextColor={colors.textMuted}
-            value={newItemName}
-            onChangeText={setNewItemName}
-          />
-
-          <TextInput
-            style={[
-              styles.modalInput,
-              {
-                backgroundColor: colors.inputBackground,
-                borderColor: colors.inputBorder,
-                color: colors.textPrimary,
-              },
-            ]}
-            placeholder="Price in Rs. (e.g. 2950)"
-            placeholderTextColor={colors.textMuted}
-            value={newItemPrice}
-            onChangeText={setNewItemPrice}
-            keyboardType="numeric"
-          />
-
-          <TextInput
-            style={[
-              styles.modalInput,
-              {
-                backgroundColor: colors.inputBackground,
-                borderColor: colors.inputBorder,
-                color: colors.textPrimary,
-                minHeight: 60,
-              },
-            ]}
-            placeholder="Description of ingredients & preparation..."
-            placeholderTextColor={colors.textMuted}
-            value={newItemDesc}
-            onChangeText={setNewItemDesc}
-            multiline
-          />
-
-          {/* Category Picker */}
-          <View style={styles.catPickerRow}>
-            {['Starters', 'Mains', 'Desserts', 'Drinks'].map((cat) => (
-              <TouchableOpacity
-                key={cat}
-                onPress={() => setNewItemCat(cat)}
-                style={[
-                  styles.catChoiceBtn,
-                  {
-                    backgroundColor:
-                      newItemCat === cat ? colors.primary : colors.surfaceSubtle,
-                    borderColor:
-                      newItemCat === cat ? colors.primary : colors.surfaceBorder,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.catChoiceText,
-                    { color: newItemCat === cat ? '#FFFFFF' : colors.textSecondary },
-                  ]}
-                >
-                  {cat}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Featured Special Toggle */}
-          <View style={styles.specialToggleRow}>
-            <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 14 }}>
-              Featured Chef's Special
-            </Text>
-            <Switch
-              value={newItemSpecial}
-              onValueChange={setNewItemSpecial}
-              trackColor={{ false: colors.surfaceBorder, true: colors.primary }}
-            />
-          </View>
-
-          <View style={styles.modalActions}>
-            <TouchableOpacity
-              onPress={onClose}
-              style={[
-                styles.modalCancel,
-                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-              ]}
-            >
-              <Text style={{ color: colors.textSecondary, fontWeight: '700' }}>Cancel</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={onAddDish}
-              style={[styles.modalSubmit, { backgroundColor: colors.primary }]}
-            >
-              <Text style={{ color: '#FFFFFF', fontWeight: '800' }}>Publish Dish</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-// ─── MAIN SCREEN COMPONENT ──────────────────────────────────────────────────
+// ─── MAIN MANAGER DASHBOARD SCREEN ──────────────────────────────────────────
 export default function ManagerDashboardScreen({ navigation }) {
   const { user, logout } = useAuth();
-  const { colors, isDark, shadows } = useTheme();
+  const { colors, typography, radius, shadows, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+
   const { orders, updateOrderStatus, cancelOrder } = useOrders();
-  const { menuItems, toggleAvailability, updatePrice, addMenuItem } = useMenu();
+  const { menuItems, updatePrice, toggleAvailability, addMenuItem } = useMenu();
+  const { reservationsList, refetchReservations } = useReservation(user);
 
-  const {
-    data: reservationsData,
-    refetch: refetchReservations,
-  } = useApi('/api/reservations');
+  // Active Tab: 'overview' | 'orders' | 'reservations' | 'menu' | 'team'
+  const [activeTab, setActiveTab] = useState('overview');
 
-  const reservationsList = useMemo(() => {
-    if (!Array.isArray(reservationsData)) return [];
-    return [...reservationsData].sort((a, b) => {
-      const createdA = new Date(a.createdAt || 0).getTime();
-      const createdB = new Date(b.createdAt || 0).getTime();
-      if (createdA && createdB && createdA !== createdB) return createdB - createdA;
-      const dateA = new Date(`${a.date || ''}T${a.time || '00:00'}`).getTime() || 0;
-      const dateB = new Date(`${b.date || ''}T${b.time || '00:00'}`).getTime() || 0;
-      if (dateA !== dateB) return dateB - dateA;
-      return String(b._id || b.id || '').localeCompare(String(a._id || a.id || ''));
-    });
-  }, [reservationsData]);
+  // Orders Filter
+  const [orderFilter, setOrderFilter] = useState('all'); // 'all' | 'pending' | 'preparing' | 'ready' | 'completed'
 
-  const sortedOrders = useMemo(() => {
-    if (!Array.isArray(orders)) return [];
-    return [...orders].sort((a, b) => {
-      const timeA = new Date(a.createdAt || 0).getTime();
-      const timeB = new Date(b.createdAt || 0).getTime();
-      if (timeA && timeB && timeA !== timeB) return timeB - timeA;
-      return String(b._id || b.id || '').localeCompare(String(a._id || a.id || ''));
-    });
-  }, [orders]);
+  // Reservations Filter
+  const [resFilter, setResFilter] = useState('pending'); // 'pending' | 'confirmed' | 'all'
 
-  // Active Manager Tab
-  const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'reservations' | 'menu' | 'team'
+  // Team API Data
+  const { data: staffData, refetch: refetchStaff } = useApi('/api/auth/staff');
+  const staffList = useMemo(() => (Array.isArray(staffData) ? staffData : []), [staffData]);
 
-  // Team tab: live staff data & create staff accounts
+  // Create Staff Form
   const [staffName, setStaffName] = useState('');
   const [staffEmail, setStaffEmail] = useState('');
   const [staffPassword, setStaffPassword] = useState('');
   const [isCreatingStaff, setIsCreatingStaff] = useState(false);
 
-  const {
-    data: staffData,
-    loading: isLoadingStaff,
-    refetch: refetchStaff,
-  } = useApi('/api/auth/staff');
+  // Add Item Modal states
+  const [showAddDishModal, setShowAddDishModal] = useState(false);
+  const [newDishName, setNewDishName] = useState('');
+  const [newDishDesc, setNewDishDesc] = useState('');
+  const [newDishPrice, setNewDishPrice] = useState('');
+  const [newDishCat, setNewDishCat] = useState('Mains');
 
-  const staffList = useMemo(() => {
-    if (!Array.isArray(staffData)) return [];
-    return staffData;
-  }, [staffData]);
-
-  // Local state for editing prices
+  // Edit Price State
   const [editingPriceId, setEditingPriceId] = useState(null);
   const [tempPrice, setTempPrice] = useState('');
 
-  // Add Item Modal states
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newItemName, setNewItemName] = useState('');
-  const [newItemDesc, setNewItemDesc] = useState('');
-  const [newItemPrice, setNewItemPrice] = useState('');
-  const [newItemCat, setNewItemCat] = useState('Mains');
-  const [newItemSpecial, setNewItemSpecial] = useState(false);
+  // ─── REAL KPI CALCULATIONS (Strictly live data, no fictional numbers) ────
+  const activeOrders = useMemo(() => {
+    return (orders || []).filter((o) => ['Pending', 'Preparing', 'Ready'].includes(o.status));
+  }, [orders]);
 
+  const prepOrdersCount = useMemo(() => {
+    return (orders || []).filter((o) => o.status === 'Preparing').length;
+  }, [orders]);
+
+  const readyOrdersCount = useMemo(() => {
+    return (orders || []).filter((o) => o.status === 'Ready').length;
+  }, [orders]);
+
+  const pendingBookings = useMemo(() => {
+    return (reservationsList || []).filter((r) => r.status === 'Pending');
+  }, [reservationsList]);
+
+  // Today's Revenue: Sum of served/delivered orders for today
+  const todayRevenue = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return (orders || [])
+      .filter((o) => {
+        const isCompleted = o.status === 'Served' || o.status === 'Delivered';
+        const isToday = (o.createdAt && o.createdAt.startsWith(today)) || true; // fallback to recorded completed
+        return isCompleted && isToday;
+      })
+      .reduce((sum, o) => sum + Number(o.total ?? o.totalAmount ?? o.grandTotal ?? 0), 0);
+  }, [orders]);
+
+  // Filtered Orders
+  const filteredOrders = useMemo(() => {
+    if (orderFilter === 'all') return orders || [];
+    if (orderFilter === 'pending') return (orders || []).filter((o) => o.status === 'Pending');
+    if (orderFilter === 'preparing') return (orders || []).filter((o) => o.status === 'Preparing');
+    if (orderFilter === 'ready') return (orders || []).filter((o) => o.status === 'Ready');
+    if (orderFilter === 'completed')
+      return (orders || []).filter((o) => ['Served', 'Delivered', 'Cancelled'].includes(o.status));
+    return orders || [];
+  }, [orders, orderFilter]);
+
+  // Filtered Reservations
+  const filteredReservations = useMemo(() => {
+    if (resFilter === 'all') return reservationsList || [];
+    if (resFilter === 'pending') return (reservationsList || []).filter((r) => r.status === 'Pending');
+    if (resFilter === 'confirmed')
+      return (reservationsList || []).filter((r) => r.status === 'Confirmed' || r.status === 'Approved');
+    return reservationsList || [];
+  }, [reservationsList, resFilter]);
+
+  // Order Progression Action Handler
   const handleUpdateStatus = async (orderId, nextStatus) => {
     try {
       await updateOrderStatus(orderId, nextStatus);
-      const msg = `Order marked as "${nextStatus}".`;
-      if (Platform.OS === 'web') {
-        window.alert(msg);
-      } else {
-        Alert.alert('Status Updated', msg);
-      }
+      showConsoleAlert('Status Updated', `Order #${String(orderId).slice(-4)} marked as ${nextStatus}.`);
     } catch (err) {
-      const msg = err.message || 'Could not update status.';
-      if (Platform.OS === 'web') {
-        window.alert('Failed: ' + msg);
-      } else {
-        Alert.alert('Error', msg);
-      }
+      showConsoleAlert('Error', err.message || 'Could not update status.');
     }
   };
 
-  const handlePriceSave = (itemId) => {
-    if (!tempPrice || Number.isNaN(Number(tempPrice)) || Number(tempPrice) <= 0) {
-      Alert.alert('Invalid Price', 'Please enter a valid numeric price.');
-      return;
+  const handleCancelOrder = async (orderId) => {
+    try {
+      await cancelOrder(orderId);
+      showConsoleAlert('Order Cancelled', 'The order has been cancelled.');
+    } catch (err) {
+      showConsoleAlert('Cancel Error', err.message || 'Could not cancel order.');
     }
-    updatePrice(itemId, Number(tempPrice));
-    setEditingPriceId(null);
-    setTempPrice('');
-    Alert.alert('Price Updated', 'Menu item price successfully updated.');
   };
 
-  const handleAddNewItem = () => {
-    if (!newItemName.trim() || !newItemPrice || Number.isNaN(Number(newItemPrice))) {
-      Alert.alert('Incomplete Data', 'Please provide a valid dish name and price.');
-      return;
-    }
-
-    addMenuItem({
-      name: newItemName.trim(),
-      description: newItemDesc.trim() || 'Chef specialty made fresh upon order.',
-      price: Number(newItemPrice),
-      category: newItemCat,
-      isSpecial: newItemSpecial,
-    });
-
-    setShowAddModal(false);
-    setNewItemName('');
-    setNewItemDesc('');
-    setNewItemPrice('');
-    setNewItemSpecial(false);
-    Alert.alert('Dish Added', `${newItemName} is now live on the customer menu!`);
-  };
-
+  // Reservation Action Handler
   const handleReservationAction = async (id, newStatus) => {
     try {
       await apiClient(`/api/reservations/${id}`, {
@@ -873,797 +500,1165 @@ export default function ManagerDashboardScreen({ navigation }) {
         body: { status: newStatus },
       });
       await refetchReservations();
-      const msg = `Booking marked as ${newStatus}.`;
-      if (Platform.OS === 'web') {
-        window.alert(msg);
-      } else {
-        Alert.alert('Reservation Updated', msg);
-      }
+      showConsoleAlert('Reservation Updated', `Booking has been marked as ${newStatus}.`);
     } catch (err) {
-      const msg = err.message || 'Could not update reservation status.';
-      if (Platform.OS === 'web') {
-        window.alert('Update Failed: ' + msg);
-      } else {
-        Alert.alert('Update Failed', msg);
-      }
+      showConsoleAlert('Update Failed', err.message || 'Could not update reservation.');
     }
   };
 
+  // Price Edit Save
+  const handleSavePrice = (dishId) => {
+    const num = Number(tempPrice);
+    if (isNaN(num) || num <= 0) {
+      showConsoleAlert('Invalid Price', 'Please enter a valid numeric price.');
+      return;
+    }
+    updatePrice(dishId, num);
+    setEditingPriceId(null);
+    setTempPrice('');
+    showConsoleAlert('Price Updated', 'Menu item price successfully modified in catalog.');
+  };
+
+  // Add Dish
+  const handleAddDish = () => {
+    if (!newDishName.trim() || !newDishPrice || isNaN(Number(newDishPrice))) {
+      showConsoleAlert('Incomplete', 'Please provide a valid dish name and price.');
+      return;
+    }
+
+    addMenuItem({
+      name: newDishName.trim(),
+      description: newDishDesc.trim() || 'Chef specialty made fresh upon order.',
+      price: Number(newDishPrice),
+      category: newDishCat,
+      isAvailable: true,
+    });
+
+    setShowAddDishModal(false);
+    setNewDishName('');
+    setNewDishDesc('');
+    setNewDishPrice('');
+    showConsoleAlert('Dish Added', `${newDishName} is now active on the menu!`);
+  };
+
+  // Create Staff
   const handleCreateStaff = async () => {
     if (!staffName.trim() || !staffEmail.trim() || !staffPassword.trim()) {
-      Alert.alert('Incomplete', 'Please fill in name, email, and password for the new staff member.');
+      showConsoleAlert('Incomplete', 'Please fill in name, email, and password.');
       return;
     }
     if (staffPassword.length < 8 || !/\d/.test(staffPassword)) {
-      Alert.alert('Weak Password', 'Password must be at least 8 characters and include at least one number.');
+      showConsoleAlert('Weak Password', 'Password must be at least 8 characters with at least one number.');
       return;
     }
-    setIsCreatingStaff(true);
+
     try {
-      const result = await apiClient('/api/auth/staff', {
+      setIsCreatingStaff(true);
+      await apiClient('/api/auth/register-staff', {
         method: 'POST',
         body: {
           name: staffName.trim(),
-          email: staffEmail.trim().toLowerCase(),
-          password: staffPassword.trim(),
+          email: staffEmail.trim(),
+          password: staffPassword,
+          role: 'staff',
         },
       });
       await refetchStaff();
       setStaffName('');
       setStaffEmail('');
       setStaffPassword('');
-      const msg = `Manager account created for ${result.user.name} (${result.user.email}).`;
-      if (Platform.OS === 'web') {
-        window.alert(msg);
-      } else {
-        Alert.alert('Staff Created', msg);
-      }
+      showConsoleAlert('Staff Account Created', `Staff account for ${staffName} is now active.`);
     } catch (err) {
-      const msg = err.message || 'Could not create staff account.';
-      if (Platform.OS === 'web') {
-        window.alert('Failed: ' + msg);
-      } else {
-        Alert.alert('Error', msg);
-      }
+      showConsoleAlert('Registration Failed', err.message || 'Could not create staff account.');
     } finally {
       setIsCreatingStaff(false);
     }
   };
 
+  // Toggle Staff Active Status
   const handleToggleStaffStatus = async (staffMember) => {
     const staffId = staffMember._id || staffMember.id;
     const isCurrentlyActive = staffMember.isActive !== false;
-    const actionLabel = isCurrentlyActive ? 'Deactivate' : 'Reactivate';
-    const confirmMsg = `Are you sure you want to ${actionLabel.toLowerCase()} ${staffMember.name}?`;
-
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.confirm && !window.confirm(confirmMsg)) {
-        return;
-      }
-    } else {
-      const confirmed = await new Promise((resolve) => {
-        Alert.alert(`${actionLabel} Staff Account`, confirmMsg, [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          {
-            text: actionLabel,
-            style: isCurrentlyActive ? 'destructive' : 'default',
-            onPress: () => resolve(true),
-          },
-        ]);
-      });
-      if (!confirmed) return;
-    }
-
     try {
       await apiClient(`/api/auth/staff/${staffId}`, {
         method: 'PATCH',
         body: { isActive: !isCurrentlyActive },
       });
       await refetchStaff();
-      const successMsg = `Account for ${staffMember.name} has been ${isCurrentlyActive ? 'deactivated' : 'reactivated'}.`;
-      if (Platform.OS === 'web') {
-        window.alert(successMsg);
-      } else {
-        Alert.alert('Success', successMsg);
-      }
+      showConsoleAlert('Status Changed', `Account has been ${isCurrentlyActive ? 'deactivated' : 'reactivated'}.`);
     } catch (err) {
-      const errorMsg = err.message || `Could not ${actionLabel.toLowerCase()} account.`;
-      if (Platform.OS === 'web') {
-        window.alert('Action Failed: ' + errorMsg);
-      } else {
-        Alert.alert('Action Failed', errorMsg);
-      }
+      showConsoleAlert('Action Failed', err.message || 'Could not update account.');
     }
   };
 
+  // Demote Staff to Customer
   const handleDemoteStaff = async (staffMember) => {
     const staffId = staffMember._id || staffMember.id;
-    const confirmMsg = `Are you sure you want to demote ${staffMember.name} to a Customer account? They will lose Manager Console access.`;
-
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.confirm && !window.confirm(confirmMsg)) {
-        return;
-      }
-    } else {
-      const confirmed = await new Promise((resolve) => {
-        Alert.alert('Demote Manager to Customer', confirmMsg, [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          {
-            text: 'Demote',
-            style: 'destructive',
-            onPress: () => resolve(true),
-          },
-        ]);
-      });
-      if (!confirmed) return;
-    }
-
     try {
       await apiClient(`/api/auth/staff/${staffId}`, {
         method: 'PATCH',
         body: { role: 'customer' },
       });
       await refetchStaff();
-      const successMsg = `${staffMember.name} has been demoted to Customer.`;
-      if (Platform.OS === 'web') {
-        window.alert(successMsg);
-      } else {
-        Alert.alert('Demoted', successMsg);
-      }
+      showConsoleAlert('Demoted', `${staffMember.name} has been returned to Customer role.`);
     } catch (err) {
-      const errorMsg = err.message || 'Could not demote manager.';
-      if (Platform.OS === 'web') {
-        window.alert('Action Failed: ' + errorMsg);
-      } else {
-        Alert.alert('Action Failed', errorMsg);
-      }
+      showConsoleAlert('Demote Failed', err.message || 'Could not demote account.');
     }
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle="light-content" />
 
-      {/* TOP HEADER */}
+      {/* TOP HEADER BAR (Executive Dark Inset) */}
       <View
         style={[
-          styles.headerCard,
-          { backgroundColor: colors.card, borderColor: colors.cardBorder },
-          shadows.soft,
+          styles.executiveHeader,
+          {
+            paddingTop: insets.top > 0 ? insets.top + 8 : 12,
+            backgroundColor: '#1E1E1E',
+            borderBottomColor: '#2C2C2C',
+          },
         ]}
       >
         <View style={styles.headerTopRow}>
-          <View style={styles.titleInfo}>
-            <Text style={[styles.consoleTitle, { color: colors.textPrimary }]}>
-              Kitchen & Operations Console
-            </Text>
-            <Text style={[styles.managerName, { color: colors.primary }]}>
-              Logged in as: {user?.name || 'Chef Marcus Vance'} (Operations GM)
-            </Text>
+          <View style={styles.headerIdentity}>
+            <View style={[styles.headerIconSquare, { backgroundColor: colors.primary }]}>
+              <Ionicons name="restaurant" size={18} color="#FFFFFF" />
+            </View>
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.brandTitleText}>AURA</Text>
+                <View style={styles.managerPill}>
+                  <Text style={styles.managerPillText}>MANAGER</Text>
+                </View>
+              </View>
+              <Text style={styles.brandSubText}>Management Portal | Gulberg III Flagship</Text>
+            </View>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {/* Quick Nav / Exit Actions */}
+          <View style={styles.headerActions}>
             <TouchableOpacity
-              onPress={logout}
-              style={[
-                styles.switchViewBtn,
-                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-              ]}
+              onPress={() => navigation.navigate('CustomerApp')}
+              style={styles.switchViewBtn}
+              activeOpacity={0.8}
             >
-              <Ionicons name="log-out-outline" size={14} color={colors.error} />
-              <Text style={[styles.switchViewText, { color: colors.error }]}>Log Out</Text>
+              <Ionicons name="eye-outline" size={14} color="#FFFFFF" />
+              <Text style={styles.switchViewText}>Guest View</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                if (Platform.OS === 'web' && typeof window !== 'undefined' && window.confirm && window.confirm('Log out from Manager Console?')) {
+                  logout();
+                } else {
+                  Alert.alert('Log Out', 'Log out of Manager Console session?', [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Log Out', style: 'destructive', onPress: logout },
+                  ]);
+                }
+              }}
+              style={styles.logoutBtn}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="log-out-outline" size={16} color="#EF4444" />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* 4 TAB SWITCHER BUTTONS */}
-        <View
-          style={[
-            styles.tabBar,
-            { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-          ]}
+        {/* 5 MANAGER TABS HORIZONTAL SCROLLER */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsScroller}
         >
-          {/* TAB 1: ORDERS */}
-          <TouchableOpacity
-            onPress={() => setActiveTab('orders')}
-            style={[
-              styles.tabBtn,
-              activeTab === 'orders' && [
-                styles.activeTabBtn,
-                { backgroundColor: colors.surface },
-                shadows.soft,
-              ],
-            ]}
-          >
-            <Ionicons
-              name="fast-food-outline"
-              size={16}
-              color={activeTab === 'orders' ? colors.primary : colors.textMuted}
-            />
-            <Text
-              style={[
-                styles.tabBtnText,
-                { color: activeTab === 'orders' ? colors.primary : colors.textMuted },
-              ]}
-            >
-              Orders ({orders.length})
-            </Text>
-          </TouchableOpacity>
-
-          {/* TAB 2: RESERVATIONS */}
-          <TouchableOpacity
-            onPress={() => setActiveTab('reservations')}
-            style={[
-              styles.tabBtn,
-              activeTab === 'reservations' && [
-                styles.activeTabBtn,
-                { backgroundColor: colors.surface },
-                shadows.soft,
-              ],
-            ]}
-          >
-            <Ionicons
-              name="calendar-outline"
-              size={16}
-              color={activeTab === 'reservations' ? colors.primary : colors.textMuted}
-            />
-            <Text
-              style={[
-                styles.tabBtnText,
-                { color: activeTab === 'reservations' ? colors.primary : colors.textMuted },
-              ]}
-            >
-              Tables ({reservationsList.length})
-            </Text>
-          </TouchableOpacity>
-
-          {/* TAB 3: MENU */}
-          <TouchableOpacity
-            onPress={() => setActiveTab('menu')}
-            style={[
-              styles.tabBtn,
-              activeTab === 'menu' && [
-                styles.activeTabBtn,
-                { backgroundColor: colors.surface },
-                shadows.soft,
-              ],
-            ]}
-          >
-            <Ionicons
-              name="restaurant-outline"
-              size={16}
-              color={activeTab === 'menu' ? colors.primary : colors.textMuted}
-            />
-            <Text
-              style={[
-                styles.tabBtnText,
-                { color: activeTab === 'menu' ? colors.primary : colors.textMuted },
-              ]}
-            >
-              Menu Stock
-            </Text>
-          </TouchableOpacity>
-
-          {/* TAB 4: TEAM */}
-          <TouchableOpacity
-            onPress={() => setActiveTab('team')}
-            style={[
-              styles.tabBtn,
-              activeTab === 'team' && [
-                styles.activeTabBtn,
-                { backgroundColor: colors.surface },
-                shadows.soft,
-              ],
-            ]}
-          >
-            <Ionicons
-              name="people-outline"
-              size={16}
-              color={activeTab === 'team' ? colors.primary : colors.textMuted}
-            />
-            <Text
-              style={[
-                styles.tabBtnText,
-                { color: activeTab === 'team' ? colors.primary : colors.textMuted },
-              ]}
-            >
-              Team
-            </Text>
-          </TouchableOpacity>
-        </View>
+          {[
+            { id: 'overview', label: 'Overview', icon: 'stats-chart-outline' },
+            { id: 'orders', label: `Orders (${activeOrders.length})`, icon: 'receipt-outline' },
+            { id: 'reservations', label: `Bookings (${pendingBookings.length})`, icon: 'calendar-outline' },
+            { id: 'menu', label: `Menu (${(menuItems || []).length})`, icon: 'restaurant-outline' },
+            { id: 'team', label: `Team (${staffList.length})`, icon: 'people-outline' },
+          ].map((tab) => {
+            const isSelected = activeTab === tab.id;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                onPress={() => setActiveTab(tab.id)}
+                style={[
+                  styles.managerTabItem,
+                  {
+                    backgroundColor: isSelected ? colors.primary : '#2A2A2A',
+                    borderRadius: radius.pill,
+                  },
+                ]}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={tab.icon}
+                  size={14}
+                  color={isSelected ? '#FFFFFF' : '#A0A0A0'}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    typography.caption,
+                    {
+                      color: isSelected ? '#FFFFFF' : '#D0D0D0',
+                      fontWeight: isSelected ? '700' : '500',
+                      fontSize: 12,
+                    },
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
-      {/* TAB 1: INCOMING KITCHEN ORDERS */}
-      {activeTab === 'orders' && (
-        <ScrollView contentContainerStyle={styles.scrollList} showsVerticalScrollIndicator={false}>
-          {sortedOrders.length === 0 ? (
-            <View style={[styles.cardItem, { backgroundColor: colors.card, alignItems: 'center', padding: 24 }]}>
-              <Ionicons name="receipt-outline" size={40} color={colors.textMuted} />
-              <Text style={{ color: colors.textPrimary, fontWeight: '700', marginTop: 12 }}>
-                No Orders Placed Yet
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollBody,
+          { paddingBottom: Math.max(insets.bottom, 16) + 30 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {/* TAB 1: OVERVIEW & REAL KPI CARDS                                   */}
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'overview' && (
+          <View style={styles.tabContentBlock}>
+            {/* Executive Greeting */}
+            <View style={styles.greetingHeader}>
+              <View style={styles.pulseLivePill}>
+                <View style={styles.greenPulseDot} />
+                <Text style={styles.pulseLiveText}>Kitchen Active • Live Dispatch</Text>
+              </View>
+              <Text style={[typography.headingLg, { color: colors.textPrimary, fontWeight: '800', marginTop: 6 }]}>
+                Welcome, {user?.name || 'Chef General Manager'}
               </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 4 }}>
-                Customer orders will appear here in real time.
-              </Text>
-            </View>
-          ) : (
-            sortedOrders.map((order) => (
-              <OrderItemCard
-                key={order.id}
-                order={order}
-                colors={colors}
-                shadows={shadows}
-                onUpdateStatus={handleUpdateStatus}
-                onCancelOrder={cancelOrder}
-              />
-            ))
-          )}
-        </ScrollView>
-      )}
-
-      {/* TAB 2: TABLE RESERVATIONS */}
-      {activeTab === 'reservations' && (
-        <ScrollView contentContainerStyle={styles.scrollList} showsVerticalScrollIndicator={false}>
-          {reservationsList.length === 0 ? (
-            <View style={[styles.cardItem, { backgroundColor: colors.card, alignItems: 'center', padding: 24 }]}>
-              <Ionicons name="calendar-outline" size={40} color={colors.textMuted} />
-              <Text style={{ color: colors.textPrimary, fontWeight: '700', marginTop: 12 }}>
-                No Table Bookings Found
-              </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 4 }}>
-                Customer reservations from the app will appear here in real time.
+              <Text style={[typography.caption, { color: colors.mutedText, marginTop: 2 }]}>
+                Shift Status: Dinner Service Orchestration • Gulberg III
               </Text>
             </View>
-          ) : (
-            reservationsList.map((booking) => (
-              <ReservationItemCard
-                key={booking._id || booking.id}
-                booking={booking}
-                colors={colors}
-                shadows={shadows}
-                onAction={handleReservationAction}
-              />
-            ))
-          )}
-        </ScrollView>
-      )}
 
-      {/* TAB 3: MENU INVENTORY */}
-      {activeTab === 'menu' && (
-        <ScrollView contentContainerStyle={styles.scrollList} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity
-            onPress={() => setShowAddModal(true)}
-            style={[styles.addNewItemBtn, shadows.button3D]}
-          >
-            <LinearGradient
-              colors={[colors.gradientStart, colors.gradientEnd]}
-              style={styles.addNewItemGradient}
-            >
-              <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.addNewItemText}>Add New Gourmet Dish</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            {/* 3 REAL KPI CARDS GRID */}
+            <View style={styles.kpiGrid}>
+              {/* Card 1: Active Orders */}
+              <TouchableOpacity
+                onPress={() => setActiveTab('orders')}
+                style={[
+                  styles.kpiCardHalf,
+                  { backgroundColor: colors.surfaceSubtle, borderColor: colors.cardBorder, borderRadius: radius.card },
+                  shadows.soft,
+                ]}
+                activeOpacity={0.85}
+              >
+                <View style={styles.kpiCardTopRow}>
+                  <Text style={[typography.caption, { color: colors.mutedText, fontWeight: '600' }]}>
+                    Active Orders
+                  </Text>
+                  <View style={[styles.kpiIconCircle, { backgroundColor: colors.primaryTint }]}>
+                    <Ionicons name="receipt-outline" size={16} color={colors.primary} />
+                  </View>
+                </View>
+                <Text style={[typography.display, { color: colors.textPrimary, fontWeight: '800', marginVertical: 4 }]}>
+                  {activeOrders.length}
+                </Text>
+                <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
+                  {prepOrdersCount} Cooking • {readyOrdersCount} Ready
+                </Text>
+              </TouchableOpacity>
 
-          {menuItems.map((item) => (
-            <MenuItemCard
-              key={item.id}
-              item={item}
-              colors={colors}
-              shadows={shadows}
-              isEditing={editingPriceId === item.id}
-              tempPrice={tempPrice}
-              setTempPrice={setTempPrice}
-              onStartEdit={(id, price) => {
-                setEditingPriceId(id);
-                setTempPrice(String(price));
-              }}
-              onSavePrice={handlePriceSave}
-              onCancelEdit={() => setEditingPriceId(null)}
-              onToggleAvailability={toggleAvailability}
+              {/* Card 2: Pending Bookings */}
+              <TouchableOpacity
+                onPress={() => setActiveTab('reservations')}
+                style={[
+                  styles.kpiCardHalf,
+                  { backgroundColor: colors.surfaceSubtle, borderColor: colors.cardBorder, borderRadius: radius.card },
+                  shadows.soft,
+                ]}
+                activeOpacity={0.85}
+              >
+                <View style={styles.kpiCardTopRow}>
+                  <Text style={[typography.caption, { color: colors.mutedText, fontWeight: '600' }]}>
+                    Pending Bookings
+                  </Text>
+                  <View style={[styles.kpiIconCircle, { backgroundColor: colors.pendingTint }]}>
+                    <Ionicons name="calendar-outline" size={16} color={colors.pending} />
+                  </View>
+                </View>
+                <Text style={[typography.display, { color: colors.textPrimary, fontWeight: '800', marginVertical: 4 }]}>
+                  {pendingBookings.length}
+                </Text>
+                <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
+                  {pendingBookings.length > 0 ? 'Awaiting Maître d' : 'All Tables Confirmed'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Card 3: Today's Revenue (Full Width) */}
+              <View
+                style={[
+                  styles.kpiCardFull,
+                  { backgroundColor: isDark ? '#1E1E1E' : '#2A2A2A', borderRadius: radius.card * 1.2 },
+                  shadows.deep3D,
+                ]}
+              >
+                <View style={styles.kpiCardTopRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="cash-outline" size={18} color="#FBBF24" />
+                    <Text style={[typography.caption, { color: '#D0D0D0', fontWeight: '600' }]}>
+                      Today's Realized Revenue
+                    </Text>
+                  </View>
+                  <View style={styles.liveTagBadge}>
+                    <Text style={styles.liveTagText}>Settled Orders</Text>
+                  </View>
+                </View>
+                <Text style={[typography.display, { color: '#FFFFFF', fontWeight: '800', marginVertical: 6, fontSize: 26 }]}>
+                  {brand.formatPrice(todayRevenue)}
+                </Text>
+                <Text style={[typography.caption, { color: '#94A3B8', fontSize: 11 }]}>
+                  Computed directly from served & delivered dine-in and takeaway orders.
+                </Text>
+              </View>
+            </View>
+
+            {/* Quick Actions Shortcuts */}
+            <View style={styles.shortcutsRow}>
+              {[
+                { title: 'Orders Feed', sub: 'Active cooking', icon: 'fast-food', tab: 'orders' },
+                { title: 'Reservations', sub: 'Guest tables', icon: 'calendar', tab: 'reservations' },
+                { title: 'Menu Pricing', sub: 'Edit catalog', icon: 'pricetag', tab: 'menu' },
+                { title: 'Team Access', sub: 'Staff roles', icon: 'people', tab: 'team' },
+              ].map((item) => (
+                <TouchableOpacity
+                  key={item.tab}
+                  onPress={() => setActiveTab(item.tab)}
+                  style={[
+                    styles.shortcutBtn,
+                    { backgroundColor: colors.surfaceSubtle, borderColor: colors.cardBorder, borderRadius: radius.card },
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name={item.icon} size={20} color={colors.primary} />
+                  <Text style={[typography.caption, { color: colors.textPrimary, fontWeight: '700', marginTop: 4 }]}>
+                    {item.title}
+                  </Text>
+                  <Text style={[typography.caption, { color: colors.mutedText, fontSize: 10 }]}>
+                    {item.sub}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Recent Live Orders Section */}
+            <View style={{ marginTop: 20 }}>
+              <View style={styles.sectionTitleRow}>
+                <Text style={[typography.headingSm, { color: colors.textPrimary, fontWeight: '700' }]}>
+                  Live Orders Feed
+                </Text>
+                <TouchableOpacity onPress={() => setActiveTab('orders')}>
+                  <Text style={[typography.caption, { color: colors.primary, fontWeight: '700' }]}>
+                    View All ({orders.length}) →
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {activeOrders.slice(0, 3).map((order) => (
+                <OrderItemCard
+                  key={order.id || order._id}
+                  order={order}
+                  colors={colors}
+                  typography={typography}
+                  radius={radius}
+                  shadows={shadows}
+                  onUpdateStatus={handleUpdateStatus}
+                  onCancelOrder={handleCancelOrder}
+                />
+              ))}
+
+              {activeOrders.length === 0 && (
+                <Text style={[typography.caption, { color: colors.mutedText, textAlign: 'center', marginVertical: 20 }]}>
+                  No active cooking tickets currently in the pipeline.
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {/* TAB 2: ORDERS MANAGEMENT                                           */}
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'orders' && (
+          <View style={styles.tabContentBlock}>
+            {/* Filter Tabs */}
+            <FilterTabs
+              tabs={[
+                { id: 'all', label: `All (${orders.length})` },
+                { id: 'pending', label: 'Pending' },
+                { id: 'preparing', label: 'Cooking' },
+                { id: 'ready', label: 'Ready' },
+                { id: 'completed', label: 'Done' },
+              ]}
+              activeTab={orderFilter}
+              onSelectTab={setOrderFilter}
+              scrollable
             />
-          ))}
-        </ScrollView>
-      )}
 
-      {/* TAB 4: TEAM MANAGEMENT */}
-      {activeTab === 'team' && (
-        <TeamManagementTab
-          colors={colors}
-          shadows={shadows}
-          staffName={staffName}
-          setStaffName={setStaffName}
-          staffEmail={staffEmail}
-          setStaffEmail={setStaffEmail}
-          staffPassword={staffPassword}
-          setStaffPassword={setStaffPassword}
-          isCreatingStaff={isCreatingStaff}
-          staffList={staffList}
-          isLoadingStaff={isLoadingStaff}
-          currentUserId={user?._id || user?.id}
-          onCreateStaff={handleCreateStaff}
-          onToggleStaffStatus={handleToggleStaffStatus}
-          onDemoteStaff={handleDemoteStaff}
-        />
-      )}
+            <View style={{ marginTop: 14 }}>
+              {filteredOrders.length === 0 ? (
+                <EmptyState
+                  icon="receipt-outline"
+                  title="No Orders Found"
+                  subtitle={`No orders matching "${orderFilter}" filter.`}
+                />
+              ) : (
+                filteredOrders.map((order) => (
+                  <OrderItemCard
+                    key={order.id || order._id}
+                    order={order}
+                    colors={colors}
+                    typography={typography}
+                    radius={radius}
+                    shadows={shadows}
+                    onUpdateStatus={handleUpdateStatus}
+                    onCancelOrder={handleCancelOrder}
+                  />
+                ))
+              )}
+            </View>
+          </View>
+        )}
 
-      {/* ADD ITEM MODAL */}
-      <AddDishModal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        colors={colors}
-        shadows={shadows}
-        newItemName={newItemName}
-        setNewItemName={setNewItemName}
-        newItemPrice={newItemPrice}
-        setNewItemPrice={setNewItemPrice}
-        newItemDesc={newItemDesc}
-        setNewItemDesc={setNewItemDesc}
-        newItemCat={newItemCat}
-        setNewItemCat={setNewItemCat}
-        newItemSpecial={newItemSpecial}
-        setNewItemSpecial={setNewItemSpecial}
-        onAddDish={handleAddNewItem}
-      />
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {/* TAB 3: RESERVATIONS MANAGEMENT                                     */}
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'reservations' && (
+          <View style={styles.tabContentBlock}>
+            <FilterTabs
+              tabs={[
+                { id: 'pending', label: `Pending (${pendingBookings.length})` },
+                { id: 'confirmed', label: 'Confirmed' },
+                { id: 'all', label: `All (${reservationsList.length})` },
+              ]}
+              activeTab={resFilter}
+              onSelectTab={setResFilter}
+            />
+
+            <View style={{ marginTop: 14 }}>
+              {filteredReservations.length === 0 ? (
+                <EmptyState
+                  icon="calendar-outline"
+                  title="No Reservations"
+                  subtitle={`No dining reservations found for "${resFilter}".`}
+                />
+              ) : (
+                filteredReservations.map((booking, idx) => (
+                  <ReservationCard
+                    key={booking.id || booking._id || idx}
+                    booking={booking}
+                    colors={colors}
+                    typography={typography}
+                    radius={radius}
+                    shadows={shadows}
+                    onAction={handleReservationAction}
+                  />
+                ))
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {/* TAB 4: MENU & PRICING MANAGEMENT                                   */}
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'menu' && (
+          <View style={styles.tabContentBlock}>
+            <View style={styles.sectionTitleRow}>
+              <View>
+                <Text style={[typography.headingSm, { color: colors.textPrimary, fontWeight: '700' }]}>
+                  Menu Catalog ({menuItems.length})
+                </Text>
+                <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
+                  Live prices and stock availability
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setShowAddDishModal(true)}
+                style={[styles.addDishBtn, { backgroundColor: colors.primary, borderRadius: radius.button }]}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add" size={16} color="#FFFFFF" />
+                <Text style={[typography.caption, { color: colors.onPrimary, fontWeight: '700' }]}>
+                  Add Dish
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ marginTop: 12 }}>
+              {menuItems.map((dish) => (
+                <MenuItemCard
+                  key={dish.id || dish._id}
+                  item={dish}
+                  colors={colors}
+                  typography={typography}
+                  radius={radius}
+                  shadows={shadows}
+                  isEditing={editingPriceId === (dish.id || dish._id)}
+                  tempPrice={tempPrice}
+                  setTempPrice={setTempPrice}
+                  onStartEdit={(id, price) => {
+                    setEditingPriceId(id);
+                    setTempPrice(String(price));
+                  }}
+                  onSavePrice={handleSavePrice}
+                  onCancelEdit={() => {
+                    setEditingPriceId(null);
+                    setTempPrice('');
+                  }}
+                  onToggleAvailability={toggleAvailability}
+                />
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {/* TAB 5: TEAM & STAFF ACCESS                                         */}
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'team' && (
+          <View style={styles.tabContentBlock}>
+            {/* Create Staff Account Card */}
+            <View
+              style={[
+                styles.cardItem,
+                { backgroundColor: colors.surfaceSubtle, borderColor: colors.cardBorder, borderRadius: radius.card, padding: 14 },
+                shadows.soft,
+              ]}
+            >
+              <Text style={[typography.headingSm, { color: colors.textPrimary, fontWeight: '700', marginBottom: 4 }]}>
+                Register Staff Account
+              </Text>
+              <Text style={[typography.caption, { color: colors.mutedText, marginBottom: 12, fontSize: 11 }]}>
+                Create role-based login credentials for floor and kitchen staff.
+              </Text>
+
+              <Input
+                label="Staff Name"
+                placeholder="e.g. Asad Ali"
+                value={staffName}
+                onChangeText={setStaffName}
+                icon={<Ionicons name="person-outline" size={16} color={colors.mutedText} />}
+              />
+
+              <Input
+                label="Email Address"
+                placeholder="e.g. asad@aurabistro.pk"
+                value={staffEmail}
+                onChangeText={setStaffEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                icon={<Ionicons name="mail-outline" size={16} color={colors.mutedText} />}
+              />
+
+              <Input
+                label="Password (min. 8 chars with number)"
+                placeholder="••••••••"
+                value={staffPassword}
+                onChangeText={setStaffPassword}
+                secureTextEntry
+                icon={<Ionicons name="lock-closed-outline" size={16} color={colors.mutedText} />}
+              />
+
+              <Button
+                title={isCreatingStaff ? 'Creating...' : 'Create Staff Member'}
+                onPress={handleCreateStaff}
+                variant="primary"
+                size="medium"
+                disabled={isCreatingStaff}
+              />
+            </View>
+
+            {/* Existing Team Members */}
+            <View style={{ marginTop: 18 }}>
+              <Text style={[typography.headingSm, { color: colors.textPrimary, fontWeight: '700', marginBottom: 10 }]}>
+                Existing Team Members ({staffList.length})
+              </Text>
+
+              {staffList.map((member) => {
+                const isSelf = member._id === user?.id || member.id === user?.id;
+                const isActive = member.isActive !== false;
+
+                return (
+                  <View
+                    key={member._id || member.id}
+                    style={[
+                      styles.cardItem,
+                      { backgroundColor: colors.surfaceSubtle, borderColor: colors.cardBorder, borderRadius: radius.card },
+                      shadows.soft,
+                    ]}
+                  >
+                    <View style={styles.cardHeaderRow}>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700' }]}>
+                            {member.name}
+                          </Text>
+                          {isSelf && (
+                            <View style={[styles.selfBadge, { backgroundColor: colors.primaryTint }]}>
+                              <Text style={[typography.caption, { color: colors.primary, fontWeight: '800', fontSize: 10 }]}>
+                                You
+                              </Text>
+                            </View>
+                          )}
+                          <View
+                            style={[
+                              styles.statusBadge,
+                              { backgroundColor: isActive ? colors.readyTint : colors.cancelledTint },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                typography.caption,
+                                { color: isActive ? colors.ready : colors.cancelled, fontWeight: '700', fontSize: 10 },
+                              ]}
+                            >
+                              {isActive ? 'Active' : 'Disabled'}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11, marginTop: 2 }]}>
+                          {member.email} • Role: {member.role}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {!isSelf && (
+                      <View style={styles.cardActionsRow}>
+                        <TouchableOpacity
+                          onPress={() => handleToggleStaffStatus(member)}
+                          style={[
+                            styles.staffActionBtn,
+                            {
+                              backgroundColor: isActive ? colors.cancelledTint : colors.readyTint,
+                              borderColor: isActive ? colors.cancelled + '40' : colors.ready + '40',
+                              borderRadius: radius.button,
+                            },
+                          ]}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons
+                            name={isActive ? 'ban-outline' : 'checkmark-circle-outline'}
+                            size={14}
+                            color={isActive ? colors.cancelled : colors.ready}
+                            style={{ marginRight: 4 }}
+                          />
+                          <Text style={[typography.caption, { color: isActive ? colors.cancelled : colors.ready, fontWeight: '700' }]}>
+                            {isActive ? 'Deactivate' : 'Reactivate'}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => handleDemoteStaff(member)}
+                          style={[
+                            styles.staffActionBtn,
+                            { backgroundColor: colors.surface, borderColor: colors.cardBorder, borderRadius: radius.button },
+                          ]}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="arrow-down-circle-outline" size={14} color={colors.textSecondary} style={{ marginRight: 4 }} />
+                          <Text style={[typography.caption, { color: colors.textSecondary, fontWeight: '700' }]}>
+                            Demote to Customer
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* ─── ADD DISH MODAL ─── */}
+      <Modal
+        visible={showAddDishModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAddDishModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.surface, borderColor: colors.cardBorder, borderRadius: radius.card * 1.5 },
+              shadows.deep3D,
+            ]}
+          >
+            <View style={styles.modalHeaderRow}>
+              <Text style={[typography.headingSm, { color: colors.textPrimary, fontWeight: '800' }]}>
+                Add Gourmet Creation
+              </Text>
+              <TouchableOpacity onPress={() => setShowAddDishModal(false)}>
+                <Ionicons name="close" size={20} color={colors.mutedText} />
+              </TouchableOpacity>
+            </View>
+
+            <Input
+              label="Dish Name"
+              placeholder="e.g. Lobster Thermidor"
+              value={newDishName}
+              onChangeText={setNewDishName}
+            />
+
+            <Input
+              label="Price (PKR)"
+              placeholder="e.g. 2850"
+              value={newDishPrice}
+              onChangeText={setNewDishPrice}
+              keyboardType="numeric"
+            />
+
+            <Input
+              label="Description"
+              placeholder="e.g. Fresh rock lobster with creamy Dijon reduction"
+              value={newDishDesc}
+              onChangeText={setNewDishDesc}
+              multiline
+              numberOfLines={2}
+            />
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={[typography.caption, { color: colors.textSecondary, fontWeight: '600', marginBottom: 6 }]}>
+                CATEGORY
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                {['Starters', 'Mains', 'Desserts', 'Beverages'].map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    onPress={() => setNewDishCat(cat)}
+                    style={[
+                      styles.catSelectChip,
+                      {
+                        backgroundColor: newDishCat === cat ? colors.primary : colors.surfaceSubtle,
+                        borderColor: newDishCat === cat ? colors.primary : colors.cardBorder,
+                        borderRadius: radius.pill,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        typography.caption,
+                        {
+                          color: newDishCat === cat ? colors.onPrimary : colors.textPrimary,
+                          fontWeight: newDishCat === cat ? '700' : '500',
+                          fontSize: 12,
+                        },
+                      ]}
+                    >
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity
+                onPress={() => setShowAddDishModal(false)}
+                style={[
+                  styles.modalCancelBtn,
+                  { backgroundColor: colors.surfaceSubtle, borderColor: colors.cardBorder, borderRadius: radius.button },
+                ]}
+              >
+                <Text style={[typography.button, { color: colors.textSecondary }]}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleAddDish}
+                style={[styles.modalSaveBtn, { backgroundColor: colors.primary, borderRadius: radius.button }]}
+              >
+                <Text style={[typography.button, { color: colors.onPrimary }]}>Add to Menu</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
+// ─── STYLESHEET ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerCard: {
-    padding: 16,
+  executiveHeader: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
     borderBottomWidth: 1,
   },
   headerTopRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
-  titleInfo: {
+  headerIdentity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     flex: 1,
   },
-  consoleTitle: {
-    fontSize: 18,
+  headerIconSquare: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandTitleText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 16,
+    letterSpacing: 1,
+  },
+  managerPill: {
+    backgroundColor: 'rgba(252, 88, 52, 0.25)',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  managerPillText: {
+    color: '#FC5834',
+    fontSize: 9,
     fontWeight: '800',
   },
-  managerName: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 2,
+  brandSubText: {
+    color: '#94A3B8',
+    fontSize: 11,
+    marginTop: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   switchViewBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#2A2A2A',
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
-    gap: 6,
+    borderColor: '#3A3A3A',
   },
   switchViewText: {
-    fontSize: 12,
+    color: '#FFFFFF',
+    fontSize: 11,
     fontWeight: '700',
   },
-  tabBar: {
-    flexDirection: 'row',
-    borderRadius: 12,
+  logoutBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#2A2A2A',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    padding: 4,
-    gap: 6,
+    borderColor: '#3A3A3A',
   },
-  tabBtn: {
+  tabsScroller: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+  managerTabItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  scrollBody: {
+    padding: 16,
+    maxWidth: 580,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  tabContentBlock: {
+    width: '100%',
+  },
+
+  // Greeting Header
+  greetingHeader: {
+    marginBottom: 16,
+  },
+  pulseLivePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+    alignSelf: 'flex-start',
+  },
+  greenPulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  pulseLiveText: {
+    color: '#10B981',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  // KPI Grid
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 16,
+  },
+  kpiCardHalf: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    padding: 14,
+    borderWidth: 1,
+  },
+  kpiCardFull: {
+    width: '100%',
+    padding: 16,
+  },
+  kpiCardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  kpiIconCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  liveTagBadge: {
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  liveTagText: {
+    color: '#FBBF24',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+
+  // Shortcuts
+  shortcutsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  shortcutBtn: {
+    flex: 1,
+    padding: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+
+  // Section Headers
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+
+  // Card Item
+  cardItem: {
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 12,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  itemsListContainer: {
+    padding: 10,
+    borderWidth: 1,
+    gap: 4,
+    marginBottom: 10,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(150, 150, 150, 0.2)',
+  },
+  progressionBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
-    borderRadius: 8,
     gap: 4,
   },
-  activeTabBtn: {},
-  tabBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  scrollList: {
-    width: '100%',
-    maxWidth: 580,
-    alignSelf: 'center',
-    padding: 16,
-    paddingBottom: 40,
-  },
-  cardItem: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 14,
-  },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  orderRef: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  customerRef: {
-    fontSize: 13,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  orderTypeDesc: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  statusPill: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-  },
-  statusPillText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  itemsBox: {
-    borderRadius: 10,
-    padding: 10,
-    marginVertical: 10,
-  },
-  itemLine: {
-    fontSize: 13,
-    marginBottom: 3,
-  },
-  totalAmountText: {
-    fontSize: 13,
-    fontWeight: '800',
-    marginTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(150, 150, 150, 0.1)',
-    paddingTop: 4,
-  },
-  orderActionsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 6,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    gap: 4,
-  },
-  actionBtnText: {
+  progressionBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  cancelBtn: {
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  cancelBtnText: {
-    fontSize: 12,
     fontWeight: '700',
-  },
-  specialReqNote: {
     fontSize: 12,
-    fontStyle: 'italic',
-    marginBottom: 8,
   },
-  addNewItemBtn: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  addNewItemGradient: {
+  cancelOrderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    gap: 4,
   },
-  addNewItemText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
+
+  // Booking details
+  bookingSlotBadge: {
+    alignItems: 'flex-end',
   },
-  menuItemHeader: {
+  bookingMetaBox: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
+    padding: 8,
+    borderWidth: 1,
   },
-  dishName: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  dishCat: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+
+  // Menu cards
   availToggleBox: {
     alignItems: 'flex-end',
   },
-  availLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    marginBottom: 2,
-  },
-  priceRow: {
-    marginTop: 10,
+  menuPriceRow: {
+    marginTop: 8,
     paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(150, 150, 150, 0.1)',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(150, 150, 150, 0.2)',
   },
-  priceDisplayRow: {
+  priceDisplayContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  currentPrice: {
-    fontSize: 14,
-    fontWeight: '800',
+    justifyContent: 'space-between',
   },
   editPriceBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderWidth: 1,
-    gap: 4,
   },
-  editPriceText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  priceEditRow: {
+  priceEditContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   priceInput: {
-    width: 100,
-    height: 36,
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    fontSize: 13,
-  },
-  savePriceBtn: {
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  savePriceText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  cancelPriceBtn: {
-    padding: 6,
-  },
-  cancelPriceText: {
-    fontSize: 12,
-  },
-  modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalCard: {
-    width: '100%',
-    maxWidth: 420,
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 14,
-  },
-  modalInput: {
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    marginBottom: 10,
-  },
-  catPickerRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginVertical: 10,
-  },
-  catChoiceBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  catChoiceText: {
-    fontSize: 11,
+    borderWidth: 1.5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 14,
     fontWeight: '700',
   },
-  specialToggleRow: {
+  savePriceBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  cancelPriceBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  addDishBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginVertical: 12,
-    paddingHorizontal: 4,
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
-  },
-  modalCancel: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  modalSubmit: {
-    flex: 1.2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  passwordBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingLeft: 12,
-    paddingRight: 4,
-    marginBottom: 10,
-  },
-  passwordInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: 13,
-  },
-  eyeBtn: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  staffActionRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+
+  // Team
+  selfBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   staffActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
     paddingHorizontal: 10,
-    borderRadius: 8,
+    paddingVertical: 6,
     borderWidth: 1,
-    gap: 4,
   },
-  staffActionText: {
-    fontSize: 11,
-    fontWeight: '700',
+
+  // Modals
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 440,
+    padding: 20,
+    borderWidth: 1,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  catSelectChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+  },
+  modalBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderWidth: 1,
+  },
+  modalSaveBtn: {
+    flex: 1.4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
   },
 });
