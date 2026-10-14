@@ -35,6 +35,10 @@ const protect = async (req, res, next) => {
         return res.status(401).json({ message: 'User belonging to this token no longer exists' });
       }
 
+      if (req.user.isActive === false) {
+        return res.status(401).json({ message: 'Account disabled' });
+      }
+
       return next();
     } catch (error) {
       console.error('JWT Auth Error:', error.message);

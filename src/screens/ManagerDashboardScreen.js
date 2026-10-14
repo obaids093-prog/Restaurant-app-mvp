@@ -361,8 +361,12 @@ function TeamManagementTab({
   staffPassword,
   setStaffPassword,
   isCreatingStaff,
-  createdStaff,
+  staffList,
+  isLoadingStaff,
+  currentUserId,
   onCreateStaff,
+  onToggleStaffStatus,
+  onDemoteStaff,
 }) {
   const [showStaffPassword, setShowStaffPassword] = useState(false);
 
@@ -401,6 +405,8 @@ function TeamManagementTab({
           placeholderTextColor={colors.textMuted}
           value={staffName}
           onChangeText={setStaffName}
+          autoComplete="off"
+          textContentType="name"
         />
         <TextInput
           style={[
@@ -417,6 +423,8 @@ function TeamManagementTab({
           onChangeText={setStaffEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoComplete="off"
+          textContentType="emailAddress"
         />
         <View
           style={[
@@ -435,6 +443,8 @@ function TeamManagementTab({
             onChangeText={setStaffPassword}
             secureTextEntry={!showStaffPassword}
             autoCapitalize="none"
+            autoComplete="off"
+            textContentType="newPassword"
           />
           <TouchableOpacity
             onPress={() => setShowStaffPassword((prev) => !prev)}
@@ -465,37 +475,125 @@ function TeamManagementTab({
         </TouchableOpacity>
       </View>
 
-      {createdStaff.length > 0 && (
-        <View style={{ marginTop: 8 }}>
-          <Text style={[styles.consoleTitle, { color: colors.textPrimary, fontSize: 14, marginBottom: 10 }]}>
-            Recently Added Staff
+      <View style={{ marginTop: 8 }}>
+        <Text style={[styles.consoleTitle, { color: colors.textPrimary, fontSize: 14, marginBottom: 10 }]}>
+          Team Accounts {staffList && staffList.length > 0 ? `(${staffList.length})` : ''}
+        </Text>
+
+        {isLoadingStaff && (!staffList || staffList.length === 0) ? (
+          <Text style={{ color: colors.textMuted, fontSize: 12, paddingVertical: 10 }}>
+            Loading team roster...
           </Text>
-          {createdStaff.map((staff) => (
-            <View
-              key={staff._id}
-              style={[
-                styles.cardItem,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                shadows.soft,
-              ]}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={[styles.statusPill, { backgroundColor: colors.successBackground }]}>
-                  <Ionicons name="shield-checkmark" size={12} color={colors.success} />
+        ) : staffList && staffList.length > 0 ? (
+          staffList.map((staff) => {
+            const staffId = staff._id || staff.id;
+            const isSelf = String(currentUserId) === String(staffId);
+            const isActive = staff.isActive !== false;
+
+            return (
+              <View
+                key={staffId}
+                style={[
+                  styles.cardItem,
+                  { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                  shadows.soft,
+                ]}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <View
+                      style={[
+                        styles.statusPill,
+                        { backgroundColor: isActive ? colors.successBackground : colors.errorBackground },
+                      ]}
+                    >
+                      <Ionicons
+                        name={isActive ? 'shield-checkmark' : 'shield-outline'}
+                        size={12}
+                        color={isActive ? colors.success : colors.error}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={[styles.customerRef, { color: colors.textPrimary }]}>
+                          {staff.name}
+                        </Text>
+                        {isSelf && (
+                          <View
+                            style={{
+                              backgroundColor: colors.primary + '20',
+                              paddingHorizontal: 6,
+                              paddingVertical: 2,
+                              borderRadius: 6,
+                            }}
+                          >
+                            <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '800' }}>
+                              You
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={[styles.orderTypeDesc, { color: colors.textSecondary }]}>
+                        {staff.email} • {staff.role} • {isActive ? 'Active' : 'Disabled'}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.customerRef, { color: colors.textPrimary }]}>
-                    {staff.name}
-                  </Text>
-                  <Text style={[styles.orderTypeDesc, { color: colors.textSecondary }]}>
-                    {staff.email} • {staff.role}
-                  </Text>
-                </View>
+
+                {/* Staff Actions (disabled for own account) */}
+                {!isSelf && (
+                  <View style={styles.staffActionRow}>
+                    <TouchableOpacity
+                      onPress={() => onToggleStaffStatus(staff)}
+                      style={[
+                        styles.staffActionBtn,
+                        {
+                          backgroundColor: isActive ? colors.surfaceSubtle : colors.successBackground,
+                          borderColor: isActive ? colors.surfaceBorder : colors.success,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={isActive ? 'ban-outline' : 'checkmark-circle-outline'}
+                        size={13}
+                        color={isActive ? colors.error : colors.success}
+                      />
+                      <Text
+                        style={[
+                          styles.staffActionText,
+                          { color: isActive ? colors.error : colors.success },
+                        ]}
+                      >
+                        {isActive ? 'Deactivate' : 'Reactivate'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => onDemoteStaff(staff)}
+                      style={[
+                        styles.staffActionBtn,
+                        {
+                          backgroundColor: colors.surfaceSubtle,
+                          borderColor: colors.surfaceBorder,
+                        },
+                      ]}
+                    >
+                      <Ionicons name="arrow-down-circle-outline" size={13} color={colors.textSecondary} />
+                      <Text style={[styles.staffActionText, { color: colors.textSecondary }]}>
+                        Demote to Customer
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
-            </View>
-          ))}
-        </View>
-      )}
+            );
+          })
+        ) : (
+          <Text style={{ color: colors.textMuted, fontSize: 12, paddingVertical: 10 }}>
+            No team members found.
+          </Text>
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -687,12 +785,22 @@ export default function ManagerDashboardScreen({ navigation }) {
   // Active Manager Tab
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'reservations' | 'menu' | 'team'
 
-  // Team tab: create staff accounts
+  // Team tab: live staff data & create staff accounts
   const [staffName, setStaffName] = useState('');
   const [staffEmail, setStaffEmail] = useState('');
   const [staffPassword, setStaffPassword] = useState('');
   const [isCreatingStaff, setIsCreatingStaff] = useState(false);
-  const [createdStaff, setCreatedStaff] = useState([]);
+
+  const {
+    data: staffData,
+    loading: isLoadingStaff,
+    refetch: refetchStaff,
+  } = useApi('/api/auth/staff');
+
+  const staffList = useMemo(() => {
+    if (!Array.isArray(staffData)) return [];
+    return staffData;
+  }, [staffData]);
 
   // Local state for editing prices
   const [editingPriceId, setEditingPriceId] = useState(null);
@@ -800,7 +908,7 @@ export default function ManagerDashboardScreen({ navigation }) {
           password: staffPassword.trim(),
         },
       });
-      setCreatedStaff((prev) => [result.user, ...prev]);
+      await refetchStaff();
       setStaffName('');
       setStaffEmail('');
       setStaffPassword('');
@@ -819,6 +927,96 @@ export default function ManagerDashboardScreen({ navigation }) {
       }
     } finally {
       setIsCreatingStaff(false);
+    }
+  };
+
+  const handleToggleStaffStatus = async (staffMember) => {
+    const staffId = staffMember._id || staffMember.id;
+    const isCurrentlyActive = staffMember.isActive !== false;
+    const actionLabel = isCurrentlyActive ? 'Deactivate' : 'Reactivate';
+    const confirmMsg = `Are you sure you want to ${actionLabel.toLowerCase()} ${staffMember.name}?`;
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm && !window.confirm(confirmMsg)) {
+        return;
+      }
+    } else {
+      const confirmed = await new Promise((resolve) => {
+        Alert.alert(`${actionLabel} Staff Account`, confirmMsg, [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          {
+            text: actionLabel,
+            style: isCurrentlyActive ? 'destructive' : 'default',
+            onPress: () => resolve(true),
+          },
+        ]);
+      });
+      if (!confirmed) return;
+    }
+
+    try {
+      await apiClient(`/api/auth/staff/${staffId}`, {
+        method: 'PATCH',
+        body: { isActive: !isCurrentlyActive },
+      });
+      await refetchStaff();
+      const successMsg = `Account for ${staffMember.name} has been ${isCurrentlyActive ? 'deactivated' : 'reactivated'}.`;
+      if (Platform.OS === 'web') {
+        window.alert(successMsg);
+      } else {
+        Alert.alert('Success', successMsg);
+      }
+    } catch (err) {
+      const errorMsg = err.message || `Could not ${actionLabel.toLowerCase()} account.`;
+      if (Platform.OS === 'web') {
+        window.alert('Action Failed: ' + errorMsg);
+      } else {
+        Alert.alert('Action Failed', errorMsg);
+      }
+    }
+  };
+
+  const handleDemoteStaff = async (staffMember) => {
+    const staffId = staffMember._id || staffMember.id;
+    const confirmMsg = `Are you sure you want to demote ${staffMember.name} to a Customer account? They will lose Manager Console access.`;
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm && !window.confirm(confirmMsg)) {
+        return;
+      }
+    } else {
+      const confirmed = await new Promise((resolve) => {
+        Alert.alert('Demote Manager to Customer', confirmMsg, [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          {
+            text: 'Demote',
+            style: 'destructive',
+            onPress: () => resolve(true),
+          },
+        ]);
+      });
+      if (!confirmed) return;
+    }
+
+    try {
+      await apiClient(`/api/auth/staff/${staffId}`, {
+        method: 'PATCH',
+        body: { role: 'customer' },
+      });
+      await refetchStaff();
+      const successMsg = `${staffMember.name} has been demoted to Customer.`;
+      if (Platform.OS === 'web') {
+        window.alert(successMsg);
+      } else {
+        Alert.alert('Demoted', successMsg);
+      }
+    } catch (err) {
+      const errorMsg = err.message || 'Could not demote manager.';
+      if (Platform.OS === 'web') {
+        window.alert('Action Failed: ' + errorMsg);
+      } else {
+        Alert.alert('Action Failed', errorMsg);
+      }
     }
   };
 
@@ -1079,8 +1277,12 @@ export default function ManagerDashboardScreen({ navigation }) {
           staffPassword={staffPassword}
           setStaffPassword={setStaffPassword}
           isCreatingStaff={isCreatingStaff}
-          createdStaff={createdStaff}
+          staffList={staffList}
+          isLoadingStaff={isLoadingStaff}
+          currentUserId={user?._id || user?.id}
           onCreateStaff={handleCreateStaff}
+          onToggleStaffStatus={handleToggleStaffStatus}
+          onDemoteStaff={handleDemoteStaff}
         />
       )}
 
@@ -1442,5 +1644,26 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  staffActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  staffActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 4,
+  },
+  staffActionText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

@@ -16,6 +16,8 @@ const {
   updateProfile,
   deleteAccount,
   createStaffAccount,
+  getStaff,
+  updateStaff,
   sendPhoneOtp,
   verifyPhoneOtp,
 } = require('../controllers/authController');
@@ -31,7 +33,9 @@ router.delete('/profile', protect, deleteAccount);
 router.post('/phone/send-otp', sendPhoneOtp);
 router.post('/phone/verify-otp', verifyPhoneOtp);
 
-// Manager-only: create a new staff/manager account
+// Manager-only staff account management
+router.get('/staff', protect, managerOnly, getStaff);
 router.post('/staff', protect, managerOnly, createStaffAccount);
+router.patch('/staff/:id', protect, managerOnly, updateStaff);
 
 module.exports = router;

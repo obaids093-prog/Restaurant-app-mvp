@@ -118,7 +118,7 @@ The mock arrays from A1 are now fully realized as normalized MongoDB collections
 
 | Collection | Fields & Types | Relationships, Constraints & Validation Rules |
 |---|---|---|
-| **Users** (`users`) | • `_id`: ObjectId (PK)<br/>• `name`: String (Required, Trim)<br/>• `email`: String (Required, Unique, Lowercase, Trim)<br/>• `password`: String (Required, Hashed with bcrypt)<br/>• `role`: String (Enum: `['customer', 'manager']`, Default: `'customer'`)<br/>• `phone`: String (Optional, Trim, Default: `''`)<br/>• `dob`: String (Optional, Trim, Default: `''`)<br/>• `membership`: String (Default: `'Member'`)<br/>• `avatar`: String (Default: Unsplash placeholder URL)<br/>• `createdAt`: Date (Auto)<br/>• `updatedAt`: Date (Auto) | • **Unique Constraint:** `email` is indexed and unique.<br/>• **Security:** Passwords are never returned in responses.<br/>• **Parent of:** `Orders` (1:N) and `Reservations` (1:N). |
+| **Users** (`users`) | • `_id`: ObjectId (PK)<br/>• `name`: String (Required, Trim)<br/>• `email`: String (Required, Unique, Lowercase, Trim)<br/>• `password`: String (Required, Hashed with bcrypt)<br/>• `role`: String (Enum: `['customer', 'manager']`, Default: `'customer'`)<br/>• `phone`: String (Optional, Trim, Default: `''`)<br/>• `dob`: String (Optional, Trim, Default: `''`)<br/>• `membership`: String (Default: `'Member'`)<br/>• `avatar`: String (Default: Unsplash placeholder URL)<br/>• `isActive`: Boolean (Default: `true`)<br/>• `createdAt`: Date (Auto)<br/>• `updatedAt`: Date (Auto) | • **Unique Constraint:** `email` is indexed and unique.<br/>• **Security:** Passwords are never returned in responses.<br/>• **Account Status:** Disabled users (`isActive: false`) are denied login and API access with HTTP 401.<br/>• **Parent of:** `Orders` (1:N) and `Reservations` (1:N). |
 | **MenuItems** (`menuitems`) | • `_id`: ObjectId (PK)<br/>• `name`: String (Required, Trim)<br/>• `description`: String (Required, Trim)<br/>• `price`: Number (Required, Min: 0)<br/>• `category`: String (Required, Enum: `['Starters', 'Mains', 'Desserts', 'Drinks']`)<br/>• `image`: String (Required, URL format)<br/>• `isSpecial`: Boolean (Default: `false`)<br/>• `isAvailable`: Boolean (Default: `true`)<br/>• `prepTime`: String (Default: `'15 min'`)<br/>• `rating`: Number (Min: 0, Max: 5, Default: 4.8)<br/>• `tag`: String (Optional, Trim)<br/>• `createdAt` & `updatedAt`: Date | • **Validation Rule:** `price` must be non-negative (`min: [0, 'Price cannot be negative']`).<br/>• **Indexes:** Text index on `{name, description}` for search; index on `{category: 1}` for filter queries.<br/>• **Referenced by:** `Order.items.menuItem`. |
 | **Tables** (`tables`) | • `_id`: ObjectId (PK)<br/>• `tableNumber`: String (Required, Unique, Trim, e.g. `'A-01'`)<br/>• `name`: String (Required, Trim, e.g. `'Atrium Glasshouse Window'`)<br/>• `seats`: Number (Required, Min: 1)<br/>• `location`: String (Required, Trim)<br/>• `isWindow`: Boolean (Default: `false`)<br/>• `isAvailable`: Boolean (Default: `true`)<br/>• `createdAt` & `updatedAt`: Date | • **Unique Constraint:** `tableNumber` is unique across the restaurant.<br/>• **Capacity Rule:** `seats` determines maximum allowable party size.<br/>• **Referenced by:** `Reservation.table`. |
 | **Reservations** (`reservations`) | • `_id`: ObjectId (PK)<br/>• `user`: ObjectId (FK ➔ `User`, Required)<br/>• `customerName`: String (Optional, Trim)<br/>• `phone`: String (Optional, Trim)<br/>• `table`: ObjectId (FK ➔ `Table`, Required)<br/>• `date`: String (Required, Format: `YYYY-MM-DD`)<br/>• `time`: String (Required, Format: `HH:mm`)<br/>• `guests`: Number (Required, Min: 1)<br/>• `specialRequests`: String (Optional, Trim)<br/>• `status`: String (Enum: `['Pending', 'Confirmed', 'Cancelled', 'Declined']`, Default: `'Pending'`)<br/>• `createdAt` & `updatedAt`: Date (`timestamps: true`) | • **Relational Integrity:** Links `User` and `Table` documents.<br/>• **Collision Rule (Q7):** Unique compound partial index on `{table, date, time}` where `status` is `Pending` or `Confirmed` blocks double-booking with HTTP 409.<br/>• **Indexes:** `{user: 1}`, `{date: 1, time: 1}`.<br/>• **Capacity Rule:** `table.seats >= guests`. |
@@ -198,33 +198,37 @@ graph TD
 
 ## 8. API Endpoints Specification (New Section 8)
 
-The table below documents all **23 REST API endpoints** implemented in the backend server:
+The table below documents all **25 REST API endpoints** implemented in the backend server:
+
+> *Note: The SRS PDF cannot be edited directly and must be regenerated from this markdown/HTML source.*
 
 | # | HTTP Method | Endpoint Route | Access Level | Request Body (Payload) | Response Structure & Status |
 |---|---|---|---|---|---|
 | **1** | `GET` | `/api/health` | Public | None | `200 OK`: `{ "status": "ok", "time": "2026-10-07T..." }` |
 | **2** | `POST` | `/api/auth/register` | Public | `{ name, email, password, phone? }` | `201 Created`: `{ token, user: { _id, name, email, role } }`<br/>`409 Conflict`: If email exists |
-| **3** | `POST` | `/api/auth/login` | Public | `{ email, password }` | `200 OK`: `{ token, user: { _id, name, email, role } }`<br/>`401 Unauthorized`: Invalid credentials |
-| **4** | `GET` | `/api/auth/me` | Private (Customer/Manager) | None (Bearer Token) | `200 OK`: `{ user: { _id, name, email, role, phone, dob, membership, avatar } }` |
+| **3** | `POST` | `/api/auth/login` | Public | `{ email, password }` | `200 OK`: `{ token, user: { _id, name, email, role } }`<br/>`401 Unauthorized`: Invalid credentials or Account disabled |
+| **4** | `GET` | `/api/auth/me` | Private (Customer/Manager) | None (Bearer Token) | `200 OK`: `{ user: { _id, name, email, role, phone, dob, membership, avatar, isActive } }` |
 | **5** | `PUT` | `/api/auth/profile` | Private (Customer/Manager) | `{ name?, phone?, dob?, avatar? }` | `200 OK`: `{ message, user }` — Updates current user profile. |
 | **6** | `DELETE` | `/api/auth/profile` | Private (Customer/Manager) | None (Bearer Token) | `200 OK`: `{ success: true, message }` — Permanently removes user account. |
-| **7** | `POST` | `/api/auth/staff` | Private (Manager Only) | `{ name, email, password }` | `201 Created`: `{ user }` — Creates a new manager account. |
-| **8** | `POST` | `/api/auth/phone/send-otp` | Public | `{ phone }` | `200 OK`: `{ success, message, phone }` — Generates 4-digit OTP with 30s resend cooldown, prints exclusively to server console as simulated SMS. |
-| **9** | `POST` | `/api/auth/phone/verify-otp` | Public | `{ phone, otp, name? }` | `200 OK` or `201 Created`: `{ token, user, isNewUser }` — Verifies 4-digit OTP (invalidated after 3 incorrect attempts) and logs in or creates customer account. |
-| **10** | `GET` | `/api/menu` | Public | None (Optional Query: `?category=...&search=...`) | `200 OK`: Array of `MenuItem` objects |
-| **11** | `POST` | `/api/menu` | Private (Manager Only) | `{ name, description, price, category, image, isSpecial?, isAvailable?, prepTime?, rating?, tag? }` | `201 Created`: Created `MenuItem` document<br/>`403 Forbidden`: If called by customer |
-| **12** | `GET` | `/api/menu/:id` | Public | None | `200 OK`: Single `MenuItem` object<br/>`400 Bad Request`: Invalid ObjectId<br/>`404 Not Found`: Item does not exist |
-| **13** | `PUT` | `/api/menu/:id` | Private (Manager Only) | Partial updates: `{ price?, isAvailable?, ... }` | `200 OK`: Updated `MenuItem` document |
-| **14** | `DELETE` | `/api/menu/:id` | Private (Manager Only) | None | `200 OK`: `{ message: "Menu item deleted successfully" }` |
-| **15** | `GET` | `/api/tables` | Public | None | `200 OK`: Array of all dining `Table` objects |
-| **16** | `POST` | `/api/reservations` | Private (Customer/Manager) | `{ tableId, date, time, guests, specialRequests?, customerName?, phone? }` | `201 Created`: Populated `Reservation` document<br/>`409 Conflict`: Table already booked for slot |
-| **17** | `GET` | `/api/reservations` | Private (Manager Only) | None | `200 OK`: Array of all restaurant bookings |
-| **18** | `GET` | `/api/reservations/my` | Private (Customer) | None | `200 OK`: Array of customer's own bookings |
-| **19** | `PATCH` | `/api/reservations/:id` | Private (Customer/Manager) | `{ status }` (`Confirmed`, `Declined`, `Cancelled`) | `200 OK`: Updated `Reservation` — Manager sets `Confirmed`/`Declined`; customer sets only `Cancelled` on own booking. |
-| **20** | `POST` | `/api/orders` | Private (Customer/Manager) | `{ items: [{ menuItem, quantity, specialInstructions? }], orderType?, tableNumber?, notes? }` | `201 Created`: Verified `Order` document with server-computed `totalAmount` |
-| **21** | `GET` | `/api/orders` | Private (Manager Only) | None | `200 OK`: Array of all restaurant `Order` documents |
-| **22** | `GET` | `/api/orders/my` | Private (Customer) | None | `200 OK`: Array of customer's own `Order` documents |
-| **23** | `PATCH` | `/api/orders/:id/status` | Private (Customer/Manager) | `{ status }` (`Pending`, `Preparing`, `Ready`, `Served`, `Cancelled`) | `200 OK`: Updated `Order` — Manager advances status forward monotonically; customer can set only `Cancelled` on own `Pending` order within 10-minute window.<br/>`400 Bad Request`: Illegal status jump |
+| **7** | `GET` | `/api/auth/staff` | Private (Manager Only) | None (Bearer Token) | `200 OK`: `User[]` — Lists managers (`name, email, role, isActive`) without passwords. |
+| **8** | `POST` | `/api/auth/staff` | Private (Manager Only) | `{ name, email, password }` | `201 Created`: `{ user }` — Creates a new manager account. |
+| **9** | `PATCH` | `/api/auth/staff/:id` | Private (Manager Only) | `{ isActive?, role? }` | `200 OK`: `{ user }` — Updates status (deactivate/reactivate) or demotes to customer. Guarded against self-action and disabling the last manager. |
+| **10** | `POST` | `/api/auth/phone/send-otp` | Public | `{ phone }` | `200 OK`: `{ success, message, phone }` — Generates 4-digit OTP with 30s resend cooldown, prints exclusively to server console as simulated SMS. |
+| **11** | `POST` | `/api/auth/phone/verify-otp` | Public | `{ phone, otp, name? }` | `200 OK` or `201 Created`: `{ token, user, isNewUser }` — Verifies 4-digit OTP (invalidated after 3 incorrect attempts) and logs in or creates customer account. |
+| **12** | `GET` | `/api/menu` | Public | None (Optional Query: `?category=...&search=...`) | `200 OK`: Array of `MenuItem` objects |
+| **13** | `POST` | `/api/menu` | Private (Manager Only) | `{ name, description, price, category, image, isSpecial?, isAvailable?, prepTime?, rating?, tag? }` | `201 Created`: Created `MenuItem` document<br/>`403 Forbidden`: If called by customer |
+| **14** | `GET` | `/api/menu/:id` | Public | None | `200 OK`: Single `MenuItem` object<br/>`400 Bad Request`: Invalid ObjectId<br/>`404 Not Found`: Item does not exist |
+| **15** | `PUT` | `/api/menu/:id` | Private (Manager Only) | Partial updates: `{ price?, isAvailable?, ... }` | `200 OK`: Updated `MenuItem` document |
+| **16** | `DELETE` | `/api/menu/:id` | Private (Manager Only) | None | `200 OK`: `{ message: "Menu item deleted successfully" }` |
+| **17** | `GET` | `/api/tables` | Public | None | `200 OK`: Array of all dining `Table` objects |
+| **18** | `POST` | `/api/reservations` | Private (Customer/Manager) | `{ tableId, date, time, guests, specialRequests?, customerName?, phone? }` | `201 Created`: Populated `Reservation` document<br/>`409 Conflict`: Table already booked for slot |
+| **19** | `GET` | `/api/reservations` | Private (Manager Only) | None | `200 OK`: Array of all restaurant bookings |
+| **20** | `GET` | `/api/reservations/my` | Private (Customer) | None | `200 OK`: Array of customer's own bookings |
+| **21** | `PATCH` | `/api/reservations/:id` | Private (Customer/Manager) | `{ status }` (`Confirmed`, `Declined`, `Cancelled`) | `200 OK`: Updated `Reservation` — Manager sets `Confirmed`/`Declined`; customer sets only `Cancelled` on own booking. |
+| **22** | `POST` | `/api/orders` | Private (Customer/Manager) | `{ items: [{ menuItem, quantity, specialInstructions? }], orderType?, tableNumber?, notes? }` | `201 Created`: Verified `Order` document with server-computed `totalAmount` |
+| **23** | `GET` | `/api/orders` | Private (Manager Only) | None | `200 OK`: Array of all restaurant `Order` documents |
+| **24** | `GET` | `/api/orders/my` | Private (Customer) | None | `200 OK`: Array of customer's own `Order` documents |
+| **25** | `PATCH` | `/api/orders/:id/status` | Private (Customer/Manager) | `{ status }` (`Pending`, `Preparing`, `Ready`, `Served`, `Cancelled`) | `200 OK`: Updated `Order` — Manager advances status forward monotonically; customer can set only `Cancelled` on own `Pending` order within 10-minute window.<br/>`400 Bad Request`: Illegal status jump |
 
 ---
 

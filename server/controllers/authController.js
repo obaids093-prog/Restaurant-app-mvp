@@ -10,6 +10,7 @@
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 
 // Safe, non-backtracking email regular expression (prevents ReDoS)
@@ -117,6 +118,10 @@ const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    if (user.isActive === false) {
+      return res.status(401).json({ message: 'Account disabled' });
     }
 
     const token = generateToken(user._id);
@@ -335,11 +340,96 @@ const createStaffAccount = async (req, res) => {
         name: staffUser.name,
         email: staffUser.email,
         role: staffUser.role,
+        isActive: staffUser.isActive !== false,
       },
     });
   } catch (error) {
     console.error('Create Staff Error:', error);
     res.status(500).json({ message: 'Server error creating staff account' });
+  }
+};
+
+// @desc    Get all staff/manager accounts
+// @route   GET /api/auth/staff
+// @access  Private/Manager
+const getStaff = async (req, res) => {
+  try {
+    const staff = await User.find({ role: 'manager' })
+      .select('name email role isActive')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(staff);
+  } catch (error) {
+    console.error('Get Staff Error:', error);
+    res.status(500).json({ message: 'Server error retrieving staff accounts' });
+  }
+};
+
+// @desc    Update staff account (deactivate/reactivate or demote)
+// @route   PATCH /api/auth/staff/:id
+// @access  Private/Manager
+const updateStaff = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive, role } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid staff ID format' });
+    }
+
+    // Guard 1: Cannot deactivate or demote self
+    if (req.user._id.toString() === id.toString()) {
+      return res.status(400).json({ message: 'Cannot deactivate or demote your own account' });
+    }
+
+    const targetUser = await User.findById(id);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'Staff member not found' });
+    }
+
+    // Check if deactivating or demoting the last active manager
+    const willBeInactive = typeof isActive === 'boolean' ? !isActive : false;
+    const willBeDemoted = role === 'customer';
+
+    if ((willBeInactive || willBeDemoted) && targetUser.role === 'manager' && targetUser.isActive !== false) {
+      const activeManagerCount = await User.countDocuments({
+        role: 'manager',
+        isActive: { $ne: false },
+      });
+
+      if (activeManagerCount <= 1) {
+        return res.status(400).json({
+          message: 'Cannot deactivate or demote the last active manager',
+        });
+      }
+    }
+
+    if (typeof isActive === 'boolean') {
+      targetUser.isActive = isActive;
+    }
+
+    if (role) {
+      if (!['customer', 'manager'].includes(role)) {
+        return res.status(400).json({ message: 'Invalid role specified' });
+      }
+      targetUser.role = role;
+    }
+
+    await targetUser.save();
+
+    res.status(200).json({
+      user: {
+        id: targetUser._id,
+        _id: targetUser._id,
+        name: targetUser.name,
+        email: targetUser.email,
+        role: targetUser.role,
+        isActive: targetUser.isActive !== false,
+      },
+    });
+  } catch (error) {
+    console.error('Update Staff Error:', error);
+    res.status(500).json({ message: 'Server error updating staff account' });
   }
 };
 
@@ -525,6 +615,8 @@ module.exports = {
   updateProfile,
   deleteAccount,
   createStaffAccount,
+  getStaff,
+  updateStaff,
   sendPhoneOtp,
   verifyPhoneOtp,
 };
