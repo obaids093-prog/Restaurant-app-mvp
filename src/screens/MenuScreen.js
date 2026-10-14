@@ -1,5 +1,20 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+/**
+ * src/screens/MenuScreen.js
+ * ═══════════════════════════════════════════════════════════
+ * AURA Restaurant App — Artisan Culinary Menu (Home)
+ * Premium Stitch-aligned layout: Greeting, Hero Carousel with
+ * overlapping search bar, filter and favourites toggles, category
+ * circles, "Order Again" row, "Deals for You" promo cards,
+ * Top Rated row, 2-column memoised dish grid, and animated Filter Sheet.
+ * ═══════════════════════════════════════════════════════════
+ */
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from 'react';
 import {
   StyleSheet,
   View,
@@ -11,13 +26,14 @@ import {
   RefreshControl,
   StatusBar,
   Dimensions,
-  Platform,
   Alert,
   Animated,
   Image,
   Modal,
   ScrollView,
+  AccessibilityInfo,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from '../utils/SafeLinearGradient';
@@ -27,69 +43,89 @@ import { useCart } from '../context/CartContext';
 import { useMenu } from '../context/MenuContext';
 import { useOrders } from '../context/OrdersContext';
 import MenuItemCard from '../components/MenuItemCard';
+import { CategoryChip, DealCard, EmptyState } from '../components/ui';
 import { useDebounce } from '../hooks/useDebounce';
 import { useApi } from '../hooks/useApi';
+import brand from '../config/brand';
+import safeStorage from '../utils/safeStorage';
 
 const { width } = Dimensions.get('window');
+const FAVOURITES_KEY = '@aura_favourite_dish_ids';
+
 const CATEGORIES = ['All', 'Starters', 'Mains', 'Desserts', 'Drinks'];
+const CATEGORY_ICONS = {
+  All: 'restaurant',
+  Starters: 'flame',
+  Mains: 'restaurant-outline',
+  Desserts: 'ice-cream-outline',
+  Drinks: 'wine-outline',
+};
+
 const SORT_OPTIONS = [
   { id: 'default', label: 'Recommended' },
   { id: 'price-asc', label: 'Price: Low to High' },
   { id: 'price-desc', label: 'Price: High to Low' },
   { id: 'name-asc', label: 'Name: A to Z' },
+  { id: 'rating-desc', label: 'Top Rated' },
 ];
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * ARCHITECTURAL COMMENTARY: WHEN useMemo / useCallback SHOULD NOT BE USED
- * ─────────────────────────────────────────────────────────────────────────────
- * useMemo and useCallback introduce overhead: JavaScript must allocate dependency
- * arrays, retain previous values in memory, and execute shallow comparison checks
- * on every render.
- *
- * DO NOT use them for:
- * 1. Cheap primitives or trivial computations (e.g., simple string concatenation,
- *    basic arithmetic, filtering arrays with fewer than ~50 items). The overhead
- *    of cache lookup exceeds the cost of recalculation.
- * 2. Unstable dependencies: If dependencies change on every render, the memoization
- *    cache will miss every time, rendering the caching effort purely wasteful.
- * 3. Components not wrapped in React.memo: Passing a useCallback handler to a
- *    standard component provides zero performance gain because standard components
- *    re-render whenever their parent renders regardless of prop equality.
- * ─────────────────────────────────────────────────────────────────────────────
- */
+const PRICE_FILTERS = [
+  { id: 'all', label: 'All Prices' },
+  { id: 'under-1500', label: 'Under Rs. 1,500' },
+  { id: '1500-3000', label: 'Rs. 1,500 - 3,000' },
+  { id: 'above-3000', label: 'Above Rs. 3,000' },
+];
 
-const MenuHeaderRight = ({ renderCount, role, colors }) => (
-  <View style={styles.headerRightContainer}>
-    {/* Debug Render Count Label */}
-    <View style={[styles.renderBadge, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
-      <Text style={[styles.renderBadgeText, { color: colors.textMuted }]}>
-        r:{renderCount}
-      </Text>
-    </View>
-
-    {/* Role Pill */}
-    <View style={[styles.customerRolePill, { backgroundColor: colors.badge }]}>
-      <Ionicons name="sparkles" size={12} color={colors.primary} />
-      <Text style={[styles.customerRoleText, { color: colors.badgeText }]}>
-        {role === 'manager' ? 'MANAGER' : 'GUEST'}
-      </Text>
-    </View>
-  </View>
-);
+const DEALS_FOR_YOU = [
+  {
+    code: 'CHEF15',
+    discountPercent: 15,
+    description: "Chef's Tasting Reserve Special on culinary orders",
+  },
+  {
+    code: 'FEAST20',
+    discountPercent: 20,
+    description: 'Artisan Feast Celebration for gourmet dining',
+  },
+  {
+    code: 'GOURMET30',
+    discountPercent: 30,
+    description: 'VIP Connoisseur Privilege on curated trays',
+  },
+  {
+    code: 'WELCOME10',
+    discountPercent: 10,
+    description: 'Welcome Sanctuary Gift for your first order',
+  },
+];
 
 export default function MenuScreen({ navigation }) {
-  const { colors, isDark, shadows } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { colors, isDark, fonts, typography, radius, shadows } = useTheme();
   const { user } = useAuth();
-  const { addItem, totalItemCount, cartState } = useCart();
+  const { addItem, totalItemCount, cartState, applyPromo } = useCart();
   const { menuItems: contextMenuItems, syncMenuItems } = useMenu();
   const { orders } = useOrders();
 
-  const activeOrder = orders?.find((o) => ['Pending', 'Preparing', 'Ready'].includes(o.status));
-  const insets = useSafeAreaInsets();
+  // Active kitchen order for live tracking banner
+  const activeOrder = orders?.find((o) =>
+    ['Pending', 'Preparing', 'Ready'].includes(o.status)
+  );
 
+  // Completed / Past orders for "Order Again" row
+  const pastOrders = useMemo(() => {
+    return (orders || []).filter(
+      (o) => !['Pending', 'Preparing', 'Ready'].includes(o.status)
+    );
+  }, [orders]);
+
+  // Derived cart total
   const cartTotal = useMemo(
-    () => (cartState?.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0),
+    () =>
+      (cartState?.items || []).reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      ),
     [cartState?.items]
   );
 
@@ -102,34 +138,72 @@ export default function MenuScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedSort, setSelectedSort] = useState('default');
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [selectedPriceRange, setSelectedPriceRange] = useState('all');
+  const [availableOnly, setAvailableOnly] = useState(false);
+  const [specialsOnly, setSpecialsOnly] = useState(false);
+  const [favouritesOnly, setFavouritesOnly] = useState(false);
 
-  // Question 8: Single state array of favourite item IDs
-  const [favouriteIds, setFavouriteIds] = useState(['art_s1', 'art_m1', 'art_d1']);
+  // Favourites state saved to device storage
+  const [favouriteIds, setFavouriteIds] = useState([]);
 
-  // Search states & refs (Question 9: using custom useDebounce hook)
+  // Search states & refs (using custom useDebounce hook)
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedQuery = useDebounce(searchQuery, 400);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [recentSearches, setRecentSearches] = useState(['Lobster Bisque', 'Angus Tenderloin', 'Matcha', 'Fondant']);
-  const [showBackToTop, setShowBackToTop] = useState(false);
 
-  const searchInputRef = useRef(null);
-  const flatListRef = useRef(null);
-  const categoryFlatListRef = useRef(null);
-  const backToTopAnim = useRef(new Animated.Value(0)).current;
+  // Filter Sheet Modal
+  const [isFilterSheetVisible, setIsFilterSheetVisible] = useState(false);
+  const filterSheetAnim = useRef(new Animated.Value(0)).current;
+
+  // Hero carousel active index
+  const [heroIndex, setHeroIndex] = useState(0);
 
   // Explore Dish Modal state
   const [exploredItem, setExploredItem] = useState(null);
 
-  const scrollCategories = (direction) => {
-    if (categoryFlatListRef.current) {
-      categoryFlatListRef.current.scrollToOffset({
-        offset: direction === 'right' ? 240 : 0,
-        animated: true,
-      });
-    }
-  };
+  // Back to Top button animation
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const backToTopAnim = useRef(new Animated.Value(0)).current;
+
+  // Accessibility motion check
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  const flatListRef = useRef(null);
+  const searchInputRef = useRef(null);
+
+  // Check accessibility reduce motion
+  useEffect(() => {
+    let isMounted = true;
+    AccessibilityInfo.isReduceMotionEnabled?.().then((enabled) => {
+      if (isMounted) setReduceMotion(!!enabled);
+    });
+    const sub = AccessibilityInfo.addEventListener?.(
+      'reduceMotionChanged',
+      (enabled) => {
+        if (isMounted) setReduceMotion(!!enabled);
+      }
+    );
+    return () => {
+      isMounted = false;
+      sub?.remove?.();
+    };
+  }, []);
+
+  // Load favourites from safeStorage on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await safeStorage.getItem(FAVOURITES_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setFavouriteIds(parsed);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load favourites from storage', err);
+      }
+    })();
+  }, []);
 
   // Question 6 Requirement: Use custom useApi hook for data fetching
   const {
@@ -210,54 +284,9 @@ export default function MenuScreen({ navigation }) {
     }, [refetchMenu, syncMenuItems])
   );
 
-  // Update recent searches whenever debouncedQuery changes and has length > 1
-  useEffect(() => {
-    const trimmed = debouncedQuery.trim();
-    if (trimmed.length > 1) {
-      setRecentSearches((prev) => {
-        const exists = prev.filter((item) => item.toLowerCase() !== trimmed.toLowerCase());
-        return [trimmed, ...exists].slice(0, 5);
-      });
-    }
-  }, [debouncedQuery]);
-
-  // Direct search input handler - useDebounce automatically delays filtering
-  const handleSearchTextChange = (text) => {
-    setSearchQuery(text);
-  };
-
-  const handleClearSearch = () => {
-    setSearchQuery('');
-    searchInputRef.current?.focus();
-  };
-
-  const handleSelectRecentSearch = (term) => {
-    setSearchQuery(term);
-    setIsSearchFocused(false);
-  };
-
   /**
-   * ───────────────────────────────────────────────────────────────────────────
-   * WHY DERIVED DATA SHOULD NOT BE STORED IN STATE (Task 6 requirement):
-   *
-   * Storing filtered/sorted items in separate state creates redundant state
-   * synchronization bugs: any change to source data (menuItems) requires manual
-   * state updates in multiple places. If a developer forgets to sync, data drifts.
-   * Furthermore, calling setState inside an effect causes an extra cascading render
-   * cycle (render with old filtered data -> effect runs -> setState -> second render).
-   *
-   * Computing derived data synchronously with useMemo guarantees immediate
-   * mathematical consistency in a single render pass without state drift.
-   * ───────────────────────────────────────────────────────────────────────────
+   * Single useMemo for filtering and sorting dishes as required by architecture.
    */
-  const featuredItem = useMemo(() => {
-    return (
-      menuItems.find((m) => m.name?.includes('Angus')) ||
-      menuItems.find((m) => m.isSpecial && m.category === 'Mains') ||
-      menuItems[0]
-    );
-  }, [menuItems]);
-
   const displayedItems = useMemo(() => {
     let result = [...menuItems];
 
@@ -266,7 +295,31 @@ export default function MenuScreen({ navigation }) {
       result = result.filter((item) => item.category === selectedCategory);
     }
 
-    // 2. Search Query Filter
+    // 2. Favourites only filter
+    if (favouritesOnly) {
+      result = result.filter((item) => favouriteIds.includes(item.id));
+    }
+
+    // 3. Specials only filter
+    if (specialsOnly) {
+      result = result.filter((item) => item.isSpecial);
+    }
+
+    // 4. Available only filter
+    if (availableOnly) {
+      result = result.filter((item) => item.isAvailable);
+    }
+
+    // 5. Price Range filter
+    if (selectedPriceRange === 'under-1500') {
+      result = result.filter((item) => item.price < 1500);
+    } else if (selectedPriceRange === '1500-3000') {
+      result = result.filter((item) => item.price >= 1500 && item.price <= 3000);
+    } else if (selectedPriceRange === 'above-3000') {
+      result = result.filter((item) => item.price > 3000);
+    }
+
+    // 6. Search Query Filter
     if (debouncedQuery) {
       const q = debouncedQuery.toLowerCase();
       result = result.filter(
@@ -277,7 +330,7 @@ export default function MenuScreen({ navigation }) {
       );
     }
 
-    // 3. Sorting Options
+    // 7. Sorting Options
     switch (selectedSort) {
       case 'price-asc':
         result.sort((a, b) => a.price - b.price);
@@ -288,56 +341,171 @@ export default function MenuScreen({ navigation }) {
       case 'name-asc':
         result.sort((a, b) => a.name.localeCompare(b.name));
         break;
+      case 'rating-desc':
+        result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
       default:
         // Keep default curated order
         break;
     }
 
     return result;
-  }, [menuItems, selectedCategory, debouncedQuery, selectedSort]);
+  }, [
+    menuItems,
+    selectedCategory,
+    favouritesOnly,
+    favouriteIds,
+    specialsOnly,
+    availableOnly,
+    selectedPriceRange,
+    debouncedQuery,
+    selectedSort,
+  ]);
 
-  // Stable handlers passed to MenuItemCard via useCallback
+  // Chef's picks for carousel
+  const chefPicks = useMemo(() => {
+    const specials = menuItems.filter((m) => m.isSpecial);
+    if (specials.length >= 2) return specials.slice(0, 4);
+    return menuItems.slice(0, 4);
+  }, [menuItems]);
+
+  // Top rated items for horizontal list
+  const topRatedItems = useMemo(() => {
+    return [...menuItems]
+      .filter((m) => (m.rating || 0) >= 4.7)
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .slice(0, 6);
+  }, [menuItems]);
+
+  // Stable Add to Cart handler
   const handleAddToCart = useCallback(
     (item) => {
       if (!item.isAvailable) {
-        Alert.alert('Item Sold Out', `${item.name} is currently out of stock.`);
+        Alert.alert('Item Sold Out', `${item.name} is currently unavailable.`);
         return;
       }
       addItem(item);
-      Alert.alert('Added to Cart', `${item.name} (Rs. ${item.price.toLocaleString()}) added to your tray.`);
     },
     [addItem]
   );
 
+  // Toggle Favourite with safeStorage persistence
   const handleToggleFavourite = useCallback((id) => {
-    setFavouriteIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+    setFavouriteIds((prev) => {
+      const next = prev.includes(id)
+        ? prev.filter((item) => item !== id)
+        : [...prev, id];
+      safeStorage.setItem(FAVOURITES_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
   }, []);
 
-  const renderHeaderRight = useCallback(
-    () => (
-      <MenuHeaderRight
-        renderCount={renderCountRef.current}
-        role={user?.role}
-        colors={colors}
-      />
-    ),
-    [colors, user?.role]
+  // "Order Again" Reorder handler: Re-adds items through ADD_ITEM action with current prices
+  const handleReorder = useCallback(
+    (order) => {
+      let addedCount = 0;
+      let skippedItems = [];
+
+      (order.items || []).forEach((orderItem) => {
+        const dishId = orderItem.menuItem || orderItem.id || orderItem._id;
+        const currentDish = menuItems.find(
+          (m) =>
+            m.id === dishId ||
+            m._id === dishId ||
+            m.name.toLowerCase() === (orderItem.name || '').toLowerCase()
+        );
+
+        if (currentDish && currentDish.isAvailable) {
+          const qty = orderItem.quantity || 1;
+          for (let i = 0; i < qty; i++) {
+            addItem(currentDish);
+          }
+          addedCount += qty;
+        } else {
+          skippedItems.push(orderItem.name || 'Unavailable dish');
+        }
+      });
+
+      if (skippedItems.length > 0 && addedCount > 0) {
+        Alert.alert(
+          'Tray Updated',
+          `${addedCount} items re-added to your tray with current prices. Skipped unavailable: ${skippedItems.join(
+            ', '
+          )}.`
+        );
+      } else if (skippedItems.length > 0 && addedCount === 0) {
+        Alert.alert(
+          'Dishes Unavailable',
+          `The items in this order (${skippedItems.join(
+            ', '
+          )}) are currently sold out.`
+        );
+      } else if (addedCount > 0) {
+        Alert.alert(
+          'Re-added to Tray',
+          `${addedCount} items re-added at current menu prices.`
+        );
+      }
+    },
+    [menuItems, addItem]
   );
 
-  // Update Navigation Header Title with dynamic count
-  useEffect(() => {
-    navigation.setOptions({
-      title: `AURA Kitchen (${displayedItems.length})`,
-      headerRight: renderHeaderRight,
-    });
-  }, [displayedItems.length, navigation, renderHeaderRight]);
+  // Apply promo deal
+  const handleApplyDeal = useCallback(
+    (code) => {
+      try {
+        applyPromo(code);
+        Alert.alert(
+          'Promotion Applied',
+          `Voucher code "${code}" is now active on your tray!`,
+          [
+            { text: 'View Tray', onPress: () => navigation.navigate('Cart') },
+            { text: 'Continue Ordering', style: 'cancel' },
+          ]
+        );
+      } catch (err) {
+        Alert.alert('Promo Notice', err.message);
+      }
+    },
+    [applyPromo, navigation]
+  );
 
-  // Scroll Handler for Back-to-Top Button
+  // Open & Close Filter Bottom Sheet with 300ms animation
+  const openFilterSheet = () => {
+    setIsFilterSheetVisible(true);
+    Animated.timing(filterSheetAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeFilterSheet = () => {
+    Animated.timing(filterSheetAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setIsFilterSheetVisible(false);
+    });
+  };
+
+  // Reset all filters
+  const handleResetFilters = () => {
+    setSelectedCategory('All');
+    setSelectedSort('default');
+    setSelectedPriceRange('all');
+    setAvailableOnly(false);
+    setSpecialsOnly(false);
+    setFavouritesOnly(false);
+    setSearchQuery('');
+    closeFilterSheet();
+  };
+
+  // Scroll handler for Back-to-Top Button
   const handleScroll = (event) => {
     const scrollOffset = event.nativeEvent.contentOffset.y;
-    const shouldShow = scrollOffset > 300;
+    const shouldShow = scrollOffset > 400;
 
     if (shouldShow !== showBackToTop) {
       setShowBackToTop(shouldShow);
@@ -354,100 +522,72 @@ export default function MenuScreen({ navigation }) {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
 
-  const CATEGORY_ICONS = {
-    All: 'restaurant',
-    Starters: 'flame',
-    Mains: 'restaurant-outline',
-    Desserts: 'ice-cream-outline',
-    Drinks: 'wine-outline',
+  // Time-of-day greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
   };
 
-  // Category Chip Component
-  const renderCategoryChip = (cat) => {
-    const isSelected = selectedCategory === cat;
-    const count =
-      cat === 'All'
-        ? menuItems.length
-        : menuItems.filter((m) => m.category === cat).length;
+  // User display name / avatar
+  const customerFirstName = user?.name
+    ? user.name.trim().split(' ')[0]
+    : 'Esteemed Patron';
 
-    return (
-      <TouchableOpacity
-        key={cat}
-        onPress={() => setSelectedCategory(cat)}
-        style={[
-          styles.categoryChip,
-          {
-            backgroundColor: isSelected ? '#f59e0b' : colors.surface,
-            borderColor: isSelected ? '#ffc174' : colors.surfaceBorder,
-          },
-          isSelected && shadows.button3D,
-        ]}
-        activeOpacity={0.8}
-      >
-        <Ionicons
-          name={CATEGORY_ICONS[cat] || 'restaurant'}
-          size={14}
-          color={isSelected ? '#472a00' : colors.textMuted}
-          style={{ marginRight: 6 }}
+  // 2-column Memoised Grid Item
+  const renderItem = useCallback(
+    ({ item }) => {
+      const isFav = favouriteIds.includes(item.id);
+      return (
+        <MenuItemCard
+          item={item}
+          isFavourite={isFav}
+          onAddToCart={handleAddToCart}
+          onToggleFavourite={handleToggleFavourite}
+          onExplore={(dish) => setExploredItem(dish)}
+          colors={colors}
+          shadows={shadows}
+          fonts={fonts}
+          typography={typography}
+          radius={radius}
         />
-        <Text
-          style={[
-            styles.categoryChipText,
-            { color: isSelected ? '#472a00' : colors.textSecondary, fontWeight: isSelected ? '700' : '600' },
-          ]}
-        >
-          {cat}
-        </Text>
-        <View
-          style={[
-            styles.chipBadge,
-            {
-              backgroundColor: isSelected
-                ? 'rgba(71, 42, 0, 0.18)'
-                : colors.surfaceSubtle,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.chipBadgeText,
-              { color: isSelected ? '#472a00' : colors.textMuted },
-            ]}
-          >
-            {count}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+      );
+    },
+    [favouriteIds, handleAddToCart, handleToggleFavourite, colors, shadows, fonts, typography, radius]
+  );
 
-  // FlatList Render Item
-  const renderItem = ({ item }) => {
-    const isFavourite = favouriteIds.includes(item.id);
-    return (
-      <MenuItemCard
-        item={item}
-        isFavourite={isFavourite}
-        onAddToCart={handleAddToCart}
-        onToggleFavourite={handleToggleFavourite}
-        colors={colors}
-        shadows={shadows}
-      />
-    );
-  };
+  // Key extractor
+  const keyExtractor = useCallback((item) => item.id || item._id, []);
 
   // ─── LOADING STATE ────────────────────────────────────────────────────────
   if (isLoading && menuItems.length === 0) {
     return (
       <View style={[styles.stateContainer, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <View style={[styles.loadingBox, { backgroundColor: colors.card }, shadows.deep3D]}>
+        <View
+          style={[
+            styles.loadingBox,
+            { backgroundColor: colors.card, borderColor: colors.subtleBorder },
+            shadows.cardLight,
+          ]}
+        >
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.stateHeading, { color: colors.textPrimary }]}>
-            Preparing The Menu
+          <Text
+            style={[
+              styles.stateHeading,
+              { color: colors.textPrimary, fontFamily: fonts.bold },
+            ]}
+          >
+            Curating Artisan Menu
           </Text>
-          <Text style={[styles.stateSubheading, { color: colors.textSecondary }]}>
-            Fetching artisan specials and kitchen inventory...
+          <Text
+            style={[
+              styles.stateSubheading,
+              { color: colors.mutedText, fontFamily: fonts.regular },
+            ]}
+          >
+            Sourcing seasonal selections from {brand.restaurantName}...
           </Text>
         </View>
       </View>
@@ -459,25 +599,55 @@ export default function MenuScreen({ navigation }) {
     return (
       <View style={[styles.stateContainer, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <View style={[styles.loadingBox, { backgroundColor: colors.card }, shadows.deep3D]}>
-          <Ionicons name="cloud-offline-outline" size={54} color={colors.error} />
-          <Text style={[styles.stateHeading, { color: colors.textPrimary }]}>
+        <View
+          style={[
+            styles.loadingBox,
+            { backgroundColor: colors.card, borderColor: colors.subtleBorder },
+            shadows.cardLight,
+          ]}
+        >
+          <Ionicons name="cloud-offline-outline" size={54} color={colors.cancelled} />
+          <Text
+            style={[
+              styles.stateHeading,
+              { color: colors.textPrimary, fontFamily: fonts.bold },
+            ]}
+          >
             Connection Interrupted
           </Text>
-          <Text style={[styles.stateSubheading, { color: colors.textSecondary }]}>{error}</Text>
+          <Text
+            style={[
+              styles.stateSubheading,
+              { color: colors.mutedText, fontFamily: fonts.regular },
+            ]}
+          >
+            {error}
+          </Text>
           <TouchableOpacity
             onPress={() => refetchMenu()}
-            style={[styles.retryBtn, { backgroundColor: colors.primary }, shadows.button3D]}
+            style={[
+              styles.retryBtn,
+              { backgroundColor: colors.primary },
+              shadows.buttonPrimary,
+            ]}
+            activeOpacity={0.85}
           >
-            <Ionicons name="refresh" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-            <Text style={styles.retryBtnText}>Retry Fetch</Text>
+            <Ionicons name="refresh" size={18} color={colors.onPrimary} style={{ marginRight: 8 }} />
+            <Text
+              style={[
+                styles.retryBtnText,
+                { color: colors.onPrimary, fontFamily: fonts.semiBold },
+              ]}
+            >
+              Retry Menu
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
 
-  // ─── MAIN CONTENT ─────────────────────────────────────────────────────────
+  // ─── MAIN 2-COLUMN LIST WITH EXTENSIVE HEADER ─────────────────────────────
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
@@ -485,9 +655,14 @@ export default function MenuScreen({ navigation }) {
       <FlatList
         ref={flatListRef}
         data={displayedItems}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
+        numColumns={2}
+        columnWrapperStyle={styles.columnWrapper}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: insets.bottom + 100 },
+        ]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -502,47 +677,66 @@ export default function MenuScreen({ navigation }) {
           />
         }
         ListHeaderComponent={
-          <View style={styles.listHeaderWrapper}>
-            {/* Header Greeting & Loyalty Status from Stitch Design */}
-            <View style={styles.bannerRow}>
-              <View style={styles.cellarHeaderRow}>
-                <View style={styles.cellarTag}>
-                  <Ionicons name="moon-outline" size={12} color="#ffc174" />
-                  <Text style={styles.cellarTagText}>PRIVATE CELLAR EDITION</Text>
-                </View>
-
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <View style={styles.loyaltyPill}>
-                    <Ionicons name="sparkles" size={12} color="#f59e0b" />
-                    <Text style={styles.loyaltyPillText}>AURA Gold</Text>
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('Profile')}
-                    style={styles.headerProfileBadge}
-                    activeOpacity={0.8}
-                    accessibilityLabel="Open Profile"
-                  >
-                    {user?.avatar ? (
-                      <Image source={{ uri: user.avatar }} style={styles.headerAvatarImg} />
-                    ) : (
-                      <View style={[styles.headerAvatarImg, { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }]}>
-                        <Ionicons name="person" size={13} color="#FFFFFF" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                </View>
+          <View style={styles.headerContainer}>
+            {/* Top Bar: Time-of-day Greeting & Profile Initials */}
+            <View style={[styles.greetingRow, { paddingTop: insets.top + 8 }]}>
+              <View style={styles.greetingTextColumn}>
+                <Text
+                  style={[
+                    styles.greetingSubtitle,
+                    { color: colors.mutedText, fontFamily: fonts.semiBold },
+                  ]}
+                >
+                  {brand.tagline.toUpperCase()}
+                </Text>
+                <Text
+                  style={[
+                    styles.greetingTitle,
+                    { color: colors.textPrimary, fontFamily: fonts.bold },
+                  ]}
+                >
+                  {getGreeting()}, {customerFirstName}
+                </Text>
               </View>
 
-              <Text style={[styles.welcomeGreeting, { color: colors.textPrimary }]}>
-                {user?.name ? `Good Evening, ${user.name.split(' ')[0]}` : 'Good Evening, Esteemed Patron'}
-              </Text>
-              <Text style={[styles.welcomeSubtext, { color: colors.textSecondary }]}>
-                Wood-Fired Gastronomy • Rare Botanicals • Lahore Sanctuary
-              </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Profile')}
+                style={[
+                  styles.profileAvatarBadge,
+                  {
+                    backgroundColor: colors.surfaceSubtle,
+                    borderColor: colors.subtleBorder,
+                  },
+                ]}
+                activeOpacity={0.8}
+                accessibilityLabel="Open Profile"
+              >
+                <View
+                  style={[
+                    styles.avatarCircle,
+                    { backgroundColor: colors.primary },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.avatarInitials,
+                      { color: colors.onPrimary, fontFamily: fonts.bold },
+                    ]}
+                  >
+                    {user?.name
+                      ? user.name
+                          .split(' ')
+                          .map((n) => n[0])
+                          .slice(0, 2)
+                          .join('')
+                          .toUpperCase()
+                      : 'AP'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
             </View>
 
-            {/* LIVE ACTIVE ORDER TRACKING BANNER */}
+            {/* LIVE ACTIVE ORDER TRACKING BANNER (If Active Order Exists) */}
             {activeOrder && (
               <TouchableOpacity
                 onPress={() =>
@@ -556,51 +750,208 @@ export default function MenuScreen({ navigation }) {
                     backgroundColor: colors.card,
                     borderColor: colors.primary,
                   },
-                  shadows.medium3D,
+                  shadows.cardLight,
                 ]}
-                activeOpacity={0.88}
+                activeOpacity={0.9}
               >
-                <View style={styles.activeOrderPulseCircle}>
-                  <View style={styles.activeOrderGreenDot} />
+                <View
+                  style={[
+                    styles.activeOrderPulseRing,
+                    { backgroundColor: colors.primaryTint },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.activeOrderDot,
+                      { backgroundColor: colors.primary },
+                    ]}
+                  />
                 </View>
                 <View style={{ flex: 1, marginLeft: 10 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={[styles.activeOrderTitle, { color: colors.textPrimary }]}>
-                      Order in Kitchen • {activeOrder.status}
+                  <View style={styles.activeOrderHeaderRow}>
+                    <Text
+                      style={[
+                        styles.activeOrderTitle,
+                        { color: colors.textPrimary, fontFamily: fonts.semiBold },
+                      ]}
+                    >
+                      Kitchen Order • {activeOrder.status}
                     </Text>
-                    <Text style={{ fontSize: 11, fontWeight: '800', color: colors.primary }}>
+                    <Text
+                      style={[
+                        styles.activeOrderActionText,
+                        { color: colors.primary, fontFamily: fonts.bold },
+                      ]}
+                    >
                       Track Live →
                     </Text>
                   </View>
-                  <Text style={[styles.activeOrderSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
-                    {activeOrder.items?.length || 1} delicacy selection • #{String(activeOrder.id || activeOrder._id).slice(-6)}
+                  <Text
+                    style={[
+                      styles.activeOrderSubtitle,
+                      { color: colors.mutedText, fontFamily: fonts.regular },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {activeOrder.items?.length || 1} course selection • #
+                    {String(activeOrder.id || activeOrder._id).slice(-6)}
                   </Text>
                 </View>
               </TouchableOpacity>
             )}
 
-            {/* SEARCH BAR with Micro-actions */}
+            {/* HERO BANNER CAROUSEL ("Chef's Pick") */}
+            {chefPicks.length > 0 && !searchQuery && (
+              <View style={styles.heroCarouselSection}>
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  onMomentumScrollEnd={(e) => {
+                    const slideWidth = width - 32;
+                    const nextIdx = Math.round(
+                      e.nativeEvent.contentOffset.x / slideWidth
+                    );
+                    setHeroIndex(nextIdx);
+                  }}
+                  contentContainerStyle={styles.heroScrollContent}
+                >
+                  {chefPicks.map((pick) => (
+                    <TouchableOpacity
+                      key={pick.id}
+                      activeOpacity={0.94}
+                      onPress={() => setExploredItem(pick)}
+                      style={[
+                        styles.heroCardSlide,
+                        {
+                          width: width - 32,
+                          backgroundColor: colors.card,
+                          borderColor: colors.subtleBorder,
+                        },
+                        shadows.cardLight,
+                      ]}
+                    >
+                      <Image
+                        source={{ uri: pick.image }}
+                        style={styles.heroImage}
+                        resizeMode="cover"
+                      />
+                      <LinearGradient
+                        colors={['transparent', 'rgba(0,0,0,0.85)']}
+                        style={styles.heroImageGradient}
+                      />
+
+                      {/* Exclusive Reserve Tag */}
+                      <View style={styles.heroTagRow}>
+                        <View
+                          style={[
+                            styles.heroTagBadge,
+                            { backgroundColor: colors.primary },
+                          ]}
+                        >
+                          <Ionicons name="sparkles" size={11} color={colors.onPrimary} />
+                          <Text
+                            style={[
+                              styles.heroTagText,
+                              { color: colors.onPrimary, fontFamily: fonts.bold },
+                            ]}
+                          >
+                            {brand.heroBanner.tag.toUpperCase()}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Hero Slide Details */}
+                      <View style={styles.heroOverlayContent}>
+                        <View style={styles.heroTextCol}>
+                          <Text
+                            style={[
+                              styles.heroSubtitleText,
+                              { color: colors.secondary, fontFamily: fonts.medium },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            Chef's Curated Selection
+                          </Text>
+                          <Text
+                            style={[
+                              styles.heroTitleText,
+                              { color: colors.onPrimary, fontFamily: fonts.bold },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {pick.name}
+                          </Text>
+                        </View>
+
+                        <View style={styles.heroPriceCol}>
+                          <Text
+                            style={[
+                              styles.heroPriceAmount,
+                              { color: colors.onPrimary, fontFamily: fonts.bold },
+                            ]}
+                          >
+                            Rs. {pick.price.toLocaleString()}
+                          </Text>
+                          <View
+                            style={[
+                              styles.heroExploreButton,
+                              { backgroundColor: colors.primary },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.heroExploreBtnText,
+                                { color: colors.onPrimary, fontFamily: fonts.semiBold },
+                              ]}
+                            >
+                              Explore
+                            </Text>
+                            <Ionicons name="arrow-forward" size={12} color={colors.onPrimary} />
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                {/* Hero Carousel Dots */}
+                <View style={styles.heroDotsRow}>
+                  {chefPicks.map((_, i) => (
+                    <View
+                      key={`hdot-${i}`}
+                      style={[
+                        styles.heroDot,
+                        {
+                          backgroundColor:
+                            heroIndex === i ? colors.primary : colors.subtleBorder,
+                          width: heroIndex === i ? 20 : 6,
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* OVERLAPPING SEARCH BAR WITH FILTER & FAVOURITES ICONS */}
             <View
               style={[
                 styles.searchBarWrapper,
+                !searchQuery && chefPicks.length > 0 && styles.overlappingSearchBar,
                 {
                   backgroundColor: colors.surface,
-                  borderColor: isSearchFocused ? colors.primary : colors.surfaceBorder,
+                  borderColor: colors.subtleBorder,
                 },
-                shadows.subtle3D,
+                shadows.cardLight,
               ]}
             >
-              <TouchableOpacity
-                onPress={() => searchInputRef.current?.focus()}
-                activeOpacity={0.7}
-                style={styles.searchIconBtn}
-              >
-                <Ionicons
-                  name="search"
-                  size={18}
-                  color={isSearchFocused ? colors.primary : colors.textMuted}
-                />
-              </TouchableOpacity>
+              <Ionicons
+                name="search"
+                size={18}
+                color={colors.mutedText}
+                style={styles.searchLeadingIcon}
+              />
 
               <TextInput
                 ref={searchInputRef}
@@ -608,310 +959,796 @@ export default function MenuScreen({ navigation }) {
                   styles.searchInput,
                   {
                     color: colors.textPrimary,
+                    fontFamily: fonts.regular,
                   },
                 ]}
-                placeholder="Search infusions, wood-fired cuts, pairings..."
-                placeholderTextColor={colors.textMuted}
+                placeholder="Search exquisite dishes, pairings..."
+                placeholderTextColor={colors.mutedText}
                 value={searchQuery}
-                onChangeText={handleSearchTextChange}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setIsSearchFocused(false)}
+                onChangeText={setSearchQuery}
                 returnKeyType="search"
               />
 
-              {searchQuery.length > 0 ? (
+              {searchQuery.length > 0 && (
                 <TouchableOpacity
-                  onPress={handleClearSearch}
-                  style={styles.clearBtn}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  onPress={() => setSearchQuery('')}
+                  style={styles.searchActionBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                  <Ionicons name="close-circle" size={18} color={colors.mutedText} />
                 </TouchableOpacity>
-              ) : (
-                <View style={styles.searchMicroActions}>
-                  <TouchableOpacity
-                    style={styles.searchMicroBtn}
-                    onPress={() => Alert.alert('AURA Voice Search', 'Listening for culinary pairing requests...')}
-                  >
-                    <Ionicons name="mic-outline" size={17} color={colors.textMuted} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.searchMicroBtn,
-                      styles.searchTuneBtn,
-                      { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-                    ]}
-                    onPress={() => setShowSortDropdown(!showSortDropdown)}
-                  >
-                    <Ionicons name="options-outline" size={15} color={colors.primary} />
-                  </TouchableOpacity>
-                </View>
               )}
-            </View>
 
-            {/* FEATURED SPOTLIGHT HERO CARD */}
-            {!searchQuery && selectedCategory === 'All' && (
-              <View style={styles.heroCardContainer}>
-                <View style={[styles.heroCard, shadows.deep3D]}>
-                  <View style={styles.heroImageWrapper}>
-                    <Image
-                      source={{
-                        uri: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80',
-                      }}
-                      style={styles.heroImage}
-                      resizeMode="cover"
-                    />
-                    <View style={styles.heroImageGradient} />
-                    <View style={styles.heroBadgeTopLeft}>
-                      <Ionicons name="sparkles" size={12} color="#ffc174" />
-                      <Text style={styles.heroBadgeTopLeftText}>SIGNATURE CHEF TASTING</Text>
-                    </View>
-                    <View style={styles.heroBadgeTopRight}>
-                      <Ionicons name="leaf" size={11} color="#4edea3" />
-                      <Text style={styles.heroBadgeTopRightText}>A5 Miyazaki</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.heroContent}>
-                    <View style={styles.heroTitleRow}>
-                      <Text style={styles.heroTitle}>
-                        {featuredItem?.name || 'Prime Black Angus Tenderloin'}
-                      </Text>
-                      <Text style={styles.heroPrice}>
-                        Rs. {(featuredItem?.price || 3650).toLocaleString()}
-                      </Text>
-                    </View>
-                    <Text style={styles.heroDescription} numberOfLines={2}>
-                      Charcoal-grilled center-cut beef tenderloin, roasted bone marrow jus, wild maitake mushrooms, and truffled potato mousseline.
-                    </Text>
-                    <View style={styles.heroFooter}>
-                      <View style={styles.heroMetaRow}>
-                        <View style={styles.heroMetaChip}>
-                          <Text style={styles.heroMetaChipText}>Wine Pairing No. 4</Text>
-                        </View>
-                        <Text style={styles.heroPrepText}>• 24 min prep</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={styles.heroExploreBtn}
-                        onPress={() => {
-                          const featured =
-                            menuItems.find((m) => m.name?.includes('Angus')) ||
-                            menuItems.find((m) => m.isSpecial && m.category === 'Mains') ||
-                            menuItems[0] || {
-                              name: 'Prime Black Angus Tenderloin',
-                              price: 3650,
-                              category: 'Mains',
-                              isAvailable: true,
-                              description: 'Charcoal-grilled center-cut beef tenderloin, roasted bone marrow jus, wild maitake mushrooms, and truffled potato mousseline.',
-                              image: 'https://images.unsplash.com/photo-1558030006-450675393462?w=600&auto=format&fit=crop',
-                              prepTime: '24 min',
-                              pairing: 'Wine Pairing No. 4 (Cellar Reserve)',
-                              chefStory: 'Handcrafted by Executive Chef Farhan using prime dry-aged tenderloin slow-glazed over artisanal Bincho-tan charcoal.',
-                            };
-                          setExploredItem(featured);
-                        }}
-                        activeOpacity={0.88}
-                      >
-                        <LinearGradient
-                          colors={['#f59e0b', '#ffc174']}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.heroExploreGradient}
-                        >
-                          <Text style={styles.heroExploreText}>Explore Dish</Text>
-                          <Ionicons name="arrow-forward" size={13} color="#472a00" />
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {/* RECENT SEARCH SUGGESTIONS */}
-            {isSearchFocused && !searchQuery && recentSearches.length > 0 && (
-              <View style={styles.recentSearchesBox}>
-                <Text style={[styles.recentTitle, { color: colors.textMuted }]}>
-                  RECENT CULINARY SEARCHES
-                </Text>
-                <View style={styles.recentChipsRow}>
-                  {recentSearches.map((term) => (
-                    <TouchableOpacity
-                      key={term}
-                      onPress={() => handleSelectRecentSearch(term)}
-                      style={[
-                        styles.recentChip,
-                        { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-                      ]}
-                    >
-                      <Ionicons name="time-outline" size={12} color={colors.primary} />
-                      <Text style={[styles.recentChipText, { color: colors.textPrimary }]}>
-                        {term}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* HORIZONTAL CATEGORY CHIPS WITH NAVIGATION ARROWS */}
-            <View style={styles.categoryScrollContainer}>
+              {/* Filter Sheet Trigger Icon */}
               <TouchableOpacity
-                onPress={() => scrollCategories('left')}
+                onPress={openFilterSheet}
                 style={[
-                  styles.categoryArrowBtn,
-                  { backgroundColor: colors.surface, borderColor: colors.surfaceBorder },
-                  shadows.subtle3D,
-                ]}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="chevron-back" size={14} color={colors.primary} />
-              </TouchableOpacity>
-
-              <FlatList
-                ref={categoryFlatListRef}
-                horizontal
-                data={CATEGORIES}
-                keyExtractor={(cat) => cat}
-                renderItem={({ item }) => renderCategoryChip(item)}
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chipsList}
-              />
-
-              <TouchableOpacity
-                onPress={() => scrollCategories('right')}
-                style={[
-                  styles.categoryArrowBtn,
-                  { backgroundColor: colors.surface, borderColor: colors.surfaceBorder },
-                  shadows.subtle3D,
-                ]}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-              </TouchableOpacity>
-            </View>
-
-            {/* SORTING CONTROLS BAR (Task 6) */}
-            <View style={styles.sortBar}>
-              <Text style={[styles.sortLabel, { color: colors.textMuted }]}>
-                Showing {displayedItems.length} artisan culinary creations
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => setShowSortDropdown(!showSortDropdown)}
-                style={[
-                  styles.sortButton,
-                  { backgroundColor: colors.surface, borderColor: colors.surfaceBorder },
+                  styles.searchActionBtn,
+                  styles.searchDividerBtn,
+                  {
+                    backgroundColor: colors.surfaceSubtle,
+                    borderColor: colors.subtleBorder,
+                  },
                 ]}
                 activeOpacity={0.8}
+                accessibilityLabel="Open Filter Sheet"
               >
-                <Ionicons name="swap-vertical" size={14} color={colors.primary} />
-                <Text style={[styles.sortButtonText, { color: colors.textPrimary }]}>
-                  {SORT_OPTIONS.find((s) => s.id === selectedSort)?.label}
-                </Text>
+                <Ionicons name="options-outline" size={18} color={colors.textPrimary} />
+              </TouchableOpacity>
+
+              {/* Favourites Only Filter Icon */}
+              <TouchableOpacity
+                onPress={() => setFavouritesOnly(!favouritesOnly)}
+                style={[
+                  styles.searchActionBtn,
+                  {
+                    backgroundColor: favouritesOnly
+                      ? colors.cancelledTint
+                      : colors.surfaceSubtle,
+                    borderColor: favouritesOnly
+                      ? colors.cancelled
+                      : colors.subtleBorder,
+                  },
+                ]}
+                activeOpacity={0.8}
+                accessibilityLabel="Toggle Favourites"
+              >
                 <Ionicons
-                  name={showSortDropdown ? 'chevron-up' : 'chevron-down'}
-                  size={14}
-                  color={colors.textMuted}
+                  name={favouritesOnly ? 'heart' : 'heart-outline'}
+                  size={18}
+                  color={favouritesOnly ? colors.cancelled : colors.mutedText}
                 />
               </TouchableOpacity>
             </View>
 
-            {/* SORT SELECTION DROPDOWN */}
-            {showSortDropdown && (
-              <View
-                style={[
-                  styles.sortDropdown,
-                  { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                  shadows.medium3D,
-                ]}
+            {/* CATEGORY CIRCLES */}
+            <View style={styles.categorySection}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryScrollContent}
               >
-                {SORT_OPTIONS.map((opt) => {
-                  const isOptSelected = selectedSort === opt.id;
+                {CATEGORIES.map((cat) => {
+                  const isActive = selectedCategory === cat;
                   return (
-                    <TouchableOpacity
-                      key={opt.id}
-                      onPress={() => {
-                        setSelectedSort(opt.id);
-                        setShowSortDropdown(false);
-                      }}
+                    <CategoryChip
+                      key={cat}
+                      label={cat}
+                      active={isActive}
+                      onPress={() => setSelectedCategory(cat)}
+                      icon={
+                        <Ionicons
+                          name={CATEGORY_ICONS[cat] || 'restaurant'}
+                          size={22}
+                          color={isActive ? colors.onPrimary : colors.mutedText}
+                        />
+                      }
+                    />
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* "ORDER AGAIN" ROW (From past orders, shown only if user has any) */}
+            {pastOrders.length > 0 && selectedCategory === 'All' && !searchQuery && (
+              <View style={styles.sectionContainer}>
+                <View style={styles.sectionHeaderRow}>
+                  <View style={styles.sectionTitleWithBadge}>
+                    <Text
                       style={[
-                        styles.sortDropdownItem,
-                        isOptSelected && { backgroundColor: colors.surfaceSubtle },
+                        styles.sectionTitle,
+                        { color: colors.textPrimary, fontFamily: fonts.bold },
+                      ]}
+                    >
+                      Order Again
+                    </Text>
+                    <View
+                      style={[
+                        styles.sectionCounterBadge,
+                        { backgroundColor: colors.primaryTint },
                       ]}
                     >
                       <Text
                         style={[
-                          styles.sortItemText,
-                          {
-                            color: isOptSelected ? colors.primary : colors.textPrimary,
-                            fontWeight: isOptSelected ? '700' : '500',
-                          },
+                          styles.sectionCounterText,
+                          { color: colors.primary, fontFamily: fonts.semiBold },
                         ]}
                       >
-                        {opt.label}
+                        {pastOrders.length} Past
                       </Text>
-                      {isOptSelected && (
-                        <Ionicons name="checkmark" size={16} color={colors.primary} />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
+                    </View>
+                  </View>
+                </View>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalScrollContent}
+                >
+                  {pastOrders.slice(0, 5).map((order) => {
+                    const itemCount = order.items?.reduce(
+                      (acc, i) => acc + (i.quantity || 1),
+                      0
+                    ) || 1;
+                    const itemNames = (order.items || [])
+                      .map((i) => i.name)
+                      .filter(Boolean)
+                      .join(' • ');
+
+                    return (
+                      <View
+                        key={order.id || order._id}
+                        style={[
+                          styles.orderAgainCard,
+                          {
+                            backgroundColor: colors.card,
+                            borderColor: colors.subtleBorder,
+                          },
+                          shadows.cardLight,
+                        ]}
+                      >
+                        <View style={styles.orderAgainHeader}>
+                          <Text
+                            style={[
+                              styles.orderAgainDate,
+                              { color: colors.mutedText, fontFamily: fonts.medium },
+                            ]}
+                          >
+                            Order #{String(order.id || order._id).slice(-5)}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.orderAgainAmount,
+                              { color: colors.primary, fontFamily: fonts.bold },
+                            ]}
+                          >
+                            Rs. {(order.total || 0).toLocaleString()}
+                          </Text>
+                        </View>
+
+                        <Text
+                          style={[
+                            styles.orderAgainItems,
+                            { color: colors.textPrimary, fontFamily: fonts.regular },
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {itemNames || `${itemCount} items selection`}
+                        </Text>
+
+                        <TouchableOpacity
+                          onPress={() => handleReorder(order)}
+                          style={[
+                            styles.reorderBtn,
+                            { backgroundColor: colors.primary },
+                          ]}
+                          activeOpacity={0.85}
+                          accessibilityLabel="Re-add order items to tray"
+                        >
+                          <Ionicons
+                            name="repeat"
+                            size={14}
+                            color={colors.onPrimary}
+                            style={{ marginRight: 6 }}
+                          />
+                          <Text
+                            style={[
+                              styles.reorderBtnText,
+                              { color: colors.onPrimary, fontFamily: fonts.semiBold },
+                            ]}
+                          >
+                            Reorder ({itemCount})
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
               </View>
             )}
+
+            {/* "DEALS FOR YOU" PROMO CARDS */}
+            {selectedCategory === 'All' && !searchQuery && (
+              <View style={styles.sectionContainer}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: colors.textPrimary, fontFamily: fonts.bold },
+                    ]}
+                  >
+                    Deals for You
+                  </Text>
+                  <Text
+                    style={[
+                      styles.sectionSubtitle,
+                      { color: colors.mutedText, fontFamily: fonts.medium },
+                    ]}
+                  >
+                    Tap to apply voucher
+                  </Text>
+                </View>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalScrollContent}
+                >
+                  {DEALS_FOR_YOU.map((deal) => {
+                    const isApplied = cartState?.promoCode === deal.code;
+                    return (
+                      <DealCard
+                        key={deal.code}
+                        code={deal.code}
+                        discountPercent={deal.discountPercent}
+                        description={deal.description}
+                        isApplied={isApplied}
+                        onApply={() => handleApplyDeal(deal.code)}
+                        style={styles.dealCardItem}
+                      />
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* "TOP RATED" ROW */}
+            {topRatedItems.length > 0 && selectedCategory === 'All' && !searchQuery && (
+              <View style={styles.sectionContainer}>
+                <View style={styles.sectionHeaderRow}>
+                  <View style={styles.sectionTitleWithBadge}>
+                    <Text
+                      style={[
+                        styles.sectionTitle,
+                        { color: colors.textPrimary, fontFamily: fonts.bold },
+                      ]}
+                    >
+                      Top Rated
+                    </Text>
+                    <View
+                      style={[
+                        styles.sectionCounterBadge,
+                        { backgroundColor: colors.surfaceSubtle },
+                      ]}
+                    >
+                      <Ionicons name="star" size={11} color={colors.secondary} />
+                      <Text
+                        style={[
+                          styles.sectionCounterText,
+                          { color: colors.textSecondary, fontFamily: fonts.semiBold },
+                        ]}
+                      >
+                        Curated
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalScrollContent}
+                >
+                  {topRatedItems.map((dish) => (
+                    <TouchableOpacity
+                      key={`top-${dish.id}`}
+                      activeOpacity={0.92}
+                      onPress={() => setExploredItem(dish)}
+                      style={[
+                        styles.topRatedCard,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.subtleBorder,
+                        },
+                        shadows.cardLight,
+                      ]}
+                    >
+                      <View style={styles.topRatedImageContainer}>
+                        <Image
+                          source={{ uri: dish.image }}
+                          style={styles.topRatedImage}
+                          resizeMode="cover"
+                        />
+                        <View
+                          style={[
+                            styles.topRatedScorePill,
+                            {
+                              backgroundColor: colors.surface,
+                              borderColor: colors.subtleBorder,
+                            },
+                          ]}
+                        >
+                          <Ionicons name="star" size={10} color={colors.secondary} />
+                          <Text
+                            style={[
+                              styles.topRatedScoreText,
+                              { color: colors.textPrimary, fontFamily: fonts.bold },
+                            ]}
+                          >
+                            {dish.rating}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.topRatedDetails}>
+                        <Text
+                          style={[
+                            styles.topRatedDishName,
+                            { color: colors.textPrimary, fontFamily: fonts.semiBold },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {dish.name}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.topRatedDishDesc,
+                            { color: colors.mutedText, fontFamily: fonts.regular },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {dish.description}
+                        </Text>
+
+                        <View style={styles.topRatedFooter}>
+                          <Text
+                            style={[
+                              styles.topRatedPrice,
+                              { color: colors.primary, fontFamily: fonts.bold },
+                            ]}
+                          >
+                            Rs. {dish.price.toLocaleString()}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => handleAddToCart(dish)}
+                            style={[
+                              styles.topRatedAddBtn,
+                              { backgroundColor: colors.primary },
+                            ]}
+                            activeOpacity={0.85}
+                            accessibilityLabel={`Add ${dish.name} to tray`}
+                          >
+                            <Ionicons name="add" size={16} color={colors.onPrimary} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* ARTISAN REPERTOIRE SECTION TITLE (Grid Header) */}
+            <View style={styles.gridSectionHeader}>
+              <View>
+                <Text
+                  style={[
+                    styles.gridSectionTitle,
+                    { color: colors.textPrimary, fontFamily: fonts.bold },
+                  ]}
+                >
+                  {favouritesOnly ? 'Your Favourites' : 'Artisan Repertoire'}
+                </Text>
+                <Text
+                  style={[
+                    styles.gridSectionSubtitle,
+                    { color: colors.mutedText, fontFamily: fonts.regular },
+                  ]}
+                >
+                  Showing {displayedItems.length} {selectedCategory === 'All' ? 'creations' : selectedCategory.toLowerCase()}
+                </Text>
+              </View>
+
+              {/* Active Filter Indicators */}
+              {(selectedSort !== 'default' || selectedPriceRange !== 'all' || availableOnly || specialsOnly) && (
+                <TouchableOpacity
+                  onPress={handleResetFilters}
+                  style={[
+                    styles.activeFiltersPill,
+                    { backgroundColor: colors.primaryTint, borderColor: colors.primary },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.activeFiltersPillText,
+                      { color: colors.primary, fontFamily: fonts.medium },
+                    ]}
+                  >
+                    Reset Filters
+                  </Text>
+                  <Ionicons name="close-circle" size={14} color={colors.primary} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         }
         ListEmptyComponent={
-          <View style={[styles.emptyContainer, { backgroundColor: colors.card }, shadows.soft]}>
-            <Ionicons name="search-outline" size={48} color={colors.textMuted} />
-            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-              No Matches Found
-            </Text>
-            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-              No items match "{debouncedQuery || searchQuery}" in {selectedCategory}.
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                handleClearSearch();
-                setSelectedCategory('All');
-                setSelectedSort('default');
-              }}
-              style={[styles.resetSearchBtn, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}
-            >
-              <Text style={[styles.resetSearchText, { color: colors.primary }]}>
-                Reset Filter & Search
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            icon={favouritesOnly ? 'heart-dislike-outline' : 'search-outline'}
+            title={favouritesOnly ? 'No Favourites Saved' : 'No Dishes Found'}
+            description={
+              favouritesOnly
+                ? 'Tap the heart icon on any culinary dish to build your personal sanctuary collection.'
+                : `No creations match your search "${searchQuery}" or selected filters.`
+            }
+            actionLabel="Reset Filter & Search"
+            onAction={handleResetFilters}
+            style={{ marginVertical: 32 }}
+          />
         }
       />
 
       {/* FLOATING GLASS ORDER CART PILL */}
       {totalItemCount > 0 && (
-        <View style={[styles.floatingCartWrapper, { bottom: 24 + insets.bottom }]} pointerEvents="box-none">
+        <View
+          style={[styles.floatingCartWrapper, { bottom: 20 + insets.bottom }]}
+          pointerEvents="box-none"
+        >
           <TouchableOpacity
-            style={[styles.floatingCartPill, shadows.goldGlow || shadows.button3D]}
+            style={[
+              styles.floatingCartPill,
+              { backgroundColor: colors.card, borderColor: colors.subtleBorder },
+              shadows.cardLight,
+            ]}
             onPress={() => navigation.navigate('Cart')}
             activeOpacity={0.9}
+            accessibilityLabel={`View Tray with ${totalItemCount} items`}
           >
-            <View style={styles.cartPillBag}>
-              <Ionicons name="bag-handle" size={17} color="#472a00" />
-              <View style={styles.cartCountBadge}>
-                <Text style={styles.cartCountBadgeText}>{totalItemCount}</Text>
+            <View style={[styles.cartPillBag, { backgroundColor: colors.primary }]}>
+              <Ionicons name="bag-handle" size={16} color={colors.onPrimary} />
+              <View
+                style={[
+                  styles.cartCountBadge,
+                  { backgroundColor: colors.secondary },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.cartCountBadgeText,
+                    { color: colors.onPrimary, fontFamily: fonts.bold },
+                  ]}
+                >
+                  {totalItemCount}
+                </Text>
               </View>
             </View>
+
             <View style={styles.cartPillTextGroup}>
-              <Text style={styles.cartPillItemsLabel}>
-                {totalItemCount} {totalItemCount === 1 ? 'item' : 'items'} selected
+              <Text
+                style={[
+                  styles.cartPillItemsLabel,
+                  { color: colors.textPrimary, fontFamily: fonts.semiBold },
+                ]}
+              >
+                {totalItemCount} {totalItemCount === 1 ? 'item' : 'items'} in Tray
               </Text>
-              <Text style={styles.cartPillTotalLabel}>
+              <Text
+                style={[
+                  styles.cartPillTotalLabel,
+                  { color: colors.primary, fontFamily: fonts.bold },
+                ]}
+              >
                 Rs. {cartTotal.toLocaleString()}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#a08e7a" />
+
+            <View
+              style={[
+                styles.cartPillActionCircle,
+                { backgroundColor: colors.surfaceSubtle },
+              ]}
+            >
+              <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+            </View>
           </TouchableOpacity>
         </View>
       )}
+
+      {/* ANIMATED FILTER BOTTOM SHEET MODAL */}
+      <Modal
+        visible={isFilterSheetVisible}
+        transparent
+        animationType="none"
+        onRequestClose={closeFilterSheet}
+      >
+        <View style={styles.filterModalOverlay}>
+          {/* Backdrop */}
+          <TouchableOpacity
+            style={styles.filterBackdrop}
+            activeOpacity={1}
+            onPress={closeFilterSheet}
+          />
+
+          {/* Sliding Sheet */}
+          <Animated.View
+            style={[
+              styles.filterSheetCard,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.subtleBorder,
+                paddingBottom: insets.bottom + 20,
+                transform: [
+                  {
+                    translateY: filterSheetAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [600, 0],
+                    }),
+                  },
+                ],
+              },
+              shadows.cardLight,
+            ]}
+          >
+            <View style={styles.filterHandleBar}>
+              <View
+                style={[
+                  styles.filterHandle,
+                  { backgroundColor: colors.subtleBorder },
+                ]}
+              />
+            </View>
+
+            <View style={styles.filterHeaderRow}>
+              <Text
+                style={[
+                  styles.filterSheetTitle,
+                  { color: colors.textPrimary, fontFamily: fonts.bold },
+                ]}
+              >
+                Filter Repertoire
+              </Text>
+              <TouchableOpacity onPress={closeFilterSheet}>
+                <Ionicons name="close" size={22} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.filterScrollBody}
+            >
+              {/* Sort By Section */}
+              <Text
+                style={[
+                  styles.filterSectionHeading,
+                  { color: colors.mutedText, fontFamily: fonts.semiBold },
+                ]}
+              >
+                SORT BY
+              </Text>
+              <View style={styles.filterOptionsGrid}>
+                {SORT_OPTIONS.map((opt) => {
+                  const isSelected = selectedSort === opt.id;
+                  return (
+                    <TouchableOpacity
+                      key={opt.id}
+                      onPress={() => setSelectedSort(opt.id)}
+                      style={[
+                        styles.filterChip,
+                        {
+                          backgroundColor: isSelected
+                            ? colors.primary
+                            : colors.surfaceSubtle,
+                          borderColor: isSelected
+                            ? colors.primary
+                            : colors.subtleBorder,
+                        },
+                      ]}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          {
+                            color: isSelected
+                              ? colors.onPrimary
+                              : colors.textPrimary,
+                            fontFamily: isSelected
+                              ? fonts.semiBold
+                              : fonts.regular,
+                          },
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Price Range Section */}
+              <Text
+                style={[
+                  styles.filterSectionHeading,
+                  { color: colors.mutedText, fontFamily: fonts.semiBold, marginTop: 18 },
+                ]}
+              >
+                PRICE RANGE
+              </Text>
+              <View style={styles.filterOptionsGrid}>
+                {PRICE_FILTERS.map((p) => {
+                  const isSelected = selectedPriceRange === p.id;
+                  return (
+                    <TouchableOpacity
+                      key={p.id}
+                      onPress={() => setSelectedPriceRange(p.id)}
+                      style={[
+                        styles.filterChip,
+                        {
+                          backgroundColor: isSelected
+                            ? colors.primary
+                            : colors.surfaceSubtle,
+                          borderColor: isSelected
+                            ? colors.primary
+                            : colors.subtleBorder,
+                        },
+                      ]}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          {
+                            color: isSelected
+                              ? colors.onPrimary
+                              : colors.textPrimary,
+                            fontFamily: isSelected
+                              ? fonts.semiBold
+                              : fonts.regular,
+                          },
+                        ]}
+                      >
+                        {p.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Availability & Specials Toggles */}
+              <Text
+                style={[
+                  styles.filterSectionHeading,
+                  { color: colors.mutedText, fontFamily: fonts.semiBold, marginTop: 18 },
+                ]}
+              >
+                PREFERENCES
+              </Text>
+              <View style={styles.filterToggleRow}>
+                <TouchableOpacity
+                  onPress={() => setAvailableOnly(!availableOnly)}
+                  style={[
+                    styles.filterToggleCard,
+                    {
+                      backgroundColor: availableOnly
+                        ? colors.primaryTint
+                        : colors.surfaceSubtle,
+                      borderColor: availableOnly
+                        ? colors.primary
+                        : colors.subtleBorder,
+                    },
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name={availableOnly ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={18}
+                    color={availableOnly ? colors.primary : colors.mutedText}
+                  />
+                  <Text
+                    style={[
+                      styles.filterToggleText,
+                      {
+                        color: availableOnly ? colors.primary : colors.textPrimary,
+                        fontFamily: fonts.medium,
+                      },
+                    ]}
+                  >
+                    Available Dishes Only
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setSpecialsOnly(!specialsOnly)}
+                  style={[
+                    styles.filterToggleCard,
+                    {
+                      backgroundColor: specialsOnly
+                        ? colors.primaryTint
+                        : colors.surfaceSubtle,
+                      borderColor: specialsOnly
+                        ? colors.primary
+                        : colors.subtleBorder,
+                    },
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name={specialsOnly ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={18}
+                    color={specialsOnly ? colors.primary : colors.mutedText}
+                  />
+                  <Text
+                    style={[
+                      styles.filterToggleText,
+                      {
+                        color: specialsOnly ? colors.primary : colors.textPrimary,
+                        fontFamily: fonts.medium,
+                      },
+                    ]}
+                  >
+                    Chef Specials Only
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+
+            {/* Filter Actions */}
+            <View
+              style={[
+                styles.filterActionFooter,
+                { borderTopColor: colors.subtleBorder },
+              ]}
+            >
+              <TouchableOpacity
+                onPress={handleResetFilters}
+                style={[
+                  styles.filterResetBtn,
+                  { borderColor: colors.subtleBorder },
+                ]}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.filterResetBtnText,
+                    { color: colors.mutedText, fontFamily: fonts.semiBold },
+                  ]}
+                >
+                  Reset
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={closeFilterSheet}
+                style={[
+                  styles.filterApplyBtn,
+                  { backgroundColor: colors.primary },
+                  shadows.buttonPrimary,
+                ]}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    styles.filterApplyBtnText,
+                    { color: colors.onPrimary, fontFamily: fonts.semiBold },
+                  ]}
+                >
+                  Apply Filters ({displayedItems.length})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
 
       {/* EXPLORE DISH CULINARY MODAL */}
       <Modal
@@ -924,8 +1761,8 @@ export default function MenuScreen({ navigation }) {
           <View
             style={[
               styles.modalCard,
-              { backgroundColor: colors.card, borderColor: colors.cardBorder },
-              shadows.deep3D,
+              { backgroundColor: colors.card, borderColor: colors.subtleBorder },
+              shadows.cardLight,
             ]}
           >
             {/* Modal Image Header */}
@@ -940,88 +1777,157 @@ export default function MenuScreen({ navigation }) {
                 resizeMode="cover"
               />
               <TouchableOpacity
-                style={styles.modalCloseCircle}
+                style={[
+                  styles.modalCloseCircle,
+                  { backgroundColor: colors.surface },
+                ]}
                 onPress={() => setExploredItem(null)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="close" size={18} color="#FFFFFF" />
+                <Ionicons name="close" size={18} color={colors.textPrimary} />
               </TouchableOpacity>
-              <View style={styles.modalImageBadge}>
-                <Ionicons name="sparkles" size={12} color="#ffc174" />
-                <Text style={styles.modalImageBadgeText}>CHEF SPECIALTY</Text>
+              <View
+                style={[
+                  styles.modalImageBadge,
+                  { backgroundColor: colors.primary },
+                ]}
+              >
+                <Ionicons name="sparkles" size={11} color={colors.onPrimary} />
+                <Text
+                  style={[
+                    styles.modalImageBadgeText,
+                    { color: colors.onPrimary, fontFamily: fonts.bold },
+                  ]}
+                >
+                  ARTISAN CUT
+                </Text>
               </View>
             </View>
 
             {/* Modal Scrollable Details */}
-            <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.modalScrollBody}
+              showsVerticalScrollIndicator={false}
+            >
               <View style={styles.modalHeaderRow}>
                 <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={[styles.modalItemCategory, { color: colors.primary }]}>
-                    {exploredItem?.category?.toUpperCase() || 'MAINS'} • ARTISAN CUT
+                  <Text
+                    style={[
+                      styles.modalItemCategory,
+                      { color: colors.primary, fontFamily: fonts.semiBold },
+                    ]}
+                  >
+                    {exploredItem?.category?.toUpperCase() || 'MAINS'}
                   </Text>
-                  <Text style={[styles.modalItemTitle, { color: colors.textPrimary }]}>
+                  <Text
+                    style={[
+                      styles.modalItemTitle,
+                      { color: colors.textPrimary, fontFamily: fonts.bold },
+                    ]}
+                  >
                     {exploredItem?.name}
                   </Text>
                 </View>
-                <Text style={[styles.modalItemPrice, { color: colors.primary }]}>
+                <Text
+                  style={[
+                    styles.modalItemPrice,
+                    { color: colors.primary, fontFamily: fonts.bold },
+                  ]}
+                >
                   Rs. {exploredItem?.price?.toLocaleString()}
                 </Text>
               </View>
 
-              <Text style={[styles.modalItemDescription, { color: colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.modalItemDescription,
+                  { color: colors.textSecondary, fontFamily: fonts.regular },
+                ]}
+              >
                 {exploredItem?.description}
               </Text>
 
               {/* Culinary Pairing & Prep Badges */}
               <View style={styles.modalMetaRow}>
-                <View style={[styles.modalMetaChip, { backgroundColor: colors.surfaceSubtle }]}>
-                  <Ionicons name="wine-outline" size={14} color={colors.primary} />
-                  <Text style={[styles.modalMetaChipText, { color: colors.textPrimary }]}>
-                    Cellar Wine Pairing
+                <View
+                  style={[
+                    styles.modalMetaChip,
+                    {
+                      backgroundColor: colors.surfaceSubtle,
+                      borderColor: colors.subtleBorder,
+                    },
+                  ]}
+                >
+                  <Ionicons name="time-outline" size={13} color={colors.primary} />
+                  <Text
+                    style={[
+                      styles.modalMetaChipText,
+                      { color: colors.textPrimary, fontFamily: fonts.medium },
+                    ]}
+                  >
+                    {exploredItem?.prepTime || '15-20 min'}
                   </Text>
                 </View>
-                <View style={[styles.modalMetaChip, { backgroundColor: colors.surfaceSubtle }]}>
-                  <Ionicons name="flame-outline" size={14} color="#f59e0b" />
-                  <Text style={[styles.modalMetaChipText, { color: colors.textPrimary }]}>
-                    Wood-Fired Oak
-                  </Text>
-                </View>
-                <View style={[styles.modalMetaChip, { backgroundColor: colors.surfaceSubtle }]}>
-                  <Ionicons name="time-outline" size={14} color="#10B981" />
-                  <Text style={[styles.modalMetaChipText, { color: colors.textPrimary }]}>
-                    8-10 Min Prep
-                  </Text>
-                </View>
-              </View>
 
-              {/* Chef Notes / Story */}
-              <View style={[styles.chefStoryBox, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
-                <View style={styles.chefStoryHeader}>
-                  <Ionicons name="restaurant" size={14} color={colors.primary} />
-                  <Text style={[styles.chefStoryTitle, { color: colors.primary }]}>
-                    EXECUTIVE CHEF NOTES
-                  </Text>
-                </View>
-                <Text style={[styles.chefStoryText, { color: colors.textSecondary }]}>
-                  {exploredItem?.chefStory ||
-                    'Crafted fresh with seasonal farm botanicals, slow-braised to preserve delicate aromatics and rich umami.'}
-                </Text>
+                {exploredItem?.rating && (
+                  <View
+                    style={[
+                      styles.modalMetaChip,
+                      {
+                        backgroundColor: colors.surfaceSubtle,
+                        borderColor: colors.subtleBorder,
+                      },
+                    ]}
+                  >
+                    <Ionicons name="star" size={12} color={colors.secondary} />
+                    <Text
+                      style={[
+                        styles.modalMetaChipText,
+                        { color: colors.textPrimary, fontFamily: fonts.medium },
+                      ]}
+                    >
+                      {exploredItem.rating} Rating
+                    </Text>
+                  </View>
+                )}
               </View>
             </ScrollView>
 
             {/* Modal Actions Footer */}
-            <View style={[styles.modalFooter, { borderTopColor: colors.surfaceBorder }]}>
+            <View
+              style={[
+                styles.modalFooter,
+                { borderTopColor: colors.subtleBorder },
+              ]}
+            >
               <TouchableOpacity
-                style={[styles.modalSecondaryBtn, { borderColor: colors.surfaceBorder }]}
+                style={[
+                  styles.modalSecondaryBtn,
+                  { borderColor: colors.subtleBorder },
+                ]}
                 onPress={() => setExploredItem(null)}
               >
-                <Text style={[styles.modalSecondaryBtnText, { color: colors.textSecondary }]}>
-                  Close
+                <Text
+                  style={[
+                    styles.modalSecondaryBtnText,
+                    { color: colors.mutedText, fontFamily: fonts.medium },
+                  ]}
+                >
+                  Back
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalAddBtn, { backgroundColor: colors.primary }, shadows.button3D]}
+                style={[
+                  styles.modalAddBtn,
+                  {
+                    backgroundColor: exploredItem?.isAvailable
+                      ? colors.primary
+                      : colors.disabled,
+                  },
+                  exploredItem?.isAvailable && shadows.buttonPrimary,
+                ]}
+                disabled={!exploredItem?.isAvailable}
                 onPress={() => {
                   if (exploredItem) {
                     handleAddToCart(exploredItem);
@@ -1030,9 +1936,21 @@ export default function MenuScreen({ navigation }) {
                 }}
                 activeOpacity={0.85}
               >
-                <Ionicons name="bag-add" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                <Text style={styles.modalAddBtnText}>
-                  Add to Tray • Rs. {exploredItem?.price?.toLocaleString()}
+                <Ionicons
+                  name={exploredItem?.isAvailable ? 'bag-add' : 'ban'}
+                  size={16}
+                  color={colors.onPrimary}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.modalAddBtnText,
+                    { color: colors.onPrimary, fontFamily: fonts.semiBold },
+                  ]}
+                >
+                  {exploredItem?.isAvailable
+                    ? `Add to Tray • Rs. ${exploredItem?.price?.toLocaleString()}`
+                    : 'Sold Out'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1044,7 +1962,7 @@ export default function MenuScreen({ navigation }) {
       <Animated.View
         style={[
           styles.floatingBackToTop,
-          { bottom: 90 + insets.bottom },
+          { bottom: 85 + insets.bottom },
           {
             transform: [
               { scale: backToTopAnim },
@@ -1056,15 +1974,16 @@ export default function MenuScreen({ navigation }) {
               },
             ],
           },
-          shadows.button3D,
+          shadows.buttonPrimary,
         ]}
       >
         <TouchableOpacity
           onPress={scrollToTop}
           style={[styles.backToTopButton, { backgroundColor: colors.primary }]}
           activeOpacity={0.85}
+          accessibilityLabel="Back to top"
         >
-          <Ionicons name="chevron-up" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-up" size={22} color={colors.onPrimary} />
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -1075,6 +1994,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  listContent: {
+    paddingBottom: 40,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+  },
+  headerContainer: {
+    paddingBottom: 8,
+  },
   stateContainer: {
     flex: 1,
     alignItems: 'center',
@@ -1083,563 +2012,595 @@ const styles = StyleSheet.create({
   },
   loadingBox: {
     width: '100%',
-    maxWidth: 380,
-    borderRadius: 24,
-    padding: 32,
+    maxWidth: 360,
+    borderRadius: 20,
+    padding: 28,
     alignItems: 'center',
-    textAlign: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(230, 81, 0, 0.15)',
   },
   stateHeading: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 18,
     marginTop: 16,
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   stateSubheading: {
-    fontSize: 14,
+    fontSize: 13,
     textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
+    marginTop: 6,
+    lineHeight: 19,
   },
   retryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 14,
-    marginTop: 20,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    height: 44,
+    borderRadius: 12,
+    marginTop: 18,
   },
   retryBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
   },
-  headerRightContainer: {
+
+  // Greeting Row
+  greetingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 14,
-    gap: 8,
-  },
-  renderBadge: {
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  renderBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-  },
-  customerRolePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  customerRoleText: {
-    fontSize: 10,
-    fontWeight: '800',
-    marginLeft: 4,
-    letterSpacing: 0.6,
-  },
-  listContent: {
-    width: '100%',
-    maxWidth: 580,
-    alignSelf: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 80,
+    paddingBottom: 14,
   },
-  listHeaderWrapper: {
-    paddingTop: 12,
-    paddingBottom: 8,
+  greetingTextColumn: {
+    flex: 1,
   },
-  bannerRow: {
-    marginBottom: 14,
-    paddingHorizontal: 4,
+  greetingSubtitle: {
+    fontSize: 10,
+    letterSpacing: 1.2,
+    marginBottom: 2,
   },
-  bannerBadgeRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
-  },
-  halalBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 4,
-  },
-  halalBadgeText: {
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.6,
-  },
-  welcomeGreeting: {
-    fontSize: 24,
-    fontWeight: '800',
+  greetingTitle: {
+    fontSize: 22,
     letterSpacing: -0.4,
   },
-  welcomeSubtext: {
-    fontSize: 13,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  searchBarWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1.5,
-    paddingHorizontal: 12,
-    height: 48,
-    marginBottom: 12,
-  },
-  searchIconBtn: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: 14,
-    fontWeight: '500',
-    paddingVertical: 0,
-    ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
-  },
-  clearBtn: {
-    padding: 4,
-  },
-  recentSearchesBox: {
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  recentTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-    marginBottom: 6,
-  },
-  recentChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  recentChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
+  profileAvatarBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
-  },
-  recentChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  chipsContainer: {
-    marginBottom: 12,
-  },
-  chipsList: {
-    paddingVertical: 4,
-    gap: 8,
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1.5,
-  },
-  categoryChipText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  chipBadge: {
-    marginLeft: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  chipBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  sortBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
-    marginBottom: 10,
-  },
-  sortLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    gap: 6,
-  },
-  sortButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  sortDropdown: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 6,
-    marginBottom: 12,
-  },
-  sortDropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  sortItemText: {
-    fontSize: 13,
-  },
-  emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
-    borderRadius: 20,
-    marginTop: 16,
+    marginLeft: 12,
   },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 18,
-  },
-  resetSearchBtn: {
-    marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  resetSearchText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-
-  // Stitch AI Header elements
-  cellarHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  cellarTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  cellarTagText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#ffc174',
-    letterSpacing: 1.5,
-  },
-  loyaltyPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 3,
-    paddingHorizontal: 9,
-    borderRadius: 999,
-    backgroundColor: '#262a33',
-    gap: 4,
-  },
-  loyaltyPillText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#ffc174',
-  },
-  headerProfileBadge: {
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#f59e0b',
-    overflow: 'hidden',
-  },
-  headerAvatarImg: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  searchMicroActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  searchMicroBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  avatarCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  searchTuneBtn: {
-    backgroundColor: '#262a33',
+  avatarInitials: {
+    fontSize: 13,
+    letterSpacing: 0.5,
   },
 
-  // Featured Hero Card
-  heroCardContainer: {
+  // Active Order Banner
+  activeOrderBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
     marginBottom: 16,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
   },
-  heroCard: {
+  activeOrderPulseRing: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeOrderDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  activeOrderHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  activeOrderTitle: {
+    fontSize: 13,
+  },
+  activeOrderActionText: {
+    fontSize: 11,
+  },
+  activeOrderSubtitle: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+
+  // Hero Carousel
+  heroCarouselSection: {
+    marginBottom: 4,
+  },
+  heroScrollContent: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  heroCardSlide: {
+    height: 200,
     borderRadius: 20,
-    backgroundColor: '#1c2028',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 193, 116, 0.1)',
-  },
-  heroImageWrapper: {
-    height: 180,
-    width: '100%',
     position: 'relative',
-    backgroundColor: '#0a0e16',
   },
   heroImage: {
     width: '100%',
     height: '100%',
   },
   heroImageGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(15, 19, 28, 0.25)',
+    ...StyleSheet.absoluteFillObject,
   },
-  heroBadgeTopLeft: {
+  heroTagRow: {
     position: 'absolute',
-    top: 10,
-    left: 10,
+    top: 12,
+    left: 12,
+    zIndex: 2,
+  },
+  heroTagBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(10, 14, 22, 0.8)',
-  },
-  heroBadgeTopLeftText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#ffc174',
-    letterSpacing: 1,
-  },
-  heroBadgeTopRight: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderRadius: 12,
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(10, 14, 22, 0.8)',
   },
-  heroBadgeTopRightText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#4edea3',
-  },
-  heroContent: {
-    padding: 14,
-  },
-  heroTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 4,
-  },
-  heroTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#dfe2ee',
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  heroPrice: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#ffc174',
-  },
-  heroDescription: {
-    fontSize: 12,
-    color: '#d8c3ad',
-    lineHeight: 16,
-    marginBottom: 10,
-  },
-  heroFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  heroMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  heroMetaChip: {
-    paddingVertical: 2,
-    paddingHorizontal: 7,
-    borderRadius: 6,
-    backgroundColor: '#262a33',
-  },
-  heroMetaChipText: {
+  heroTagText: {
     fontSize: 10,
-    color: '#d8c3ad',
-    fontWeight: '600',
+    letterSpacing: 0.6,
   },
-  heroPrepText: {
-    fontSize: 10,
-    color: '#a08e7a',
-  },
-  heroExploreBtn: {
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  heroExploreGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    gap: 5,
-  },
-  heroExploreText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#472a00',
-  },
-
-  // Floating Order Cart Pill
-  floatingCartWrapper: {
+  heroOverlayContent: {
     position: 'absolute',
-    bottom: 24,
-    left: 20,
-    right: 20,
+    bottom: 12,
+    left: 14,
+    right: 14,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    zIndex: 2,
+  },
+  heroTextCol: {
+    flex: 1,
+    marginRight: 10,
+  },
+  heroSubtitleText: {
+    fontSize: 11,
+    letterSpacing: 0.4,
+  },
+  heroTitleText: {
+    fontSize: 18,
+    marginTop: 2,
+  },
+  heroPriceCol: {
     alignItems: 'flex-end',
   },
-  // Floating Back To Top button
-  floatingBackToTop: {
-    position: 'absolute',
-    bottom: 90,
-    right: 20,
-    zIndex: 10,
+  heroPriceAmount: {
+    fontSize: 16,
+    marginBottom: 4,
   },
-  backToTopButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  heroExploreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    gap: 4,
+  },
+  heroExploreBtnText: {
+    fontSize: 11,
+  },
+  heroDotsRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  heroDot: {
+    height: 6,
+    borderRadius: 3,
+  },
+
+  // Overlapping Search Bar
+  searchBarWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    paddingHorizontal: 12,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  overlappingSearchBar: {
+    marginTop: -20,
+    zIndex: 10,
+  },
+  searchLeadingIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 13,
+  },
+  searchActionBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+    borderWidth: 1,
+  },
+  searchDividerBtn: {
+    borderLeftWidth: 1,
+  },
+
+  // Category Circles
+  categorySection: {
+    marginBottom: 16,
+  },
+  categoryScrollContent: {
+    paddingHorizontal: 8,
+  },
+
+  // Sections (Order Again, Deals, Top Rated)
+  sectionContainer: {
+    marginBottom: 20,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
+  sectionTitleWithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    letterSpacing: -0.2,
+  },
+  sectionSubtitle: {
+    fontSize: 11,
+  },
+  sectionCounterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    gap: 4,
+  },
+  sectionCounterText: {
+    fontSize: 11,
+  },
+  horizontalScrollContent: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+
+  // Order Again Card
+  orderAgainCard: {
+    width: 220,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    justifyContent: 'space-between',
+  },
+  orderAgainHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  orderAgainDate: {
+    fontSize: 11,
+  },
+  orderAgainAmount: {
+    fontSize: 13,
+  },
+  orderAgainItems: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 12,
+    minHeight: 34,
+  },
+  reorderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 34,
+    borderRadius: 10,
+    width: '100%',
+  },
+  reorderBtnText: {
+    fontSize: 12,
+  },
+
+  // Deal Card in Horizontal Scroll
+  dealCardItem: {
+    width: 250,
+  },
+
+  // Top Rated Card
+  topRatedCard: {
+    width: 210,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  topRatedImageContainer: {
+    height: 110,
+    width: '100%',
+    position: 'relative',
+  },
+  topRatedImage: {
+    width: '100%',
+    height: '100%',
+  },
+  topRatedScorePill: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 3,
+    borderWidth: 1,
+  },
+  topRatedScoreText: {
+    fontSize: 10,
+  },
+  topRatedDetails: {
+    padding: 10,
+  },
+  topRatedDishName: {
+    fontSize: 13,
+    marginBottom: 2,
+  },
+  topRatedDishDesc: {
+    fontSize: 11,
+    marginBottom: 8,
+  },
+  topRatedFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  topRatedPrice: {
+    fontSize: 13,
+  },
+  topRatedAddBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // 2-Column Grid Header
+  gridSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  gridSectionTitle: {
+    fontSize: 17,
+    letterSpacing: -0.2,
+  },
+  gridSectionSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  activeFiltersPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 4,
+  },
+  activeFiltersPillText: {
+    fontSize: 11,
+  },
+
+  // Floating Cart Pill
+  floatingCartWrapper: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    alignItems: 'center',
+    zIndex: 20,
   },
   floatingCartPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: 10,
-    paddingRight: 14,
     paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#262a33',
+    paddingHorizontal: 12,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 193, 116, 0.25)',
-    gap: 10,
+    width: '100%',
+    maxWidth: 380,
   },
   cartPillBag: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f59e0b',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   cartCountBadge: {
     position: 'absolute',
-    top: -3,
-    right: -3,
+    top: -2,
+    right: -2,
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#ff938c',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cartCountBadgeText: {
     fontSize: 9,
-    fontWeight: '900',
-    color: '#68000a',
   },
   cartPillTextGroup: {
-    alignItems: 'flex-start',
+    flex: 1,
+    marginLeft: 12,
   },
   cartPillItemsLabel: {
-    fontSize: 10,
-    color: '#d8c3ad',
+    fontSize: 12,
   },
   cartPillTotalLabel: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#ffc174',
   },
-
-  // Category horizontal scroll controls
-  categoryScrollContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 6,
-  },
-  categoryArrowBtn: {
-    width: 28,
-    height: 34,
-    borderRadius: 10,
+  cartPillActionCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    zIndex: 10,
   },
 
-  // Explore Dish Culinary Modal
+  // Filter Sheet Modal
+  filterModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  filterBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  filterSheetCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 1,
+    paddingHorizontal: 20,
+    maxHeight: '80%',
+  },
+  filterHandleBar: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  filterHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+  },
+  filterHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  filterSheetTitle: {
+    fontSize: 18,
+  },
+  filterScrollBody: {
+    paddingBottom: 16,
+  },
+  filterSectionHeading: {
+    fontSize: 11,
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  filterOptionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  filterChipText: {
+    fontSize: 12,
+  },
+  filterToggleRow: {
+    gap: 8,
+  },
+  filterToggleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 10,
+  },
+  filterToggleText: {
+    fontSize: 13,
+  },
+  filterActionFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingTop: 14,
+    borderTopWidth: 1,
+  },
+  filterResetBtn: {
+    paddingHorizontal: 18,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterResetBtnText: {
+    fontSize: 14,
+  },
+  filterApplyBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterApplyBtnText: {
+    fontSize: 14,
+  },
+
+  // Explore Dish Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalCard: {
     width: '100%',
-    maxWidth: 520,
-    maxHeight: '88%',
-    borderRadius: 24,
-    borderWidth: 1.5,
+    maxWidth: 400,
+    borderRadius: 20,
     overflow: 'hidden',
+    borderWidth: 1,
+    maxHeight: '85%',
   },
   modalImageWrapper: {
-    height: 200,
+    height: 180,
     width: '100%',
     position: 'relative',
   },
@@ -1649,166 +2610,113 @@ const styles = StyleSheet.create({
   },
   modalCloseCircle: {
     position: 'absolute',
-    top: 14,
-    right: 14,
+    top: 12,
+    right: 12,
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 10,
+    zIndex: 2,
   },
   modalImageBadge: {
     position: 'absolute',
     bottom: 12,
-    left: 14,
+    left: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    paddingHorizontal: 10,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 193, 116, 0.3)',
+    gap: 4,
   },
   modalImageBadgeText: {
-    color: '#ffc174',
     fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
   modalScrollBody: {
-    padding: 20,
+    padding: 16,
   },
   modalHeaderRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 10,
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   modalItemCategory: {
     fontSize: 11,
-    fontWeight: '800',
     letterSpacing: 0.8,
-    marginBottom: 4,
   },
   modalItemTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.3,
+    fontSize: 18,
+    marginTop: 2,
   },
   modalItemPrice: {
     fontSize: 18,
-    fontWeight: '900',
   },
   modalItemDescription: {
     fontSize: 13,
     lineHeight: 20,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   modalMetaRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   modalMetaChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 4,
   },
   modalMetaChipText: {
     fontSize: 11,
-    fontWeight: '600',
-  },
-  chefStoryBox: {
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    marginBottom: 10,
-  },
-  chefStoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  chefStoryTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-  },
-  chefStoryText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontStyle: 'italic',
   },
   modalFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 16,
+    padding: 14,
     borderTopWidth: 1,
+    gap: 10,
   },
   modalSecondaryBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 14,
+    paddingHorizontal: 16,
+    height: 44,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalSecondaryBtnText: {
     fontSize: 13,
-    fontWeight: '700',
   },
   modalAddBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 14,
+    height: 44,
+    borderRadius: 12,
   },
   modalAddBtnText: {
-    color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '800',
   },
-  activeOrderBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 12,
-    borderRadius: 16,
-    borderWidth: 1.5,
+
+  // Floating Back to Top Button
+  floatingBackToTop: {
+    position: 'absolute',
+    right: 20,
+    zIndex: 15,
   },
-  activeOrderPulseCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#22c55e22',
+  backToTopButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  activeOrderGreenDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#22c55e',
-  },
-  activeOrderTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  activeOrderSubtitle: {
-    fontSize: 12,
-    marginTop: 2,
   },
 });

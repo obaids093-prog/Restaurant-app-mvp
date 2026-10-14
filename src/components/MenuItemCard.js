@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   Image,
   TouchableOpacity,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
@@ -18,165 +19,264 @@ const MenuItemCard = React.memo(function MenuItemCard({
   isFavourite,
   onAddToCart,
   onToggleFavourite,
+  onExplore,
   colors,
   shadows,
+  fonts,
+  typography,
+  radius,
 }) {
   // Demonstration console.log as required by Question 8:
   console.log(`[PERF - React.memo] Rendered MenuItemCard ID: ${item.id} - ${item.name}`);
 
   const isAvailable = item.isAvailable;
+  const bounceAnim = useRef(new Animated.Value(1)).current;
+  const heartAnim = useRef(new Animated.Value(1)).current;
+
+  // Add-to-tray bounce animation (200ms)
+  const handleAddPress = () => {
+    if (!isAvailable) return;
+
+    Animated.sequence([
+      Animated.timing(bounceAnim, {
+        toValue: 0.88,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(bounceAnim, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    if (onAddToCart) {
+      onAddToCart(item);
+    }
+  };
+
+  // Heart toggle bounce animation (100ms)
+  const handleHeartPress = () => {
+    Animated.sequence([
+      Animated.timing(heartAnim, {
+        toValue: 0.82,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.spring(heartAnim, {
+        toValue: 1,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    if (onToggleFavourite) {
+      onToggleFavourite(item.id);
+    }
+  };
 
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.92}
+      onPress={() => onExplore && onExplore(item)}
       style={[
-        styles.cardWrapper,
+        styles.cardContainer,
         {
           backgroundColor: colors.card,
-          borderColor: isAvailable ? colors.cardBorder : colors.surfaceBorder,
-          opacity: isAvailable ? 1 : 0.65,
+          borderColor: isAvailable ? colors.cardBorder : colors.subtleBorder,
+          borderRadius: radius ? radius.card : 20,
         },
-        shadows.medium3D,
+        shadows && shadows.cardLight,
       ]}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.name}, Rs. ${item.price}`}
     >
       {/* Food Imagery & Floating Badges */}
-      <View style={styles.imageContainer}>
-        <Image source={{ uri: item.image }} style={styles.foodImage} resizeMode="cover" />
+      <View
+        style={[
+          styles.imageContainer,
+          {
+            backgroundColor: colors.surfaceSubtle,
+            borderTopLeftRadius: radius ? radius.card : 20,
+            borderTopRightRadius: radius ? radius.card : 20,
+          },
+        ]}
+      >
+        <Image
+          source={{ uri: item.image }}
+          style={styles.foodImage}
+          resizeMode="cover"
+        />
 
-        {/* Daily Special / Chef Badge */}
+        {/* Daily Special / Chef Tasting Badge */}
         {item.isSpecial && (
           <LinearGradient
-            colors={['#D97706', '#B45309']}
+            colors={[colors.secondary, colors.primary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.specialBadge, shadows.soft]}
+            style={styles.specialBadge}
           >
-            <Ionicons name="sparkles" size={12} color="#FFFFFF" />
-            <Text style={styles.specialBadgeText}>Daily Special</Text>
+            <Ionicons name="sparkles" size={10} color={colors.onPrimary} />
+            <Text
+              style={[
+                styles.specialBadgeText,
+                { color: colors.onPrimary, fontFamily: fonts ? fonts.semiBold : undefined },
+              ]}
+            >
+              Special
+            </Text>
           </LinearGradient>
         )}
 
-        {/* Unavailable Overlay */}
+        {/* Sold Out / Unavailable Overlay */}
         {!isAvailable && (
-          <View style={styles.unavailableOverlay}>
-            <View style={styles.soldOutBadge}>
-              <Ionicons name="close-circle" size={14} color="#FFFFFF" />
-              <Text style={styles.soldOutText}>Sold Out Today</Text>
+          <View
+            style={[
+              styles.unavailableOverlay,
+              { backgroundColor: 'rgba(0,0,0,0.45)' },
+            ]}
+          >
+            <View
+              style={[
+                styles.soldOutBadge,
+                { backgroundColor: colors.surface, borderColor: colors.subtleBorder },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.soldOutText,
+                  { color: colors.cancelled, fontFamily: fonts ? fonts.semiBold : undefined },
+                ]}
+              >
+                Sold Out
+              </Text>
             </View>
           </View>
         )}
 
         {/* Heart / Favourite Toggle Button */}
-        <TouchableOpacity
-          onPress={() => onToggleFavourite(item.id)}
+        <Animated.View
           style={[
-            styles.favouriteBtn,
-            { backgroundColor: isFavourite ? '#E11D48' : 'rgba(15, 23, 42, 0.65)' },
-            shadows.soft,
+            styles.favouriteBtnWrapper,
+            { transform: [{ scale: heartAnim }] },
           ]}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons
-            name={isFavourite ? 'heart' : 'heart-outline'}
-            size={18}
-            color="#FFFFFF"
-          />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleHeartPress}
+            style={[
+              styles.favouriteBtn,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.subtleBorder,
+              },
+            ]}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+          >
+            <Ionicons
+              name={isFavourite ? 'heart' : 'heart-outline'}
+              size={16}
+              color={isFavourite ? colors.cancelled : colors.mutedText}
+            />
+          </TouchableOpacity>
+        </Animated.View>
 
-        {/* Category & Rating Floating Badges */}
-        <View style={styles.imageFloatingMeta}>
-          <View style={[styles.categoryTag, { backgroundColor: 'rgba(11, 17, 23, 0.85)' }]}>
-            <Text style={styles.categoryTagText}>{item.category}</Text>
+        {/* Rating Floating Pill */}
+        {item.rating && (
+          <View
+            style={[
+              styles.ratingPill,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.subtleBorder,
+              },
+            ]}
+          >
+            <Ionicons name="star" size={11} color={colors.secondary} />
+            <Text
+              style={[
+                styles.ratingText,
+                { color: colors.textPrimary, fontFamily: fonts ? fonts.bold : undefined },
+              ]}
+            >
+              {item.rating}
+            </Text>
           </View>
-          <View style={[styles.ratingTag, { backgroundColor: 'rgba(11, 17, 23, 0.85)' }]}>
-            <Ionicons name="star" size={12} color="#FBBF24" />
-            <Text style={styles.ratingText}>{item.rating}</Text>
-          </View>
-        </View>
+        )}
       </View>
 
       {/* Card Content Details */}
       <View style={styles.cardContent}>
-        {item.tag && (
-          <View style={styles.tagRow}>
-            <View style={[styles.tagPill, { backgroundColor: colors.badge }]}>
-              <Text style={[styles.tagPillText, { color: colors.badgeText }]}>{item.tag}</Text>
-            </View>
-          </View>
-        )}
-
         <Text
-          style={[styles.foodTitle, { color: isAvailable ? colors.textPrimary : colors.textMuted }]}
-          numberOfLines={1}
+          style={[
+            styles.foodTitle,
+            {
+              color: isAvailable ? colors.textPrimary : colors.mutedText,
+              fontFamily: fonts ? fonts.semiBold : undefined,
+            },
+          ]}
+          numberOfLines={2}
         >
           {item.name}
         </Text>
 
-        <Text style={[styles.foodDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-          {item.description}
-        </Text>
-
         <View style={styles.cardFooter}>
-          <View>
-            <Text style={[styles.priceCurrency, { color: colors.primary }]}>
-              Rs. <Text style={styles.priceAmount}>{item.price.toLocaleString()}</Text>
-            </Text>
-            <View style={styles.prepTimeRow}>
-              <Ionicons name="time-outline" size={12} color={colors.textMuted} />
-              <Text style={[styles.prepTimeText, { color: colors.textMuted }]}>
-                {item.prepTime}
-              </Text>
-            </View>
-          </View>
-
-          {/* Add to Order Button */}
-          <TouchableOpacity
-            onPress={() => onAddToCart(item)}
-            disabled={!isAvailable}
+          <Text
             style={[
-              styles.addButtonOuter,
-              isAvailable && shadows.button3D,
+              styles.priceText,
+              {
+                color: colors.primary,
+                fontFamily: fonts ? fonts.bold : undefined,
+              },
             ]}
-            activeOpacity={0.85}
           >
-            {isAvailable ? (
-              <LinearGradient
-                colors={['#f59e0b', '#ffc174']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.addButtonGradient}
-              >
-                <Ionicons name="add" size={17} color="#472a00" />
-                <Text style={[styles.addButtonText, { color: '#472a00' }]}>Add</Text>
-              </LinearGradient>
-            ) : (
-              <View style={[styles.soldOutButton, { backgroundColor: colors.inputBorder }]}>
-                <Ionicons name="ban" size={15} color={colors.textMuted} />
-                <Text style={[styles.soldOutButtonText, { color: colors.textMuted }]}>Sold Out</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+            Rs. {item.price.toLocaleString()}
+          </Text>
+
+          {/* Add to Tray Button with Bounce */}
+          <Animated.View style={{ transform: [{ scale: bounceAnim }] }}>
+            <TouchableOpacity
+              onPress={handleAddPress}
+              disabled={!isAvailable}
+              style={[
+                styles.addBtn,
+                {
+                  backgroundColor: isAvailable ? colors.primary : colors.disabled,
+                },
+                shadows && isAvailable && shadows.buttonPrimary,
+              ]}
+              activeOpacity={0.85}
+              accessibilityLabel={`Add ${item.name} to tray`}
+            >
+              <Ionicons
+                name={isAvailable ? 'add' : 'ban'}
+                size={18}
+                color={colors.onPrimary}
+              />
+            </TouchableOpacity>
+          </Animated.View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 });
 
 export default MenuItemCard;
 
 const styles = StyleSheet.create({
-  cardWrapper: {
-    marginHorizontal: 16,
-    marginVertical: 10,
-    borderRadius: 20,
+  cardContainer: {
+    flex: 1,
+    margin: 6,
     borderWidth: 1,
     overflow: 'hidden',
+    minWidth: 150,
   },
   imageContainer: {
-    height: 190,
+    height: 125,
     width: '100%',
     position: 'relative',
-    backgroundColor: '#0F172A',
+    overflow: 'hidden',
   },
   foodImage: {
     width: '100%',
@@ -184,175 +284,94 @@ const styles = StyleSheet.create({
   },
   specialBadge: {
     position: 'absolute',
-    top: 14,
-    left: 14,
+    top: 8,
+    left: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 14,
-    gap: 5,
+    paddingVertical: 3,
+    paddingHorizontal: 7,
+    borderRadius: 8,
+    gap: 4,
+    zIndex: 2,
   },
   specialBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    fontSize: 10,
+    letterSpacing: 0.4,
   },
   unavailableOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 3,
   },
   soldOutBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E11D48',
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
   },
   soldOutText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.3,
+    fontSize: 10,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  favouriteBtnWrapper: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 4,
   },
   favouriteBtn: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
-  imageFloatingMeta: {
+  ratingPill: {
     position: 'absolute',
-    bottom: 12,
-    left: 14,
-    right: 14,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  categoryTag: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  categoryTagText: {
-    color: '#F8FAFC',
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  ratingTag: {
+    bottom: 8,
+    left: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    gap: 4,
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    zIndex: 2,
   },
   ratingText: {
-    color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '800',
   },
   cardContent: {
-    padding: 16,
-  },
-  tagRow: {
-    flexDirection: 'row',
-    marginBottom: 6,
-  },
-  tagPill: {
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-  },
-  tagPillText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
+    padding: 12,
+    flex: 1,
+    justifyContent: 'space-between',
   },
   foodTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-    marginBottom: 5,
-  },
-  foodDescription: {
     fontSize: 13,
     lineHeight: 18,
-    marginBottom: 14,
+    marginBottom: 8,
+    minHeight: 36,
   },
   cardFooter: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  priceText: {
+    fontSize: 14,
+  },
+  addBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(150, 150, 150, 0.1)',
-  },
-  priceCurrency: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  priceAmount: {
-    fontSize: 19,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-  },
-  prepTimeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  prepTimeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  addButtonOuter: {
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  addButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    gap: 6,
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-  soldOutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    gap: 6,
-  },
-  soldOutButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
+    justifyContent: 'center',
+    minWidth: 34,
+    minHeight: 34,
   },
 });
