@@ -26,7 +26,17 @@ The `A2/` directory contains all required non-code deliverables:
 
 ---
 
-## 2. Quick Installation & Execution Guide
+## 2. Technical Documentation & White-Label Guides
+
+Comprehensive guides located in the [`docs/`](docs/) directory:
+* **[`docs/SETUP.md`](docs/SETUP.md)** — Complete developer & production setup, seed credentials, network configuration for physical devices, and troubleshooting.
+* **[`docs/WHITE_LABEL.md`](docs/WHITE_LABEL.md)** — Rebranding manual for agencies & clients (centralized `brand.js`, theme tokens, currencies, tax rates, assets).
+* **[`docs/ASSETS_LICENSES.md`](docs/ASSETS_LICENSES.md)** — Commercial licensing audit for Poppins font (OFL), Ionicons (MIT), Unsplash imagery, and all npm packages.
+* **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** — Full technical architecture, Context state management, navigation hierarchy, REST endpoints, and security model.
+
+---
+
+## 3. Quick Installation & Execution Guide
 
 ### A. Backend Server Setup (Node.js + Express + MongoDB)
 ```bash
