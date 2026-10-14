@@ -58,9 +58,8 @@ export default function SplashScreen({ navigation }) {
   const clocheTilt = useRef(new Animated.Value(0)).current;
   const clocheOpacity = useRef(new Animated.Value(1)).current;
 
-  // Orbit ring rotation & steam continuous loops
+  // Orbit ring rotation continuous loop
   const ringRotation = useRef(new Animated.Value(0)).current;
-  const amberPulse = useRef(new Animated.Value(1)).current;
 
   // Flame emblem & 3D tilt
   const emblemScale = useRef(new Animated.Value(0.1)).current;
@@ -412,7 +411,7 @@ export default function SplashScreen({ navigation }) {
     navigateNext,
   ]);
 
-  // Start loops for orbit ring and amber pulse
+  // Start loops for orbit ring
   useEffect(() => {
     const ringLoop = Animated.loop(
       Animated.timing(ringRotation, {
@@ -424,27 +423,10 @@ export default function SplashScreen({ navigation }) {
     );
     ringLoop.start();
 
-    const amberLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(amberPulse, {
-          toValue: 1.4,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(amberPulse, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    amberLoop.start();
-
     return () => {
       ringLoop.stop();
-      amberLoop.stop();
     };
-  }, [ringRotation, amberPulse]);
+  }, [ringRotation]);
 
   // Interpolated Transforms
   const clocheTranslateY = clocheLift.interpolate({
@@ -821,7 +803,7 @@ export default function SplashScreen({ navigation }) {
             },
           ]}
         >
-          ARTISAN KITCHEN & MODERN BOTANICA
+          ARTISAN KITCHEN & FINE DINING
         </Animated.Text>
 
         {/* Geographic Divider Badge */}
@@ -841,82 +823,43 @@ export default function SplashScreen({ navigation }) {
         </Animated.View>
       </Animated.View>
 
-      {/* Bottom Glassmorphic Telemetry Card & Metadata */}
-      <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 16 }]}>
-        <TouchableOpacity
-          activeOpacity={0.88}
-          onPress={() => navigateNext()}
-          style={styles.telemetryCard}
-          accessibilityLabel="Enter application"
-        >
-          <View style={styles.telemetryHeader}>
-            <View style={styles.pulseWrapper}>
-              <Animated.View
-                style={[
-                  styles.amberPulseRing,
-                  {
-                    backgroundColor: colors.secondary,
-                    transform: [{ scale: amberPulse }],
-                  },
-                ]}
-              />
-              <View style={[styles.amberDot, { backgroundColor: colors.secondary }]} />
-            </View>
-            <Text
-              style={[
-                styles.telemetryStatusText,
-                { color: colors.onPrimary, fontFamily: fonts.medium },
-              ]}
-              numberOfLines={1}
-            >
-              Curating culinary craft & table telemetry...
-            </Text>
-          </View>
+      {/* Sleek Minimalist Loading & Brand Imprint */}
+      <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 28 }]}>
+        {/* Sleek Minimal Progress Track */}
+        <View style={styles.minimalProgressTrack}>
+          <Animated.View
+            style={[
+              styles.minimalProgressBar,
+              {
+                width: progressAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0%', '100%'],
+                }),
+              },
+            ]}
+          >
+            <SafeLinearGradient
+              colors={['#FFFFFF', '#FFE3A8', '#FC5834']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
+        </View>
 
-          {/* Shimmer Progress Track */}
-          <View style={styles.telemetryProgressTrack}>
-            <Animated.View
-              style={[
-                styles.telemetryProgressBar,
-                {
-                  width: progressAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  }),
-                },
-              ]}
-            >
-              <SafeLinearGradient
-                colors={['#FC5834', '#FFA048', '#FFFFFF']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={StyleSheet.absoluteFill}
-              />
-            </Animated.View>
-          </View>
-
-          {/* Tap to enter hint */}
-          <View style={styles.telemetryTapRow}>
-            <Text
-              style={[
-                styles.telemetryTapText,
-                { color: colors.onPrimary, fontFamily: fonts.medium },
-              ]}
-            >
-              Tap anywhere to enter
-            </Text>
-            <Ionicons name="arrow-forward" size={12} color={colors.onPrimary} style={{ opacity: 0.8 }} />
-          </View>
-        </TouchableOpacity>
-
-        <Text
+        {/* Subtle Brand Imprint */}
+        <Animated.Text
           style={[
-            styles.fineDiningMeta,
-            { color: colors.onPrimary, fontFamily: fonts.regular },
+            styles.brandCreditText,
+            {
+              color: colors.onPrimary,
+              fontFamily: fonts.medium,
+              opacity: taglineOpacity,
+            },
           ]}
         >
-          v2.4.1 Fine Dining Edition • Licensed Hospitality
-        </Text>
+          {brand.restaurantName.toUpperCase()}
+        </Animated.Text>
       </View>
     </Animated.View>
   );
@@ -1117,78 +1060,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
   },
-  telemetryCard: {
-    width: '100%',
-    maxWidth: 330,
-    backgroundColor: 'rgba(0, 0, 0, 0.42)',
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.18)',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    gap: 10,
-    marginBottom: 12,
-  },
-  telemetryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  pulseWrapper: {
-    width: 12,
-    height: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  amberPulseRing: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    opacity: 0.6,
-  },
-  amberDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-  },
-  telemetryStatusText: {
-    fontSize: 11.5,
-    letterSpacing: 0.2,
-    flex: 1,
-  },
-  telemetryProgressTrack: {
-    width: '100%',
-    height: 4,
+  minimalProgressTrack: {
+    width: 140,
+    height: 3,
     borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
     overflow: 'hidden',
+    marginBottom: 10,
   },
-  telemetryProgressBar: {
+  minimalProgressBar: {
     height: '100%',
     borderRadius: 2,
   },
-  telemetryTapRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    paddingTop: 2,
-  },
-  telemetryTapText: {
-    fontSize: 10.5,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  fineDiningMeta: {
-    fontSize: 9.5,
-    letterSpacing: 0.8,
+  brandCreditText: {
+    fontSize: 10,
+    letterSpacing: 2.2,
     textAlign: 'center',
-    opacity: 0.6,
+    opacity: 0.75,
   },
 });
