@@ -8,6 +8,7 @@ import {
   Easing,
   Image,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -366,9 +367,16 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     letterSpacing: -0.2,
     marginBottom: 6,
-    textShadowColor: 'rgba(0, 0, 0, 0.45)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
+    ...Platform.select({
+      web: {
+        textShadow: '0px 2px 6px rgba(0, 0, 0, 0.45)',
+      },
+      default: {
+        textShadowColor: 'rgba(0, 0, 0, 0.45)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 6,
+      },
+    }),
   },
   heroTagline: {
     fontSize: 12,

@@ -984,6 +984,25 @@ export default function LoginScreen({ navigation }) {
               </View>
             )}
           </Animated.View>
+
+          {/* Explore Onboarding Walkthrough */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Onboarding')}
+            style={styles.walkthroughLinkBtn}
+            activeOpacity={0.75}
+            accessibilityLabel="Explore Artisan Dining Experience"
+          >
+            <Ionicons name="sparkles-outline" size={14} color={colors.primary} />
+            <Text
+              style={[
+                styles.walkthroughLinkText,
+                { color: colors.primary, fontFamily: fonts.semiBold },
+              ]}
+            >
+              Explore Artisan Dining Pillars & Walkthrough
+            </Text>
+            <Ionicons name="arrow-forward" size={13} color={colors.primary} />
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -1152,5 +1171,21 @@ const styles = StyleSheet.create({
   },
   skipBtnText: {
     fontSize: 13,
+  },
+  walkthroughLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 20,
+    borderRadius: 20,
+    backgroundColor: 'rgba(252, 88, 52, 0.08)',
+  },
+  walkthroughLinkText: {
+    fontSize: 12.5,
+    letterSpacing: 0.2,
   },
 });

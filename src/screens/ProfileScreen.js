@@ -477,6 +477,28 @@ export default function ProfileScreen({ navigation }) {
             shadows.soft,
           ]}
         >
+          {/* REPLAY ONBOARDING WALKTHROUGH */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Onboarding')}
+            style={[styles.menuRow, { borderBottomColor: colors.cardBorder }]}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuRowLeft}>
+              <View style={[styles.menuIconCircle, { backgroundColor: colors.primaryTint, borderColor: colors.primary + '30' }]}>
+                <Ionicons name="sparkles" size={18} color={colors.primary} />
+              </View>
+              <View>
+                <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700', fontSize: 14 }]}>
+                  Artisan App Walkthrough
+                </Text>
+                <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
+                  Explore fine dining pillars & features
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.mutedText} />
+          </TouchableOpacity>
+
           {/* LOG OUT BUTTON */}
           <TouchableOpacity
             onPress={handleLogoutPress}

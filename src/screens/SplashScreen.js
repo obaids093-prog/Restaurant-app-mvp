@@ -111,14 +111,10 @@ export default function SplashScreen({ navigation }) {
         return;
       }
 
-      const seen = await safeStorage.getItem(ONBOARDING_KEY);
-      if (seen === 'true') {
-        navigation.replace('Login');
-      } else {
-        navigation.replace('Onboarding');
-      }
+      // If user is not logged in, show the new luxury Onboarding screen
+      navigation.replace('Onboarding');
     } catch {
-      navigation.replace('Login');
+      navigation.replace('Onboarding');
     }
   }).current;
 

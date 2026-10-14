@@ -58,20 +58,6 @@ export default function OnboardingScreen({ navigation }) {
     };
   }, []);
 
-  // Check if onboarding was already seen
-  useEffect(() => {
-    (async () => {
-      try {
-        const seen = await safeStorage.getItem(ONBOARDING_KEY);
-        if (seen === 'true') {
-          navigation.replace('Login');
-        }
-      } catch (e) {
-        // Continue showing onboarding if storage fails
-      }
-    })();
-  }, [navigation]);
-
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems && viewableItems.length > 0) {
       setCurrentIndex(viewableItems[0].index);
