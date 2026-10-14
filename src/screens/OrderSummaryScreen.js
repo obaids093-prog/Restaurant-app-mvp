@@ -5,6 +5,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Image,
   Alert,
   StatusBar,
   ActivityIndicator,
@@ -18,12 +19,13 @@ import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrdersContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMenu } from '../context/MenuContext';
+import { brand } from '../config/brand';
 
 // Named rate constants for transparent breakdown
 const SERVICE_CHARGE_RATE = 0.05;
 const SALES_TAX_RATE = 0.15;
 
-// Cross-platform alert helper to reduce complexity in event handlers
+// Cross-platform alert helper
 const showOrderAlert = (title, message) => {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.alert) {
     window.alert(`${title}: ${message}`);
@@ -32,7 +34,7 @@ const showOrderAlert = (title, message) => {
   }
 };
 
-// Pure payload builder extracted to minimize cognitive complexity
+// Pure payload builder
 const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber, pickupTime, getItemPrice) => {
   const isTakeaway =
     String(orderType || '').toLowerCase().includes('takeaway') ||
@@ -43,82 +45,35 @@ const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber
     customerId: user?.id || user?._id || 'guest',
     customerName: user?.name || 'Valued Guest',
     type: normalizedType,
-    orderType: normalizedType,
-    tableNumber: !isTakeaway ? tableNumber : '',
-    pickupTime: isTakeaway ? pickupTime : '',
-    items: (cartState?.items || []).map((i) => ({
-      id: i.id || i._id,
-      name: i.name,
-      price: getItemPrice ? getItemPrice(i) : i.price,
-      quantity: i.quantity,
-      note: i.note || '',
+    tableNumber: isTakeaway ? 'Takeaway Counter' : (tableNumber || 'Table A-01'),
+    pickupTime: isTakeaway ? (pickupTime || 'In 25 minutes') : null,
+    items: (cartState.items || []).map((item) => ({
+      id: item.id || item._id,
+      name: item.name,
+      price: getItemPrice(item),
+      quantity: item.quantity,
+      note: item.note || '',
     })),
-    total: calculations.grandTotal,
-    promoCode: cartState?.promoCode,
-    discountPercent: cartState?.discountPercent || 0,
+    subtotal: calculations.subtotal,
+    discountAmount: calculations.discountAmount,
+    discountedSubtotal: calculations.discountedSubtotal,
+    serviceCharge: calculations.serviceCharge,
+    salesTax: calculations.salesTax,
+    tipAmount: calculations.tipAmount,
+    totalPrice: calculations.grandTotal,
+    status: 'Pending',
+    createdAt: new Date().toISOString(),
   };
 };
 
-// Reusable row for contact info display
-const ContactInfoRow = ({ icon, text, color, textColor }) => (
-  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-    <Ionicons name={icon} size={16} color={color} style={{ marginRight: 8 }} />
-    <Text style={{ fontSize: 13, color: textColor }}>{text}</Text>
-  </View>
-);
-
-// Reusable row for a single cart item
-const OrderItemRow = ({ item, colors, unitPrice }) => {
-  const price = unitPrice !== undefined ? unitPrice : item.price;
-  return (
-    <View key={item.id} style={styles.itemRow}>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.itemName, { color: colors.textPrimary }]}>
-          {item.quantity}x {item.name}
-        </Text>
-        {item.note ? (
-          <Text style={[styles.itemNote, { color: colors.primary }]}>
-            Note: "{item.note}"
-          </Text>
-        ) : null}
-      </View>
-      <Text style={[styles.itemTotal, { color: colors.textPrimary }]}>
-        Rs. {(price * item.quantity).toLocaleString()}
-      </Text>
-    </View>
-  );
-};
-
-// Place order button content (avoids ternary nesting in main JSX)
-const PlaceOrderButtonContent = ({ isSubmitting, btnTextColor }) => {
-  if (isSubmitting) {
-    return (
-      <>
-        <ActivityIndicator size="small" color={btnTextColor} style={{ marginRight: 8 }} />
-        <Text style={[styles.placeBtnText, { color: btnTextColor }]}>
-          Dispatching to Kitchen...
-        </Text>
-      </>
-    );
-  }
-  return (
-    <>
-      <Ionicons name="checkmark-circle" size={20} color={btnTextColor} style={{ marginRight: 8 }} />
-      <Text style={[styles.placeBtnText, { color: btnTextColor }]}>
-        Confirm & Dispatch to Kitchen
-      </Text>
-    </>
-  );
-};
-
 export default function OrderSummaryScreen({ route, navigation }) {
-  const { colors, isDark, shadows } = useTheme();
+  const { colors, isDark, shadows, typography, radius } = useTheme();
   const { user } = useAuth();
   const { cartState, clearCart } = useCart();
   const { createOrder } = useOrders();
   const { menuItems, fetchMenu } = useMenu();
 
-  // Refetch fresh menu on Order Summary focus
+  // Refetch fresh menu on focus
   useFocusEffect(
     useCallback(() => {
       fetchMenu().catch(() => {});
@@ -143,14 +98,21 @@ export default function OrderSummaryScreen({ route, navigation }) {
   const [errorMessage, setErrorMessage] = useState('');
 
   const {
-    orderType = 'Dine-in',
+    orderType: initialOrderType = 'Dine-in',
     tableNumber = 'Table A-01 (Atrium Glasshouse)',
     pickupTime = 'In 25 minutes',
     calculations: rawCalculations,
   } = route.params || {};
 
-  const btnTextColor = colors.onPrimary || '#FFFFFF';
-  const isDineIn = orderType === 'Dine-in';
+  // Interactive dining type switcher
+  const [activeDiningType, setActiveDiningType] = useState(
+    String(initialOrderType).toLowerCase().includes('takeaway') ? 'Takeaway' : 'Dine-in'
+  );
+
+  // Settlement preference
+  const [paymentMethod, setPaymentMethod] = useState('pay_at_table'); // 'pay_at_table' | 'cash' | 'card_online'
+
+  const isDineIn = activeDiningType === 'Dine-in';
   const userName = user?.name || 'Valued Guest';
   const phoneText = user?.phone || 'No phone linked (Update in Profile)';
 
@@ -160,14 +122,15 @@ export default function OrderSummaryScreen({ route, navigation }) {
       (sum, item) => sum + getItemPrice(item) * (Number(item.quantity) || 1),
       0
     );
-    const discountRate = (cartState?.discountPercent || 0) / 100;
-    const discountAmount = subtotal * discountRate;
+    const discountPercent = cartState?.discountPercent || 0;
+    const discountAmount = subtotal * (discountPercent / 100);
     const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+
     const serviceCharge = discountedSubtotal * SERVICE_CHARGE_RATE;
     const salesTax = discountedSubtotal * SALES_TAX_RATE;
-    const tipAmount = rawCalculations?.selectedTip
-      ? discountedSubtotal * (rawCalculations.selectedTip / 100)
-      : (rawCalculations?.tipAmount || 0);
+    const tipAmount = rawCalculations?.tipAmount !== undefined
+      ? Number(rawCalculations.tipAmount)
+      : 0;
     const grandTotal = discountedSubtotal + serviceCharge + salesTax + tipAmount;
 
     return {
@@ -194,9 +157,9 @@ export default function OrderSummaryScreen({ route, navigation }) {
     }
 
     if (!cartState?.items || cartState.items.length === 0) {
-      const msg = 'Your cart is empty. Please add items first.';
+      const msg = 'Your tray is empty. Please add items first.';
       setErrorMessage(msg);
-      showOrderAlert('Empty Cart', msg);
+      showOrderAlert('Empty Tray', msg);
       return;
     }
 
@@ -208,17 +171,24 @@ export default function OrderSummaryScreen({ route, navigation }) {
         user,
         cartState,
         calculations,
-        orderType,
+        activeDiningType,
         tableNumber,
         pickupTime,
         getItemPrice
       );
 
       const newOrder = await createOrder(orderPayload);
+      const snapshotItems = [...cartState.items];
       clearCart();
 
-      // Navigate to live Order Tracking
-      navigation.navigate('OrderTracking', { orderId: newOrder.id || newOrder._id });
+      // Navigate to Order Placed celebration screen
+      navigation.replace('OrderPlaced', {
+        order: newOrder,
+        orderType: activeDiningType,
+        tableNumber,
+        grandTotal: calculations.grandTotal,
+        items: snapshotItems,
+      });
     } catch (err) {
       console.error('Order dispatch error:', err);
       const errMsg = err.message || 'Unable to place order at this time.';
@@ -237,48 +207,76 @@ export default function OrderSummaryScreen({ route, navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Verification Banner */}
-        <View
-          style={[
-            styles.summaryCard,
-            { backgroundColor: colors.card, borderColor: colors.cardBorder },
-            shadows.soft,
-          ]}
-        >
-          <View style={styles.headerRow}>
-            <View
-              style={[
-                styles.iconBadge,
-                { backgroundColor: colors.primary + '18' },
-              ]}
-            >
-              <Ionicons name="receipt" size={24} color={colors.primary} />
-            </View>
-            <View style={{ marginLeft: 12, flex: 1 }}>
-              <Text style={[styles.title, { color: colors.textPrimary }]}>
-                Order Verification
-              </Text>
-              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                Please confirm your selection and delivery details.
-              </Text>
-            </View>
+        {/* Verification Title & Ready Badge */}
+        <View style={styles.topHeaderRow}>
+          <View>
+            <Text style={[typography.headingLg, { color: colors.textPrimary, fontWeight: '800' }]}>
+              Order Summary
+            </Text>
+            <Text style={[typography.caption, { color: colors.mutedText, marginTop: 2 }]}>
+              Review details before transmission to kitchen brigade
+            </Text>
           </View>
-
-          <View style={[styles.diningBadge, { backgroundColor: colors.surfaceSubtle }]}>
-            <Ionicons
-              name={isDineIn ? 'restaurant' : 'bag-handle'}
-              size={16}
-              color={colors.primary}
-            />
-            <Text style={[styles.diningBadgeText, { color: colors.textPrimary }]}>
-              {isDineIn
-                ? `Dine-In • ${tableNumber}`
-                : `Takeaway • Pickup ${pickupTime}`}
+          <View style={[styles.readyBadge, { backgroundColor: colors.primaryTint }]}>
+            <Ionicons name="hourglass-outline" size={14} color={colors.primary} />
+            <Text style={[styles.readyBadgeText, { color: colors.primary }]}>
+              Ready to Fire
             </Text>
           </View>
         </View>
 
-        {/* Patron Contact & Dispatch Info */}
+        {/* Dine-in vs Takeaway Segmented Pill Switcher */}
+        <View style={[styles.diningPillContainer, { backgroundColor: colors.surfaceSubtle }]}>
+          <TouchableOpacity
+            onPress={() => setActiveDiningType('Dine-in')}
+            style={[
+              styles.diningPillBtn,
+              isDineIn && { backgroundColor: colors.primary },
+            ]}
+            activeOpacity={0.85}
+          >
+            <Ionicons
+              name="restaurant"
+              size={16}
+              color={isDineIn ? colors.onPrimary : colors.textSecondary}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={[
+                styles.diningPillText,
+                { color: isDineIn ? colors.onPrimary : colors.textSecondary },
+              ]}
+            >
+              Dine-in
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setActiveDiningType('Takeaway')}
+            style={[
+              styles.diningPillBtn,
+              !isDineIn && { backgroundColor: colors.primary },
+            ]}
+            activeOpacity={0.85}
+          >
+            <Ionicons
+              name="bag-handle"
+              size={16}
+              color={!isDineIn ? colors.onPrimary : colors.textSecondary}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={[
+                styles.diningPillText,
+                { color: !isDineIn ? colors.onPrimary : colors.textSecondary },
+              ]}
+            >
+              Takeaway
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Table Allocation / Pickup Card */}
         <View
           style={[
             styles.summaryCard,
@@ -286,33 +284,55 @@ export default function OrderSummaryScreen({ route, navigation }) {
             shadows.soft,
           ]}
         >
-          <Text style={[styles.cardHeading, { color: colors.textMuted }]}>
-            CONTACT & DISPATCH INFO
-          </Text>
+          <View style={styles.cardHeaderWithAction}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons
+                name={isDineIn ? 'deck' : 'timer'}
+                size={18}
+                color={colors.primary}
+                style={{ marginRight: 6 }}
+              />
+              <Text style={[styles.cardHeading, { color: colors.mutedText }]}>
+                {isDineIn ? 'TABLE ALLOCATION' : 'PICKUP SCHEDULE'}
+              </Text>
+            </View>
+            <Text style={[typography.caption, { color: colors.primary, fontWeight: '600' }]}>
+              {isDineIn ? 'Atrium Window' : 'Express'}
+            </Text>
+          </View>
 
-          <ContactInfoRow
-            icon="person-outline"
-            text={userName}
-            color={colors.primary}
-            textColor={colors.textPrimary}
-          />
-          <ContactInfoRow
-            icon="call-outline"
-            text={phoneText}
-            color={colors.primary}
-            textColor={user?.phone ? colors.textPrimary : colors.textMuted}
-          />
-          {user?.email ? (
-            <ContactInfoRow
-              icon="mail-outline"
-              text={user.email}
-              color={colors.primary}
-              textColor={colors.textSecondary}
-            />
-          ) : null}
+          <View style={[styles.detailTile, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
+            <Text style={[typography.headingSm, { color: colors.textPrimary, fontWeight: '700' }]}>
+              {isDineIn ? tableNumber : 'Takeaway Express Pickup'}
+            </Text>
+            <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
+              {isDineIn ? 'Glasshouse Window Enclave View' : `Estimated collection ${pickupTime}`}
+            </Text>
+          </View>
+
+          <View style={styles.gridThreeCol}>
+            <View style={[styles.colTile, { backgroundColor: colors.surfaceSubtle }]}>
+              <Text style={[styles.colTileLabel, { color: colors.mutedText }]}>Guest</Text>
+              <Text style={[styles.colTileValue, { color: colors.textPrimary }]} numberOfLines={1}>
+                {userName}
+              </Text>
+            </View>
+            <View style={[styles.colTile, { backgroundColor: colors.surfaceSubtle }]}>
+              <Text style={[styles.colTileLabel, { color: colors.mutedText }]}>Experience</Text>
+              <Text style={[styles.colTileValue, { color: colors.textPrimary }]}>
+                {isDineIn ? '2 Guests' : 'Curbside'}
+              </Text>
+            </View>
+            <View style={[styles.colTile, { backgroundColor: colors.surfaceSubtle }]}>
+              <Text style={[styles.colTileLabel, { color: colors.mutedText }]}>Est. Time</Text>
+              <Text style={[styles.colTileValue, { color: colors.primary }]}>
+                ~20 mins
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {/* Selected Dishes Summary */}
+        {/* Patron Contact & Profile Shortcut */}
         <View
           style={[
             styles.summaryCard,
@@ -320,21 +340,214 @@ export default function OrderSummaryScreen({ route, navigation }) {
             shadows.soft,
           ]}
         >
-          <Text style={[styles.cardHeading, { color: colors.textMuted }]}>
-            ORDERED ITEMS ({cartState.items.length})
-          </Text>
+          <View style={styles.cardHeaderWithAction}>
+            <Text style={[styles.cardHeading, { color: colors.mutedText }]}>
+              PATRON CONTACT INFO
+            </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('CustomerApp', { screen: 'Profile' })}>
+              <Text style={[typography.caption, { color: colors.primary, fontWeight: '600' }]}>
+                Edit in Profile →
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-          {cartState.items.map((item) => (
-            <OrderItemRow
-              key={item.id}
-              item={item}
-              colors={colors}
-              unitPrice={getItemPrice(item)}
-            />
-          ))}
+          <View style={styles.contactRow}>
+            <Ionicons name="person-outline" size={16} color={colors.primary} />
+            <Text style={[styles.contactText, { color: colors.textPrimary }]}>{userName}</Text>
+          </View>
+          <View style={styles.contactRow}>
+            <Ionicons name="call-outline" size={16} color={colors.primary} />
+            <Text style={[styles.contactText, { color: colors.textPrimary }]}>{phoneText}</Text>
+          </View>
+          {user?.email && (
+            <View style={styles.contactRow}>
+              <Ionicons name="mail-outline" size={16} color={colors.primary} />
+              <Text style={[styles.contactText, { color: colors.textSecondary }]}>{user.email}</Text>
+            </View>
+          )}
         </View>
 
-        {/* Financial Breakdown */}
+        {/* Selected Dishes Summary with 56x56 Thumbnails */}
+        <View
+          style={[
+            styles.summaryCard,
+            { backgroundColor: colors.card, borderColor: colors.cardBorder },
+            shadows.soft,
+          ]}
+        >
+          <View style={styles.cardHeaderWithAction}>
+            <Text style={[styles.cardHeading, { color: colors.mutedText }]}>
+              SELECTED COURSES ({cartState.items.length})
+            </Text>
+            <Text style={[typography.caption, { color: colors.mutedText }]}>
+              {cartState.items.reduce((s, i) => s + (i.quantity || 1), 0)} Total Portions
+            </Text>
+          </View>
+
+          {cartState.items.map((item, idx) => {
+            const unitPrice = getItemPrice(item);
+            const lineTotal = unitPrice * (item.quantity || 1);
+            return (
+              <View
+                key={item.id || idx}
+                style={[
+                  styles.dishItemRow,
+                  idx < cartState.items.length - 1 && {
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.surfaceBorder,
+                  },
+                ]}
+              >
+                {item.image ? (
+                  <Image source={{ uri: item.image }} style={styles.dishThumb} />
+                ) : (
+                  <View style={[styles.dishThumbFallback, { backgroundColor: colors.surfaceSubtle }]}>
+                    <Ionicons name="restaurant-outline" size={20} color={colors.primary} />
+                  </View>
+                )}
+
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text
+                      style={[typography.body, { color: colors.textPrimary, fontWeight: '700', flex: 1 }]}
+                      numberOfLines={1}
+                    >
+                      {item.name}
+                    </Text>
+                    <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700', marginLeft: 8 }]}>
+                      {brand.formatPrice(lineTotal)}
+                    </Text>
+                  </View>
+
+                  {item.note ? (
+                    <Text style={[typography.caption, { color: colors.primary, fontStyle: 'italic', marginTop: 2 }]}>
+                      Note: "{item.note}"
+                    </Text>
+                  ) : null}
+
+                  <View style={styles.dishPortionRow}>
+                    <View style={[styles.portionBadge, { backgroundColor: colors.surfaceSubtle }]}>
+                      <Text style={[styles.portionBadgeText, { color: colors.textSecondary }]}>
+                        {item.quantity}x Portion ({brand.formatPrice(unitPrice)} ea)
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Settlement Preference Selector */}
+        <View
+          style={[
+            styles.summaryCard,
+            { backgroundColor: colors.card, borderColor: colors.cardBorder },
+            shadows.soft,
+          ]}
+        >
+          <Text style={[styles.cardHeading, { color: colors.mutedText, marginBottom: 12 }]}>
+            SETTLEMENT PREFERENCE
+          </Text>
+
+          {/* Pay at Table Option */}
+          <TouchableOpacity
+            onPress={() => setPaymentMethod('pay_at_table')}
+            style={[
+              styles.paymentOptionRow,
+              {
+                backgroundColor: paymentMethod === 'pay_at_table' ? colors.primaryTint : colors.surfaceSubtle,
+                borderColor: paymentMethod === 'pay_at_table' ? colors.primary : colors.surfaceBorder,
+              },
+            ]}
+            activeOpacity={0.85}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <View
+                style={[
+                  styles.radioOuter,
+                  { borderColor: paymentMethod === 'pay_at_table' ? colors.primary : colors.border },
+                ]}
+              >
+                {paymentMethod === 'pay_at_table' && (
+                  <View style={[styles.radioInner, { backgroundColor: colors.primary }]} />
+                )}
+              </View>
+              <View style={{ marginLeft: 12 }}>
+                <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700' }]}>
+                  Pay at Table
+                </Text>
+                <Text style={[typography.caption, { color: colors.textSecondary, fontSize: 11 }]}>
+                  Card or terminal upon cloche presentation
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="receipt-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+
+          {/* Direct Cash Option */}
+          <TouchableOpacity
+            onPress={() => setPaymentMethod('cash')}
+            style={[
+              styles.paymentOptionRow,
+              {
+                backgroundColor: paymentMethod === 'cash' ? colors.primaryTint : colors.surfaceSubtle,
+                borderColor: paymentMethod === 'cash' ? colors.primary : colors.surfaceBorder,
+              },
+            ]}
+            activeOpacity={0.85}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <View
+                style={[
+                  styles.radioOuter,
+                  { borderColor: paymentMethod === 'cash' ? colors.primary : colors.border },
+                ]}
+              >
+                {paymentMethod === 'cash' && (
+                  <View style={[styles.radioInner, { backgroundColor: colors.primary }]} />
+                )}
+              </View>
+              <View style={{ marginLeft: 12 }}>
+                <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700' }]}>
+                  Direct Cash
+                </Text>
+                <Text style={[typography.caption, { color: colors.textSecondary, fontSize: 11 }]}>
+                  Settle in PKR notes directly with your attendant
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="cash-outline" size={20} color={colors.ready} />
+          </TouchableOpacity>
+
+          {/* Digital Wallet Option (Disabled with Coming Soon) */}
+          <View
+            style={[
+              styles.paymentOptionRow,
+              { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder, opacity: 0.65 },
+            ]}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <View style={[styles.radioOuter, { borderColor: colors.border }]} />
+              <View style={{ marginLeft: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '600' }]}>
+                    Digital Wallet / Online Card
+                  </Text>
+                  <View style={[styles.comingSoonBadge, { backgroundColor: colors.secondary + '20' }]}>
+                    <Text style={[styles.comingSoonText, { color: colors.secondary }]}>Coming Soon</Text>
+                  </View>
+                </View>
+                <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
+                  Instant direct online checkout
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="card-outline" size={20} color={colors.mutedText} />
+          </View>
+        </View>
+
+        {/* Financial Folio Breakdown */}
         <View
           style={[
             styles.summaryCard,
@@ -342,55 +555,68 @@ export default function OrderSummaryScreen({ route, navigation }) {
             shadows.medium3D,
           ]}
         >
-          <Text style={[styles.cardHeading, { color: colors.textMuted }]}>
-            TOTAL COST BREAKDOWN
+          <Text style={[styles.cardHeading, { color: colors.mutedText, marginBottom: 10 }]}>
+            FOLIO COST BREAKDOWN
           </Text>
 
           <View style={styles.calcRow}>
-            <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>Items Subtotal</Text>
+            <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>Subtotal</Text>
             <Text style={[styles.calcValue, { color: colors.textPrimary }]}>
-              Rs. {calculations?.subtotal?.toLocaleString()}
+              {brand.formatPrice(calculations.subtotal)}
             </Text>
           </View>
 
           {cartState.discountPercent > 0 && (
             <View style={styles.calcRow}>
-              <Text style={[styles.calcLabel, { color: colors.success }]}>
+              <Text style={[styles.calcLabel, { color: colors.ready }]}>
                 Voucher ({cartState.promoCode} - {cartState.discountPercent}%)
               </Text>
-              <Text style={[styles.calcValue, { color: colors.success }]}>
-                - Rs. {calculations?.discountAmount?.toFixed(0)}
+              <Text style={[styles.calcValue, { color: colors.ready, fontWeight: '700' }]}>
+                - {brand.formatPrice(calculations.discountAmount)}
               </Text>
             </View>
           )}
 
           <View style={styles.calcRow}>
             <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>
-              Service Charge (5%)
+              Hospitality Service (5%)
             </Text>
             <Text style={[styles.calcValue, { color: colors.textPrimary }]}>
-              Rs. {calculations?.serviceCharge?.toFixed(0)}
+              {brand.formatPrice(calculations.serviceCharge)}
             </Text>
           </View>
 
           <View style={styles.calcRow}>
             <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>
-              Sales Tax (15%)
+              Provincial Sales Tax (15%)
             </Text>
             <Text style={[styles.calcValue, { color: colors.textPrimary }]}>
-              Rs. {calculations?.salesTax?.toFixed(0)}
+              {brand.formatPrice(calculations.salesTax)}
             </Text>
           </View>
 
-          <View style={[styles.divider, { borderTopColor: colors.surfaceBorder }]} />
+          {calculations.tipAmount > 0 && (
+            <View style={styles.calcRow}>
+              <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>
+                Attendant Gratuity
+              </Text>
+              <Text style={[styles.calcValue, { color: colors.textPrimary }]}>
+                {brand.formatPrice(calculations.tipAmount)}
+              </Text>
+            </View>
+          )}
+
+          <View style={[styles.divider, { backgroundColor: colors.surfaceBorder }]} />
 
           <View style={styles.grandRow}>
             <View>
               <Text style={[styles.grandLabel, { color: colors.textPrimary }]}>Grand Total</Text>
-              <Text style={[styles.grandSub, { color: colors.textMuted }]}>Cash / Card on Delivery</Text>
+              <Text style={[styles.grandSub, { color: colors.mutedText }]}>
+                {paymentMethod === 'cash' ? 'Cash Settlement' : 'Pay at Table'}
+              </Text>
             </View>
             <Text style={[styles.grandValue, { color: colors.primary }]}>
-              Rs. {calculations?.grandTotal?.toFixed(0)}
+              {brand.formatPrice(calculations.grandTotal)}
             </Text>
           </View>
 
@@ -416,7 +642,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
             </View>
           ) : null}
 
-          {/* PLACE ORDER BUTTON */}
+          {/* PROMINENT CONFIRM & DISPATCH BUTTON */}
           <TouchableOpacity
             onPress={handlePlaceOrder}
             disabled={isSubmitting}
@@ -431,10 +657,24 @@ export default function OrderSummaryScreen({ route, navigation }) {
             <LinearGradient
               colors={colors.gradientPrimary || [colors.primary, colors.primaryPressed || '#E04A27']}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+              end={{ x: 1, y: 0 }}
               style={styles.gradientBtn}
             >
-              <PlaceOrderButtonContent isSubmitting={isSubmitting} btnTextColor={btnTextColor} />
+              {isSubmitting ? (
+                <>
+                  <ActivityIndicator size="small" color={colors.onPrimary} style={{ marginRight: 8 }} />
+                  <Text style={[styles.placeBtnText, { color: colors.onPrimary }]}>
+                    Dispatching to Kitchen Brigade...
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} style={{ marginRight: 8 }} />
+                  <Text style={[styles.placeBtnText, { color: colors.onPrimary }]}>
+                    Confirm & Dispatch to Kitchen
+                  </Text>
+                </>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -454,69 +694,158 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
-  summaryCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 18,
+  topHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 16,
   },
-  headerRow: {
+  readyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    gap: 4,
   },
-  iconBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  readyBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  diningPillContainer: {
+    flexDirection: 'row',
+    padding: 4,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  diningPillBtn: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 13,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  subtitle: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  diningBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginTop: 14,
-    gap: 8,
-  },
-  diningBadgeText: {
+  diningPillText: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  summaryCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 14,
+  },
+  cardHeaderWithAction: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   cardHeading: {
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 0.6,
-    marginBottom: 12,
+    letterSpacing: 0.5,
   },
-  itemRow: {
+  detailTile: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  gridThreeCol: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(150, 150, 150, 0.1)',
+    gap: 8,
   },
-  itemName: {
-    fontSize: 14,
+  colTile: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  colTileLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    marginBottom: 3,
+  },
+  colTileValue: {
+    fontSize: 12,
     fontWeight: '700',
   },
-  itemNote: {
-    fontSize: 12,
-    fontStyle: 'italic',
-    marginTop: 2,
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
   },
-  itemTotal: {
-    fontSize: 14,
-    fontWeight: '800',
+  contactText: {
+    fontSize: 13,
+    marginLeft: 10,
+    fontWeight: '500',
+  },
+  dishItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  dishThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+  },
+  dishThumbFallback: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dishPortionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  portionBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  portionBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  paymentOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  comingSoonBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 6,
+  },
+  comingSoonText: {
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   calcRow: {
     flexDirection: 'row',
@@ -531,8 +860,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   divider: {
-    borderTopWidth: 1,
-    marginVertical: 10,
+    height: 1,
+    marginVertical: 12,
   },
   grandRow: {
     flexDirection: 'row',
@@ -554,6 +883,7 @@ const styles = StyleSheet.create({
   placeBtn: {
     borderRadius: 16,
     overflow: 'hidden',
+    marginTop: 8,
   },
   gradientBtn: {
     flexDirection: 'row',
@@ -562,7 +892,6 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
   },
   placeBtnText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
   },

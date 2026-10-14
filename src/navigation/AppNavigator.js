@@ -16,6 +16,7 @@ import OrderTrackingScreen from '../screens/OrderTrackingScreen';
 import ReservationScreen from '../screens/ReservationScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ManagerDashboardScreen from '../screens/ManagerDashboardScreen';
+import OrderPlacedScreen from '../screens/OrderPlacedScreen';
 
 export const navigationRef = createNavigationContainerRef();
 
@@ -187,6 +188,14 @@ export default function AppNavigator() {
               ...typography.headingSm,
               color: colors.textPrimary,
             },
+          }}
+        />
+        <Stack.Screen
+          name="OrderPlaced"
+          component={OrderPlacedScreen}
+          options={{
+            headerShown: false,
+            animation: 'fade_from_bottom',
           }}
         />
       </Stack.Navigator>
