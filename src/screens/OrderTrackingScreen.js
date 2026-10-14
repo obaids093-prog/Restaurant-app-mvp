@@ -10,32 +10,38 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
 import apiClient from '../api/client';
 import { useOrders } from '../context/OrdersContext';
+import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-
-const STAGES = [
-  { key: 'Pending', label: 'Order Received', desc: 'Sent to kitchen display', icon: 'receipt' },
-  { key: 'Preparing', label: 'Chef Cooking', desc: 'Crafting fresh signature ingredients', icon: 'flame' },
-  { key: 'Ready', label: 'Plated & Ready', desc: 'Food is inspected and garnished', icon: 'restaurant' },
-  { key: 'Served', label: 'Delivered / Completed', desc: 'Bon appetit! Savor your culinary feast', icon: 'checkmark-done-circle' },
-];
+import { brand } from '../config/brand';
+import OrderStepper from '../components/ui/OrderStepper';
+import FilterTabs from '../components/ui/FilterTabs';
 
 const ACTIVE_STATUSES = ['Pending', 'Preparing', 'Ready'];
-
-// Must match server/config/constants.js CANCEL_WINDOW_MINUTES.
 const CANCEL_WINDOW_MINUTES = 10;
 
 export default function OrderTrackingScreen({ route, navigation }) {
-  const { colors, isDark, shadows } = useTheme();
+  const { colors, isDark, shadows, typography, radius } = useTheme();
   const { user, logout } = useAuth();
   const { orders, cancelOrder, fetchOrders } = useOrders();
+  const { addItem } = useCart();
 
   const { orderId } = route.params || {};
+
+  // Active filter tab: 'active' | 'all' | 'completed'
+  const [activeTab, setActiveTab] = useState('active');
+
+  // Cancel button loading state
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  // Expanded receipt details toggle
+  const [expandedReceiptId, setExpandedReceiptId] = useState(null);
 
   // Active orders (Pending, Preparing, Ready only) sorted by most recent
   const activeOrders = useMemo(() => {
@@ -44,7 +50,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
       .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }, [orders]);
 
-  // Pick the specified order if it is currently active, otherwise the most recent active order
+  // Specific active order being tracked in hero view (if any)
   const activeOrder = useMemo(() => {
     if (orderId) {
       const matched = activeOrders.find((o) => o.id === orderId || o._id === orderId);
@@ -53,23 +59,24 @@ export default function OrderTrackingScreen({ route, navigation }) {
     return activeOrders[0] || null;
   }, [activeOrders, orderId]);
 
-  // Read-only past orders (Cancelled or Served only) sorted by most recent
-  const pastOrders = useMemo(() => {
+  // Completed / Past orders (Served, Delivered, Cancelled)
+  const completedOrders = useMemo(() => {
     return (orders || [])
-      .filter((o) => ['Served', 'Cancelled'].includes(o.status))
+      .filter((o) => ['Served', 'Delivered', 'Cancelled'].includes(o.status))
       .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }, [orders]);
 
+  // Filter tabs with dynamic counts
+  const filterTabs = useMemo(() => {
+    return [
+      { id: 'all', label: `All (${(orders || []).length})` },
+      { id: 'active', label: `Active (${activeOrders.length})` },
+      { id: 'completed', label: `Completed (${completedOrders.length})` },
+    ];
+  }, [orders, activeOrders.length, completedOrders.length]);
+
   // Running elapsed time counter (seconds)
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-  // Cancel button loading state
-  const [isCancelling, setIsCancelling] = useState(false);
-
-  // Animation for active step pulse
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  // Timers refs for cleanup
   const intervalCounterRef = useRef(null);
 
   // Initial fetch on mount if orders have not yet loaded
@@ -79,24 +86,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
     }
   }, [fetchOrders]);
 
-  // Pulse animation for active step (only active when an active order is being tracked)
-  useEffect(() => {
-    if (!activeOrder) return;
-
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.15, duration: 800, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-      ])
-    );
-    anim.start();
-
-    return () => {
-      anim.stop();
-    };
-  }, [activeOrder?.id, pulseAnim]);
-
-  // Running elapsed-time counter updating every second (only active when an active order exists)
+  // Running elapsed-time counter updating every second
   useEffect(() => {
     if (!activeOrder) {
       setElapsedSeconds(0);
@@ -121,12 +111,10 @@ export default function OrderTrackingScreen({ route, navigation }) {
   }, [activeOrder?.id, activeOrder?.createdAt]);
 
   /**
-   * Question 7 / Spec:
-   * Stop polling when there is no active order, and keep the interval cleanup.
-   * Polls GET /api/orders/my every 10 seconds when an active order exists.
+   * 10-second polling interval with cleanup when active order exists
    */
   useEffect(() => {
-    if (!activeOrder) return; // Stop polling when there is no active order
+    if (!activeOrder) return;
 
     const pollingInterval = setInterval(() => {
       if (fetchOrders) {
@@ -146,24 +134,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getStageIndex = (status) => {
-    switch (status) {
-      case 'Pending':
-        return 0;
-      case 'Preparing':
-        return 1;
-      case 'Ready':
-        return 2;
-      case 'Served':
-        return 3;
-      default:
-        return 0;
-    }
-  };
-
-  const currentStageIndex = getStageIndex(activeOrder?.status || 'Pending');
-
-  // --- Cancel window remaining seconds ---
+  // Cancel window check
   const getCancelRemainingSeconds = useCallback(() => {
     if (!activeOrder?.createdAt || CANCEL_WINDOW_MINUTES === 0) return Infinity;
     const createdMs = new Date(activeOrder.createdAt).getTime();
@@ -178,7 +149,6 @@ export default function OrderTrackingScreen({ route, navigation }) {
     !isCancelling &&
     (CANCEL_WINDOW_MINUTES === 0 || cancelRemaining > 0);
 
-  // Platform-safe alert helper
   const showAlert = (title, message) => {
     if (Platform.OS === 'web') {
       window.alert(`${title}\n\n${message}`);
@@ -187,9 +157,9 @@ export default function OrderTrackingScreen({ route, navigation }) {
     }
   };
 
-  // --- Handle Cancel Order ---
-  const handleCancelOrder = async () => {
-    const orderIdToCancel = activeOrder?.id || activeOrder?._id;
+  // Handle Cancel Order
+  const handleCancelOrder = async (targetOrder = activeOrder) => {
+    const orderIdToCancel = targetOrder?.id || targetOrder?._id;
     if (!orderIdToCancel) return;
 
     const msg = 'Are you sure you want to cancel this order? This cannot be undone.';
@@ -219,12 +189,10 @@ export default function OrderTrackingScreen({ route, navigation }) {
         });
       }
 
-      // Clear navigation param so it does not retain the cancelled order ID
       if (navigation?.setParams) {
         navigation.setParams({ orderId: undefined });
       }
 
-      // Re-fetch to ensure all server data is synchronized
       if (fetchOrders) {
         fetchOrders().catch(() => {});
       }
@@ -237,18 +205,39 @@ export default function OrderTrackingScreen({ route, navigation }) {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigation.navigate('Login');
-    } catch (e) {
-      console.warn('Logout error:', e);
-    }
+  // Reorder action — re-adds dishes to cart
+  const handleReorder = (order) => {
+    if (!order?.items || order.items.length === 0) return;
+
+    order.items.forEach((item) => {
+      addItem({
+        id: item.id || item._id,
+        name: item.name,
+        price: item.price,
+        image: item.image,
+      });
+    });
+
+    Alert.alert(
+      'Dishes Re-added to Tray',
+      `${order.items.length} creation(s) have been restored to your culinary tray.`,
+      [
+        { text: 'Keep Browsing', style: 'cancel' },
+        { text: 'View Tray', onPress: () => navigation.navigate('CustomerApp', { screen: 'Cart' }) },
+      ]
+    );
   };
 
   const navigateToMenu = () => {
     navigation.navigate('CustomerApp', { screen: 'Menu' });
   };
+
+  // Filter orders according to active tab
+  const displayedOrders = useMemo(() => {
+    if (activeTab === 'active') return activeOrders;
+    if (activeTab === 'completed') return completedOrders;
+    return orders || [];
+  }, [activeTab, activeOrders, completedOrders, orders]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -258,406 +247,415 @@ export default function OrderTrackingScreen({ route, navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Top Header Navigation & Action Bar */}
-        <View style={styles.topActionsBar}>
-          <TouchableOpacity
-            onPress={navigateToMenu}
-            style={[
-              styles.backToMenuBtn,
-              { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-            ]}
-            activeOpacity={0.75}
-          >
-            <Ionicons name="arrow-back" size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
-            <Text style={[styles.backToMenuText, { color: colors.textPrimary }]}>Back to Menu</Text>
-          </TouchableOpacity>
-
-          <View style={styles.rightActionsRow}>
-            <TouchableOpacity
-              onPress={() => {
-                if (fetchOrders) fetchOrders();
-              }}
-              style={[
-                styles.actionIconBtn,
-                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-              ]}
-              activeOpacity={0.75}
-            >
-              <Ionicons name="sync-outline" size={16} color={colors.primary} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleLogout}
-              style={[
-                styles.logoutQuickBtn,
-                { backgroundColor: '#ef444418', borderColor: '#ef444433' },
-              ]}
-              activeOpacity={0.75}
-            >
-              <Ionicons name="log-out-outline" size={16} color="#ef4444" style={{ marginRight: 4 }} />
-              <Text style={styles.logoutQuickText}>Logout</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* CONDITION 1: NO ACTIVE ORDER (SHOW CLEAN EMPTY STATE + PAST ORDERS) */}
-        {!activeOrder ? (
-          <View style={styles.emptyContainer}>
-            {/* Empty State Card */}
-            <View
-              style={[
-                styles.emptyCard,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                shadows.deep3D,
-              ]}
-            >
+        {/* Stage Header */}
+        <View style={styles.stageHeader}>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={[typography.headingLg, { color: colors.textPrimary, fontWeight: '800' }]}>
+                Kitchen Tracker
+              </Text>
               <View
                 style={[
-                  styles.emptyIconCircle,
-                  { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
+                  styles.syncStatusPill,
+                  { backgroundColor: activeOrder ? colors.primaryTint : colors.surfaceSubtle },
                 ]}
               >
-                <Ionicons name="receipt-outline" size={44} color={colors.primary} />
-              </View>
-
-              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-                No active order right now
-              </Text>
-              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                You have no orders currently in preparation. Explore our artisan culinary selections to place an order.
-              </Text>
-
-              <TouchableOpacity
-                onPress={navigateToMenu}
-                style={[styles.emptyMenuBtn, shadows.button3D]}
-                activeOpacity={0.88}
-              >
-                <LinearGradient
-                  colors={[colors.gradientStart, colors.gradientEnd]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.emptyMenuBtnGradient}
-                >
-                  <Ionicons name="fast-food-outline" size={18} color="#472a00" style={{ marginRight: 8 }} />
-                  <Text style={[styles.emptyMenuBtnText, { color: '#472a00' }]}>Back to Menu</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-
-            {/* Past Orders List (Cancelled & Served Orders, read-only) */}
-            {pastOrders.length > 0 && (
-              <View style={styles.pastOrdersContainer}>
-                <View style={styles.pastOrdersHeaderRow}>
-                  <Ionicons name="time-outline" size={16} color={colors.primary} style={{ marginRight: 6 }} />
-                  <Text style={[styles.pastOrdersHeading, { color: colors.textSecondary }]}>
-                    PAST ORDERS ({pastOrders.length})
-                  </Text>
-                </View>
-
-                {pastOrders.map((order, idx) => {
-                  const isServed = order.status === 'Served';
-                  const formattedDate = order.createdAt
-                    ? new Date(order.createdAt).toLocaleDateString([], {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    : order.timestamp || 'Recent';
-
-                  return (
-                    <View
-                      key={order.id || order._id || idx}
-                      style={[
-                        styles.pastOrderCard,
-                        { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                        shadows.soft,
-                      ]}
-                    >
-                      <View style={styles.pastOrderTopRow}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={[styles.pastOrderId, { color: colors.textPrimary }]}>
-                            Order #{String(order.id || order._id).slice(-6).toUpperCase()}
-                          </Text>
-                          <Text style={[styles.pastOrderDate, { color: colors.textMuted }]}>
-                            {formattedDate} • {order.type || 'Dine-in'}
-                          </Text>
-                        </View>
-
-                        <View
-                          style={[
-                            styles.pastStatusPill,
-                            {
-                              backgroundColor: isServed ? '#22c55e18' : '#ef444418',
-                              borderColor: isServed ? '#22c55e44' : '#ef444444',
-                            },
-                          ]}
-                        >
-                          <Ionicons
-                            name={isServed ? 'checkmark-circle' : 'close-circle'}
-                            size={13}
-                            color={isServed ? '#22c55e' : '#ef4444'}
-                            style={{ marginRight: 4 }}
-                          />
-                          <Text
-                            style={[
-                              styles.pastStatusText,
-                              { color: isServed ? '#22c55e' : '#ef4444' },
-                            ]}
-                          >
-                            {order.status}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {order.items && order.items.length > 0 && (
-                        <Text
-                          style={[styles.pastOrderItemsSnippet, { color: colors.textSecondary }]}
-                          numberOfLines={1}
-                        >
-                          {order.items.map((it) => `${it.quantity || 1}x ${it.name}`).join(', ')}
-                        </Text>
-                      )}
-
-                      <View
-                        style={[
-                          styles.pastOrderBottomRow,
-                          { borderTopColor: colors.surfaceBorder },
-                        ]}
-                      >
-                        <Text style={[styles.pastOrderTotalLabel, { color: colors.textMuted }]}>
-                          Total Amount
-                        </Text>
-                        <Text style={[styles.pastOrderTotal, { color: colors.primary }]}>
-                          Rs. {Number(order.total || 0).toLocaleString()}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-          </View>
-        ) : (
-          /* CONDITION 2: ACTIVE ORDER TRACKING (Pending, Preparing, Ready) */
-          <>
-            {/* Top Status Card */}
-            <View
-              style={[
-                styles.headerCard,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                shadows.deep3D,
-              ]}
-            >
-              <View style={styles.topInfoRow}>
-                <View>
-                  <Text style={[styles.orderIdLabel, { color: colors.primary }]}>
-                    #{String(activeOrder.id || activeOrder._id).slice(-6).toUpperCase()}
-                  </Text>
-                  <Text style={[styles.orderTypeBadge, { color: colors.textPrimary }]}>
-                    {activeOrder.type === 'Dine-in'
-                      ? `Dine-in • Table ${activeOrder.tableNumber || '1'}`
-                      : `Takeaway • ${activeOrder.pickupTime || 'Ready Soon'}`}
-                  </Text>
-                </View>
-
-                {/* Running Elapsed Time Counter */}
                 <View
                   style={[
-                    styles.timerBox,
-                    { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
+                    styles.syncDot,
+                    { backgroundColor: activeOrder ? colors.primary : colors.mutedText },
                   ]}
-                >
-                  <Ionicons name="stopwatch-outline" size={16} color={colors.primary} />
-                  <Text style={[styles.timerDigits, { color: colors.textPrimary }]}>
-                    {formatTime(elapsedSeconds)}
-                  </Text>
-                </View>
-              </View>
-
-              <Text style={[styles.liveStatusTitle, { color: colors.textPrimary }]}>
-                {STAGES[currentStageIndex]?.label || activeOrder.status}
-              </Text>
-              <Text style={[styles.liveStatusDesc, { color: colors.textSecondary }]}>
-                {STAGES[currentStageIndex]?.desc || 'Your order is currently progressing through the kitchen.'}
-              </Text>
-            </View>
-
-            {/* CANCEL ORDER BUTTON — only when order status is Pending */}
-            {canCancel && (
-              <View
-                style={[
-                  styles.cancelSection,
-                  { backgroundColor: colors.card, borderColor: colors.error + '40' },
-                  shadows.soft,
-                ]}
-              >
-                <TouchableOpacity
-                  onPress={handleCancelOrder}
-                  disabled={isCancelling}
+                />
+                <Text
                   style={[
-                    styles.cancelOrderBtn,
-                    { backgroundColor: colors.error },
-                    isCancelling && { opacity: 0.6 },
+                    styles.syncStatusText,
+                    { color: activeOrder ? colors.primary : colors.textSecondary },
                   ]}
-                  activeOpacity={0.75}
                 >
-                  {isCancelling ? (
-                    <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
-                  ) : (
-                    <Ionicons name="close-circle-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                  )}
-                  <Text style={styles.cancelOrderBtnText}>
-                    {isCancelling ? 'Cancelling Order...' : 'Cancel Order'}
-                  </Text>
-                </TouchableOpacity>
+                  {activeOrder ? 'Live Sync' : 'Idle Sync'}
+                </Text>
               </View>
-            )}
-
-            {/* STEP PROGRESS INDICATOR TIMELINE (Only shown for active orders) */}
-            <View
-              style={[
-                styles.timelineCard,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                shadows.soft,
-              ]}
-            >
-              <Text style={[styles.timelineHeading, { color: colors.textMuted }]}>
-                KITCHEN PROGRESSION TIMELINE
-              </Text>
-
-              {STAGES.map((stage, idx) => {
-                const isCompleted = idx < currentStageIndex;
-                const isCurrent = idx === currentStageIndex;
-
-                return (
-                  <View key={stage.key} style={styles.stageStepRow}>
-                    {/* Connector Line */}
-                    {idx < STAGES.length - 1 && (
-                      <View
-                        style={[
-                          styles.connectorLine,
-                          {
-                            backgroundColor: isCompleted ? colors.primary : colors.surfaceBorder,
-                          },
-                        ]}
-                      />
-                    )}
-
-                    {/* Circle Icon */}
-                    {isCurrent ? (
-                      <Animated.View
-                        style={[
-                          styles.stepCircle,
-                          {
-                            backgroundColor: '#f59e0b',
-                            transform: [{ scale: pulseAnim }],
-                          },
-                          shadows.button3D,
-                        ]}
-                      >
-                        <Ionicons name={stage.icon} size={18} color="#472a00" />
-                      </Animated.View>
-                    ) : (
-                      <View
-                        style={[
-                          styles.stepCircle,
-                          {
-                            backgroundColor: isCompleted ? colors.primary : colors.surfaceSubtle,
-                            borderColor: isCompleted ? colors.primary : colors.surfaceBorder,
-                            borderWidth: 1.5,
-                          },
-                        ]}
-                      >
-                        <Ionicons
-                          name={isCompleted ? 'checkmark' : stage.icon}
-                          size={16}
-                          color={isCompleted ? '#FFFFFF' : colors.textMuted}
-                        />
-                      </View>
-                    )}
-
-                    {/* Step Text Info */}
-                    <View style={styles.stepInfo}>
-                      <Text
-                        style={[
-                          styles.stepLabel,
-                          {
-                            color: isCurrent
-                              ? colors.primary
-                              : isCompleted
-                              ? colors.textPrimary
-                              : colors.textMuted,
-                            fontWeight: isCurrent ? '800' : '600',
-                          },
-                        ]}
-                      >
-                        {stage.label}
-                      </Text>
-                      <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
-                        {stage.desc}
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })}
             </View>
+            <Text style={[typography.caption, { color: colors.mutedText, marginTop: 2 }]}>
+              Real-time artisan kitchen orchestration & live station status
+            </Text>
+          </View>
 
-            {/* ORDER DETAILS CARD */}
-            <View
-              style={[
-                styles.timelineCard,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                shadows.soft,
-              ]}
-            >
-              <Text style={[styles.timelineHeading, { color: colors.textMuted }]}>
-                DISHES IN KITCHEN QUEUE
-              </Text>
+          {/* Sync Refresh Button */}
+          <TouchableOpacity
+            onPress={() => {
+              if (fetchOrders) fetchOrders();
+            }}
+            style={[
+              styles.refreshBtn,
+              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+              shadows.soft,
+            ]}
+            activeOpacity={0.8}
+            accessibilityLabel="Refresh status"
+          >
+            <Ionicons name="sync" size={18} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
 
-              {activeOrder.items?.map((item, i) => (
-                <View key={i} style={styles.orderItemRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.orderItemName, { color: colors.textPrimary }]}>
-                      {item.quantity}x {item.name}
-                    </Text>
-                    {item.note ? (
-                      <Text style={[styles.orderItemNote, { color: colors.primary }]}>
-                        Special: "{item.note}"
-                      </Text>
-                    ) : null}
-                  </View>
-                  <Text style={[styles.orderItemPrice, { color: colors.textPrimary }]}>
-                    Rs. {(item.price * item.quantity).toLocaleString()}
-                  </Text>
-                </View>
-              ))}
+        {/* Segmented Filter Tabs (All / Active / Completed) */}
+        <View style={styles.filterTabsWrapper}>
+          <FilterTabs
+            tabs={filterTabs}
+            activeTab={activeTab}
+            onSelectTab={setActiveTab}
+          />
+        </View>
 
-              <View style={[styles.totalRow, { borderTopColor: colors.surfaceBorder }]}>
-                <Text style={[styles.totalLabel, { color: colors.textPrimary }]}>Grand Total</Text>
-                <Text style={[styles.totalValue, { color: colors.primary }]}>
-                  Rs. {activeOrder.total?.toLocaleString()}
+        {/* HERO ACTIVE ORDER SECTION (If on 'active' tab and an order is firing, or specified orderId) */}
+        {activeOrder && (activeTab === 'active' || activeTab === 'all') && (
+          <View
+            style={[
+              styles.heroActiveCard,
+              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+              shadows.medium3D,
+            ]}
+          >
+            {/* Header: Ticket ID & Status Badge */}
+            <View style={styles.heroTopRow}>
+              <View>
+                <Text style={[typography.caption, { color: colors.mutedText, textTransform: 'uppercase' }]}>
+                  Active Live Order
+                </Text>
+                <Text style={[typography.headingSm, { color: colors.textPrimary, fontWeight: '800' }]}>
+                  #AK-{String(activeOrder.id || activeOrder._id).slice(-4).toUpperCase()}
+                </Text>
+              </View>
+
+              <View style={[styles.activeStatusPill, { backgroundColor: colors.primaryTint }]}>
+                <View style={[styles.pulseLiveDot, { backgroundColor: colors.primary }]} />
+                <Text style={[styles.activeStatusText, { color: colors.primary }]}>
+                  {activeOrder.status}
                 </Text>
               </View>
             </View>
 
-            {/* RETURN BUTTON */}
+            {/* Service & Elapsed Timer Tile */}
+            <View style={[styles.serviceTimerTile, { backgroundColor: colors.surfaceSubtle }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[typography.caption, { color: colors.mutedText }]}>
+                  Service Allocation
+                </Text>
+                <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700' }]} numberOfLines={1}>
+                  {activeOrder.tableNumber || (activeOrder.type === 'Takeaway' ? 'Takeaway Counter' : 'Table A-01')}
+                </Text>
+              </View>
+              <View style={styles.timerRight}>
+                <Ionicons name="timer-outline" size={16} color={colors.primary} style={{ marginRight: 4 }} />
+                <Text style={[typography.headingSm, { color: colors.primary, fontWeight: '800' }]}>
+                  {formatTime(elapsedSeconds)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Order Stepper Component */}
+            <View style={styles.stepperWrapper}>
+              <OrderStepper currentStatus={activeOrder.status} />
+            </View>
+
+            {/* Order Items Preview */}
+            {activeOrder.items && activeOrder.items.length > 0 && (
+              <View style={[styles.heroItemsList, { borderTopColor: colors.surfaceBorder }]}>
+                <Text style={[typography.caption, { color: colors.mutedText, textTransform: 'uppercase', marginBottom: 8 }]}>
+                  Creations in Preparation ({activeOrder.items.length})
+                </Text>
+                {activeOrder.items.map((it, idx) => (
+                  <View key={idx} style={styles.heroItemRow}>
+                    <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '600', flex: 1 }]} numberOfLines={1}>
+                      {it.quantity || 1}x {it.name}
+                    </Text>
+                    <Text style={[typography.body, { color: colors.textSecondary, fontWeight: '600' }]}>
+                      {brand.formatPrice(Number(it.price || 0) * (it.quantity || 1))}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Cancel Button (While Pending) */}
+            {canCancel && (
+              <TouchableOpacity
+                onPress={() => handleCancelOrder(activeOrder)}
+                disabled={isCancelling}
+                style={[styles.cancelBtn, { borderColor: colors.error }]}
+                activeOpacity={0.8}
+              >
+                {isCancelling ? (
+                  <ActivityIndicator size="small" color={colors.error} />
+                ) : (
+                  <>
+                    <Ionicons name="close-circle-outline" size={18} color={colors.error} style={{ marginRight: 6 }} />
+                    <Text style={[styles.cancelBtnText, { color: colors.error }]}>
+                      Cancel Order {cancelRemaining !== Infinity ? `(${Math.ceil(cancelRemaining / 60)}m left)` : ''}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* EMPTY STATE (When Active Tab has 0 active orders, or entire list is empty) */}
+        {activeTab === 'active' && activeOrders.length === 0 && (
+          <View
+            style={[
+              styles.emptyHeroCard,
+              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+              shadows.soft,
+            ]}
+          >
+            {/* Cloche with schedule beacon */}
+            <View style={styles.emptyClocheCanvas}>
+              <View style={[styles.emptyClocheGlow, { backgroundColor: colors.primaryTint }]} />
+              <View style={[styles.emptyClocheOuter, { backgroundColor: colors.surfaceSubtle }]}>
+                <Ionicons name="restaurant" size={32} color={colors.primary} />
+              </View>
+              <View style={[styles.emptyClockBeacon, { backgroundColor: colors.primary }]}>
+                <Ionicons name="time" size={14} color={colors.onPrimary} />
+              </View>
+            </View>
+
+            <Text style={[typography.headingSm, styles.emptyHeroTitle, { color: colors.textPrimary }]}>
+              No Active Orders in Kitchen
+            </Text>
+            <Text style={[typography.body, styles.emptyHeroSub, { color: colors.textSecondary }]}>
+              You don't have any culinary orders currently firing in Chef Farhan's kitchen. Place a dine-in or takeaway order to track station progress live.
+            </Text>
+
             <TouchableOpacity
               onPress={navigateToMenu}
-              style={[styles.returnBtn, shadows.button3D]}
+              style={[styles.emptyHeroBtn, { backgroundColor: colors.primary }, shadows.button3D]}
               activeOpacity={0.88}
             >
-              <LinearGradient
-                colors={[colors.gradientStart, colors.gradientEnd]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.gradientBtn}
-              >
-                <Ionicons name="fast-food-outline" size={18} color="#472a00" style={{ marginRight: 8 }} />
-                <Text style={[styles.returnBtnText, { color: '#472a00' }]}>Return to Gourmet Menu</Text>
-              </LinearGradient>
+              <Text style={[styles.emptyHeroBtnText, { color: colors.onPrimary }]}>
+                Explore Artisan Menu
+              </Text>
+              <Ionicons name="arrow-forward" size={18} color={colors.onPrimary} style={{ marginLeft: 6 }} />
             </TouchableOpacity>
-          </>
+          </View>
+        )}
+
+        {/* Live Station Status Teaser Card */}
+        <View
+          style={[
+            styles.stationTeaserCard,
+            { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
+          ]}
+        >
+          <View style={[styles.stationIconCircle, { backgroundColor: colors.primaryTint }]}>
+            <Ionicons name="flame" size={22} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={[styles.pulseLiveDot, { backgroundColor: colors.primary }]} />
+              <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700' }]}>
+                Fire & Hearth Stations Open
+              </Text>
+            </View>
+            <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
+              Average bespoke prep turnaround is 20-25 minutes tonight
+            </Text>
+          </View>
+        </View>
+
+        {/* ORDER LIST (Past & Completed Dining Folios) */}
+        {displayedOrders.length > 0 && (
+          <View style={styles.ordersListSection}>
+            <View style={styles.ordersListHeader}>
+              <Text style={[typography.headingSm, { color: colors.textPrimary, fontWeight: '700' }]}>
+                {activeTab === 'active'
+                  ? 'Past Dining Folios'
+                  : activeTab === 'completed'
+                  ? 'Completed Dining Folios'
+                  : 'All Dining Folios'}
+              </Text>
+              <Text style={[typography.caption, { color: colors.mutedText }]}>
+                {displayedOrders.length} Total
+              </Text>
+            </View>
+
+            {displayedOrders.map((ord, idx) => {
+              const isServed = ord.status === 'Served' || ord.status === 'Delivered';
+              const isCancelled = ord.status === 'Cancelled';
+              const isPending = ord.status === 'Pending';
+              const formattedDate = ord.createdAt
+                ? new Date(ord.createdAt).toLocaleDateString([], {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : 'Recent';
+
+              const orderTicket = String(ord.id || ord._id).slice(-4).toUpperCase();
+              const isExpanded = expandedReceiptId === (ord.id || ord._id);
+
+              return (
+                <View
+                  key={ord.id || ord._id || idx}
+                  style={[
+                    styles.folioCard,
+                    { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                    shadows.soft,
+                  ]}
+                >
+                  {/* Card Header Row */}
+                  <View style={styles.folioHeaderRow}>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={[typography.headingSm, { color: colors.textPrimary, fontWeight: '800' }]}>
+                          Folio #AK-{orderTicket}
+                        </Text>
+                        <View style={[styles.folioTypeBadge, { backgroundColor: colors.surfaceSubtle }]}>
+                          <Text style={[styles.folioTypeBadgeText, { color: colors.textSecondary }]}>
+                            {ord.type || 'Dine-In'}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={[typography.caption, { color: colors.mutedText, marginTop: 2 }]}>
+                        {formattedDate} • {ord.tableNumber || 'Atrium'}
+                      </Text>
+                    </View>
+
+                    {/* Status Badge */}
+                    <View
+                      style={[
+                        styles.folioStatusBadge,
+                        {
+                          backgroundColor: isServed
+                            ? '#22c55e18'
+                            : isCancelled
+                            ? '#ef444418'
+                            : colors.primaryTint,
+                          borderColor: isServed
+                            ? '#22c55e44'
+                            : isCancelled
+                            ? '#ef444444'
+                            : colors.primary + '44',
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={isServed ? 'checkmark-circle' : isCancelled ? 'close-circle' : 'time'}
+                        size={13}
+                        color={isServed ? '#22c55e' : isCancelled ? '#ef4444' : colors.primary}
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text
+                        style={[
+                          styles.folioStatusText,
+                          { color: isServed ? '#22c55e' : isCancelled ? '#ef4444' : colors.primary },
+                        ]}
+                      >
+                        {ord.status}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Dish Preview Row */}
+                  {ord.items && ord.items.length > 0 && (
+                    <View
+                      style={[
+                        styles.dishPreviewTile,
+                        { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
+                      ]}
+                    >
+                      <View style={[styles.dishPreviewThumb, { backgroundColor: colors.primaryTint }]}>
+                        <Ionicons name="restaurant-outline" size={20} color={colors.primary} />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text
+                          style={[typography.body, { color: colors.textPrimary, fontWeight: '700' }]}
+                          numberOfLines={1}
+                        >
+                          {ord.items.map((i) => i.name).join(' • ')}
+                        </Text>
+                        <Text style={[typography.caption, { color: colors.textSecondary }]}>
+                          {ord.items.length} Course(s) • Total: {brand.formatPrice(ord.totalPrice || ord.total || 0)}
+                        </Text>
+                      </View>
+                      <Text style={[typography.price, { color: colors.primary, fontWeight: '800' }]}>
+                        {brand.formatPrice(ord.totalPrice || ord.total || 0)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Expanded Receipt Breakdown (if toggled) */}
+                  {isExpanded && ord.items && (
+                    <View style={[styles.expandedReceipt, { borderTopColor: colors.surfaceBorder }]}>
+                      <Text style={[typography.caption, { color: colors.mutedText, textTransform: 'uppercase', marginBottom: 6 }]}>
+                        Course Breakdown
+                      </Text>
+                      {ord.items.map((it, i) => (
+                        <View key={i} style={styles.expandedRow}>
+                          <Text style={[typography.caption, { color: colors.textPrimary, flex: 1 }]}>
+                            {it.quantity || 1}x {it.name}
+                          </Text>
+                          <Text style={[typography.caption, { color: colors.textSecondary }]}>
+                            {brand.formatPrice(Number(it.price || 0) * (it.quantity || 1))}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Action Footer Buttons */}
+                  <View style={styles.folioActionRow}>
+                    {/* Reorder Button */}
+                    <TouchableOpacity
+                      onPress={() => handleReorder(ord)}
+                      style={[
+                        styles.reorderBtn,
+                        { backgroundColor: colors.primaryTint, borderColor: colors.primary + '30' },
+                      ]}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="repeat" size={16} color={colors.primary} style={{ marginRight: 6 }} />
+                      <Text style={[styles.reorderBtnText, { color: colors.primary }]}>
+                        Reorder Flavors
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Digital Receipt Toggle */}
+                    <TouchableOpacity
+                      onPress={() => setExpandedReceiptId(isExpanded ? null : (ord.id || ord._id))}
+                      style={[
+                        styles.receiptBtn,
+                        { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
+                      ]}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons
+                        name={isExpanded ? 'chevron-up' : 'receipt-outline'}
+                        size={15}
+                        color={colors.textSecondary}
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text style={[styles.receiptBtnText, { color: colors.textPrimary }]}>
+                        {isExpanded ? 'Hide' : 'Digital Receipt'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Cancel button if pending */}
+                    {isPending && (
+                      <TouchableOpacity
+                        onPress={() => handleCancelOrder(ord)}
+                        style={[styles.cancelSmallBtn, { borderColor: colors.error }]}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="close" size={14} color={colors.error} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -673,343 +671,297 @@ const styles = StyleSheet.create({
     maxWidth: 580,
     alignSelf: 'center',
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 48,
   },
-  topActionsBar: {
+  stageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  syncStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  syncDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 5,
+  },
+  syncStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  refreshBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterTabsWrapper: {
+    marginBottom: 16,
+  },
+  heroActiveCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 16,
+  },
+  heroTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 14,
   },
-  backToMenuBtn: {
+  activeStatusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 7,
     paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
+    paddingVertical: 6,
+    borderRadius: 14,
   },
-  backToMenuText: {
-    fontSize: 13,
-    fontWeight: '700',
+  pulseLiveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    marginRight: 6,
   },
-  rightActionsRow: {
+  activeStatusText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  serviceTimerTile: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  actionIconBtn: {
-    padding: 7,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoutQuickBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  logoutQuickText: {
-    color: '#ef4444',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  headerCard: {
-    borderRadius: 22,
-    borderWidth: 1,
-    padding: 20,
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 14,
     marginBottom: 16,
   },
-  topInfoRow: {
+  timerRight: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  stepperWrapper: {
+    paddingVertical: 8,
+    marginBottom: 14,
+  },
+  heroItemsList: {
+    borderTopWidth: 1,
+    paddingTop: 12,
     marginBottom: 12,
   },
-  orderIdLabel: {
-    fontSize: 16,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  orderTypeBadge: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  timerBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 6,
-  },
-  timerDigits: {
-    fontSize: 14,
-    fontWeight: '800',
-    fontFamily: 'monospace',
-  },
-  liveStatusTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    marginTop: 6,
-    letterSpacing: -0.3,
-  },
-  liveStatusDesc: {
-    fontSize: 14,
-    marginTop: 4,
-    lineHeight: 20,
-  },
-  // Cancel order section
-  cancelSection: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  cancelOrderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ef4444',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    width: '100%',
-  },
-  cancelOrderBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  cancelCountdown: {
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  cancelExpiredText: {
-    fontSize: 13,
-    fontWeight: '600',
-    fontStyle: 'italic',
-  },
-  timelineCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 20,
-    marginBottom: 16,
-  },
-  timelineHeading: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    marginBottom: 18,
-  },
-  stageStepRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 24,
-    position: 'relative',
-  },
-  connectorLine: {
-    position: 'absolute',
-    top: 36,
-    left: 17,
-    width: 2,
-    height: 34,
-  },
-  stepCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-    zIndex: 2,
-  },
-  stepInfo: {
-    flex: 1,
-    paddingTop: 2,
-  },
-  stepLabel: {
-    fontSize: 15,
-  },
-  stepDesc: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  orderItemRow: {
+  heroItemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
-  orderItemName: {
-    fontSize: 14,
+  cancelBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    marginTop: 6,
+  },
+  cancelBtnText: {
+    fontSize: 13,
     fontWeight: '700',
   },
-  orderItemNote: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  orderItemPrice: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  emptyHeroCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 24,
     alignItems: 'center',
-    paddingTop: 12,
-    marginTop: 8,
-    borderTopWidth: 1,
+    textAlign: 'center',
+    marginBottom: 16,
   },
-  totalLabel: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  returnBtn: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginTop: 6,
-  },
-  gradientBtn: {
-    flexDirection: 'row',
+  emptyClocheCanvas: {
+    width: 80,
+    height: 80,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
+    position: 'relative',
+    marginBottom: 14,
   },
-  returnBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  // Empty state styles
-  emptyContainer: {
-    marginTop: 8,
-  },
-  emptyCard: {
-    borderRadius: 22,
-    borderWidth: 1,
-    padding: 28,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  emptyIconCircle: {
+  emptyClocheGlow: {
+    position: 'absolute',
     width: 80,
     height: 80,
     borderRadius: 40,
-    borderWidth: 1,
+    opacity: 0.5,
+  },
+  emptyClocheOuter: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
   },
-  emptyTitle: {
-    fontSize: 20,
+  emptyClockBeacon: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  emptyHeroTitle: {
+    fontSize: 17,
     fontWeight: '800',
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: 'center',
   },
-  emptySubtitle: {
-    fontSize: 14,
-    lineHeight: 21,
+  emptyHeroSub: {
+    fontSize: 13,
     textAlign: 'center',
-    marginBottom: 22,
-    maxWidth: 360,
+    lineHeight: 20,
+    maxWidth: 320,
+    marginBottom: 18,
   },
-  emptyMenuBtn: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    width: '100%',
-    maxWidth: 240,
-  },
-  emptyMenuBtnGradient: {
+  emptyHeroBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 13,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
+    borderRadius: 14,
   },
-  emptyMenuBtnText: {
-    color: '#472a00',
+  emptyHeroBtnText: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
-  // Past orders styles
-  pastOrdersContainer: {
-    marginTop: 6,
-    marginBottom: 24,
-  },
-  pastOrdersHeaderRow: {
+  stationTeaserCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  pastOrdersHeading: {
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  pastOrderCard: {
+    padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    padding: 16,
+    marginBottom: 20,
+  },
+  stationIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ordersListSection: {
+    marginTop: 4,
+  },
+  ordersListHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
-  pastOrderTopRow: {
+  folioCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 12,
+  },
+  folioHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  pastOrderId: {
-    fontSize: 14,
-    fontWeight: '800',
+  folioTypeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
-  pastOrderDate: {
-    fontSize: 12,
-    marginTop: 2,
+  folioTypeBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
-  pastStatusPill: {
+  folioStatusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 4,
-    borderRadius: 20,
+    borderRadius: 12,
     borderWidth: 1,
   },
-  pastStatusText: {
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  pastOrderItemsSnippet: {
+  folioStatusText: {
     fontSize: 12,
-    marginVertical: 4,
+    fontWeight: '700',
   },
-  pastOrderBottomRow: {
+  dishPreviewTile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  dishPreviewThumb: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  expandedReceipt: {
+    borderTopWidth: 1,
+    paddingTop: 10,
+    marginBottom: 10,
+  },
+  expandedRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 10,
-    marginTop: 8,
-    borderTopWidth: 1,
+    paddingVertical: 3,
   },
-  pastOrderTotalLabel: {
+  folioActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  reorderBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  reorderBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  receiptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  receiptBtnText: {
     fontSize: 12,
     fontWeight: '600',
   },
-  pastOrderTotal: {
-    fontSize: 15,
-    fontWeight: '900',
+  cancelSmallBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
