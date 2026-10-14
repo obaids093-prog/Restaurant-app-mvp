@@ -68,17 +68,29 @@ export default function OnboardingScreen({ navigation }) {
     })();
   }, [navigation]);
 
-  const onViewableItemsChanged = useCallback(({ viewableItems }) => {
+  const onViewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems && viewableItems.length > 0) {
       setCurrentIndex(viewableItems[0].index);
     }
-  }, []);
+  }).current;
 
   const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
+  // Also track index via onMomentumScrollEnd as a reliable fallback
+  const handleMomentumScrollEnd = useCallback((e) => {
+    const offsetX = e.nativeEvent.contentOffset.x;
+    const newIndex = Math.round(offsetX / width);
+    setCurrentIndex(newIndex);
+  }, []);
+
+  // Use a ref to avoid stale closure in handleNext
+  const currentIndexRef = useRef(currentIndex);
+  currentIndexRef.current = currentIndex;
+
   const handleNext = useCallback(async () => {
-    if (currentIndex < slides.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
+    const idx = currentIndexRef.current;
+    if (idx < slides.length - 1) {
+      flatListRef.current?.scrollToIndex({ index: idx + 1, animated: true });
     } else {
       // Mark onboarding as complete
       try {
@@ -88,7 +100,7 @@ export default function OnboardingScreen({ navigation }) {
       }
       navigation.replace('Login');
     }
-  }, [currentIndex, slides.length, navigation]);
+  }, [slides.length, navigation]);
 
   const handleSkip = useCallback(async () => {
     try {
@@ -286,6 +298,7 @@ export default function OnboardingScreen({ navigation }) {
           { useNativeDriver: false }
         )}
         scrollEventThrottle={16}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
       />
 
       {/* Bottom: Dots + CTA */}
