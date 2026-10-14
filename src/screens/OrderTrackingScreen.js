@@ -17,6 +17,7 @@ import { LinearGradient } from '../utils/SafeLinearGradient';
 import apiClient from '../api/client';
 import { useOrders } from '../context/OrdersContext';
 import { useCart } from '../context/CartContext';
+import { useMenu } from '../context/MenuContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { brand } from '../config/brand';
@@ -31,6 +32,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
   const { user, logout } = useAuth();
   const { orders, cancelOrder, fetchOrders } = useOrders();
   const { addItem } = useCart();
+  const { menuItems } = useMenu();
 
   const { orderId } = route.params || {};
 
@@ -205,27 +207,64 @@ export default function OrderTrackingScreen({ route, navigation }) {
     }
   };
 
-  // Reorder action — re-adds dishes to cart
+  // Reorder action — verifies dishes against current menu catalog and availability
   const handleReorder = (order) => {
     if (!order?.items || order.items.length === 0) return;
 
-    order.items.forEach((item) => {
-      addItem({
-        id: item.id || item._id,
-        name: item.name,
-        price: item.price,
-        image: item.image,
-      });
+    let addedCount = 0;
+    let skippedItems = [];
+
+    (order.items || []).forEach((orderItem) => {
+      const dishId = orderItem.menuItem || orderItem.id || orderItem._id;
+      const currentDish = (menuItems || []).find(
+        (m) =>
+          String(m.id || m._id) === String(dishId) ||
+          (m.name && orderItem.name && m.name.toLowerCase().trim() === orderItem.name.toLowerCase().trim())
+      );
+
+      if (currentDish && currentDish.isAvailable !== false) {
+        const qty = orderItem.quantity || 1;
+        for (let i = 0; i < qty; i++) {
+          addItem({
+            ...currentDish,
+            id: currentDish.id || currentDish._id,
+            price: Number(currentDish.price), // current menu price
+          });
+        }
+        addedCount += qty;
+      } else {
+        skippedItems.push(orderItem.name || 'Sold out dish');
+      }
     });
 
-    Alert.alert(
-      'Dishes Re-added to Tray',
-      `${order.items.length} creation(s) have been restored to your culinary tray.`,
-      [
-        { text: 'Keep Browsing', style: 'cancel' },
-        { text: 'View Tray', onPress: () => navigation.navigate('CustomerApp', { screen: 'Cart' }) },
-      ]
-    );
+    if (skippedItems.length > 0 && addedCount > 0) {
+      Alert.alert(
+        'Tray Updated',
+        `${addedCount} item(s) re-added at current menu prices. Note: ${skippedItems.join(
+          ', '
+        )} is currently unavailable and was omitted.`,
+        [
+          { text: 'Keep Browsing', style: 'cancel' },
+          { text: 'View Tray', onPress: () => navigation.navigate('CustomerApp', { screen: 'Cart' }) },
+        ]
+      );
+    } else if (skippedItems.length > 0 && addedCount === 0) {
+      Alert.alert(
+        'Dishes Unavailable',
+        `None of the creations in this order (${skippedItems.join(
+          ', '
+        )}) are currently available in the menu catalog.`
+      );
+    } else if (addedCount > 0) {
+      Alert.alert(
+        'Dishes Re-added to Tray',
+        `${addedCount} creation(s) have been placed in your tray at current menu prices.`,
+        [
+          { text: 'Keep Browsing', style: 'cancel' },
+          { text: 'View Tray', onPress: () => navigation.navigate('CustomerApp', { screen: 'Cart' }) },
+        ]
+      );
+    }
   };
 
   const navigateToMenu = () => {
@@ -440,28 +479,6 @@ export default function OrderTrackingScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Live Station Status Teaser Card */}
-        <View
-          style={[
-            styles.stationTeaserCard,
-            { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-          ]}
-        >
-          <View style={[styles.stationIconCircle, { backgroundColor: colors.primaryTint }]}>
-            <Ionicons name="flame" size={22} color={colors.primary} />
-          </View>
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <View style={[styles.pulseLiveDot, { backgroundColor: colors.primary }]} />
-              <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700' }]}>
-                Fire & Hearth Stations Open
-              </Text>
-            </View>
-            <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-              Average bespoke prep turnaround is 20-25 minutes tonight
-            </Text>
-          </View>
-        </View>
 
         {/* ORDER LIST (Past & Completed Dining Folios) */}
         {displayedOrders.length > 0 && (

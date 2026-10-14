@@ -130,9 +130,8 @@ export default function CartScreen({ navigation }) {
   const [orderType, setOrderType] = useState('Dine-In Table');
   const [tableNumber] = useState('Table A-01 (Atrium Glasshouse)');
   const [pickupTime] = useState('In 25 minutes');
-  const [selectedTip, setSelectedTip] = useState(10); // 0, 5, 10, 15
 
-  // Financial Calculations computed with useMemo
+  // Financial Calculations computed with useMemo (subtotal, discount, service 5%, tax 15%)
   const calculations = useMemo(() => {
     const subtotal = cartState.items.reduce(
       (sum, item) => sum + getItemPrice(item) * item.quantity,
@@ -144,8 +143,7 @@ export default function CartScreen({ navigation }) {
 
     const serviceCharge = discountedSubtotal * SERVICE_CHARGE_RATE;
     const salesTax = discountedSubtotal * SALES_TAX_RATE;
-    const tipAmount = discountedSubtotal * (selectedTip / 100);
-    const grandTotal = discountedSubtotal + serviceCharge + salesTax + tipAmount;
+    const grandTotal = discountedSubtotal + serviceCharge + salesTax;
 
     return {
       subtotal,
@@ -153,11 +151,9 @@ export default function CartScreen({ navigation }) {
       discountedSubtotal,
       serviceCharge,
       salesTax,
-      tipAmount,
-      selectedTip,
       grandTotal,
     };
-  }, [cartState.items, cartState.discountPercent, selectedTip, getItemPrice]);
+  }, [cartState.items, cartState.discountPercent, getItemPrice]);
 
   // Handle promo code submission
   const handleApplyPromo = () => {
@@ -444,7 +440,13 @@ export default function CartScreen({ navigation }) {
                           {brand.formatPrice(dish.price)}
                         </Text>
                         <TouchableOpacity
-                          onPress={() => addItem(dish)}
+                          onPress={() => {
+                            if (dish.isAvailable === false) {
+                              Alert.alert('Item Sold Out', `${dish.name} is currently unavailable.`);
+                              return;
+                            }
+                            addItem(dish);
+                          }}
                           style={[styles.quickAddBtn, { backgroundColor: colors.primary }]}
                           activeOpacity={0.8}
                           accessibilityLabel={`Add ${dish.name} to tray`}
@@ -692,45 +694,6 @@ export default function CartScreen({ navigation }) {
                 </Text>
               </View>
 
-              {/* Gratuity / Tip Selector */}
-              <View style={styles.tipSection}>
-                <View style={styles.tipHeaderRow}>
-                  <Text style={[styles.tipLabel, { color: colors.textSecondary }]}>
-                    Sommelier & Attendant Gratuity
-                  </Text>
-                  <Text style={[styles.tipAmountText, { color: colors.primary }]}>
-                    {brand.formatPrice(calculations.tipAmount)} ({selectedTip}%)
-                  </Text>
-                </View>
-                <View style={styles.tipChipsRow}>
-                  {[0, 5, 10, 15].map((tip) => {
-                    const isSelected = selectedTip === tip;
-                    return (
-                      <TouchableOpacity
-                        key={tip}
-                        onPress={() => setSelectedTip(tip)}
-                        style={[
-                          styles.tipChipBtn,
-                          {
-                            backgroundColor: isSelected ? colors.primary : colors.surfaceSubtle,
-                            borderColor: isSelected ? colors.primary : colors.surfaceBorder,
-                          },
-                        ]}
-                        activeOpacity={0.8}
-                      >
-                        <Text
-                          style={[
-                            styles.tipChipText,
-                            { color: isSelected ? colors.onPrimary : colors.textPrimary },
-                          ]}
-                        >
-                          {tip === 0 ? 'None' : `${tip}%`}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
 
               <View style={[styles.totalDivider, { backgroundColor: colors.surfaceBorder }]} />
 

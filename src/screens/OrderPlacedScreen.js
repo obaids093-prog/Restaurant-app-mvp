@@ -322,25 +322,6 @@ export default function OrderPlacedScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* Live Kitchen Sync Dispatch Note Card */}
-        <View
-          style={[
-            styles.kitchenSyncCard,
-            { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-          ]}
-        >
-          <View style={[styles.kitchenIconCircle, { backgroundColor: colors.primaryTint }]}>
-            <Ionicons name="flame" size={20} color={colors.primary} />
-          </View>
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700' }]}>
-              Live Kitchen Sync Active
-            </Text>
-            <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2, lineHeight: 18 }]}>
-              Order routed to Grill and Entremetier stations. Follow step-by-step progress as plates take form.
-            </Text>
-          </View>
-        </View>
 
         {/* Interactive Action Buttons */}
         <View style={styles.actionStack}>

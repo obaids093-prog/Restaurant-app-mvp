@@ -415,10 +415,12 @@ export default function MenuScreen({ navigation }) {
             m.name.toLowerCase() === (orderItem.name || '').toLowerCase()
         );
 
-        if (currentDish && currentDish.isAvailable) {
-          const qty = orderItem.quantity || 1;
           for (let i = 0; i < qty; i++) {
-            addItem(currentDish);
+            addItem({
+              ...currentDish,
+              id: currentDish.id || currentDish._id,
+              price: Number(currentDish.price),
+            });
           }
           addedCount += qty;
         } else {

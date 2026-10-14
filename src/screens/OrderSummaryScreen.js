@@ -59,7 +59,6 @@ const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber
     discountedSubtotal: calculations.discountedSubtotal,
     serviceCharge: calculations.serviceCharge,
     salesTax: calculations.salesTax,
-    tipAmount: calculations.tipAmount,
     totalPrice: calculations.grandTotal,
     status: 'Pending',
     createdAt: new Date().toISOString(),
@@ -128,10 +127,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
 
     const serviceCharge = discountedSubtotal * SERVICE_CHARGE_RATE;
     const salesTax = discountedSubtotal * SALES_TAX_RATE;
-    const tipAmount = rawCalculations?.tipAmount !== undefined
-      ? Number(rawCalculations.tipAmount)
-      : 0;
-    const grandTotal = discountedSubtotal + serviceCharge + salesTax + tipAmount;
+    const grandTotal = discountedSubtotal + serviceCharge + salesTax;
 
     return {
       subtotal,
@@ -139,11 +135,9 @@ export default function OrderSummaryScreen({ route, navigation }) {
       discountedSubtotal,
       serviceCharge,
       salesTax,
-      tipAmount,
-      selectedTip: rawCalculations?.selectedTip,
       grandTotal,
     };
-  }, [cartState?.items, cartState?.discountPercent, getItemPrice, rawCalculations]);
+  }, [cartState?.items, cartState?.discountPercent, getItemPrice]);
 
   const handlePlaceOrder = async () => {
     if (isSubmitting) return;
@@ -318,9 +312,9 @@ export default function OrderSummaryScreen({ route, navigation }) {
               </Text>
             </View>
             <View style={[styles.colTile, { backgroundColor: colors.surfaceSubtle }]}>
-              <Text style={[styles.colTileLabel, { color: colors.mutedText }]}>Experience</Text>
+              <Text style={[styles.colTileLabel, { color: colors.mutedText }]}>Service</Text>
               <Text style={[styles.colTileValue, { color: colors.textPrimary }]}>
-                {isDineIn ? '2 Guests' : 'Curbside'}
+                {isDineIn ? 'Dine-In' : 'Takeaway'}
               </Text>
             </View>
             <View style={[styles.colTile, { backgroundColor: colors.surfaceSubtle }]}>
@@ -519,32 +513,6 @@ export default function OrderSummaryScreen({ route, navigation }) {
             </View>
             <Ionicons name="cash-outline" size={20} color={colors.ready} />
           </TouchableOpacity>
-
-          {/* Digital Wallet Option (Disabled with Coming Soon) */}
-          <View
-            style={[
-              styles.paymentOptionRow,
-              { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder, opacity: 0.65 },
-            ]}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              <View style={[styles.radioOuter, { borderColor: colors.border }]} />
-              <View style={{ marginLeft: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '600' }]}>
-                    Digital Wallet / Online Card
-                  </Text>
-                  <View style={[styles.comingSoonBadge, { backgroundColor: colors.secondary + '20' }]}>
-                    <Text style={[styles.comingSoonText, { color: colors.secondary }]}>Coming Soon</Text>
-                  </View>
-                </View>
-                <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
-                  Instant direct online checkout
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="card-outline" size={20} color={colors.mutedText} />
-          </View>
         </View>
 
         {/* Financial Folio Breakdown */}
@@ -595,16 +563,6 @@ export default function OrderSummaryScreen({ route, navigation }) {
             </Text>
           </View>
 
-          {calculations.tipAmount > 0 && (
-            <View style={styles.calcRow}>
-              <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>
-                Attendant Gratuity
-              </Text>
-              <Text style={[styles.calcValue, { color: colors.textPrimary }]}>
-                {brand.formatPrice(calculations.tipAmount)}
-              </Text>
-            </View>
-          )}
 
           <View style={[styles.divider, { backgroundColor: colors.surfaceBorder }]} />
 
