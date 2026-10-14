@@ -25,21 +25,25 @@ try {
  * the first color from the colors array as backgroundColor.
  */
 export function SafeLinearGradient({ colors: gradientColors, style, children, ...rest }) {
+  // Ensure array is valid and elements are non-empty strings
+  const validColors =
+    Array.isArray(gradientColors) && gradientColors.length >= 2 && gradientColors.every((c) => Boolean(c) && typeof c === 'string')
+      ? gradientColors
+      : ['#FC5834', '#E04A27'];
+
   if (RealLinearGradient) {
     return (
-      <RealLinearGradient colors={gradientColors} style={style} {...rest}>
+      <RealLinearGradient colors={validColors} style={style} {...rest}>
         {children}
       </RealLinearGradient>
     );
   }
 
   // Fallback: use first gradient color as solid background
-  const fallbackColor = Array.isArray(gradientColors) && gradientColors.length > 0
-    ? gradientColors[0]
-    : '#E65100';
+  const fallbackColor = validColors[0] || '#FC5834';
 
   return (
-    <View style={[style, { backgroundColor: fallbackColor }]} {...rest}>
+    <View style={[{ backgroundColor: fallbackColor }, style]} {...rest}>
       {children}
     </View>
   );

@@ -76,6 +76,8 @@ export const colors = {
 
     // Gradient helper
     gradientPrimary: ['#FC5834', '#E04A27'],
+    gradientStart: '#FC5834',
+    gradientEnd: '#E04A27',
   },
   dark: {
     // Brand Tokens
@@ -137,6 +139,8 @@ export const colors = {
 
     // Gradient helper
     gradientPrimary: ['#FF6B4A', '#FF8266'],
+    gradientStart: '#FF6B4A',
+    gradientEnd: '#FF8266',
   },
 };
 

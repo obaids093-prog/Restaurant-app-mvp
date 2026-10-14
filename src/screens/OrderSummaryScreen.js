@@ -149,7 +149,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
     calculations: rawCalculations,
   } = route.params || {};
 
-  const btnTextColor = isDark ? '#472a00' : '#FFFFFF';
+  const btnTextColor = colors.onPrimary || '#FFFFFF';
   const isDineIn = orderType === 'Dine-in';
   const userName = user?.name || 'Valued Guest';
   const phoneText = user?.phone || 'No phone linked (Update in Profile)';
@@ -420,11 +420,16 @@ export default function OrderSummaryScreen({ route, navigation }) {
           <TouchableOpacity
             onPress={handlePlaceOrder}
             disabled={isSubmitting}
-            style={[styles.placeBtn, shadows.button3D, isSubmitting && { opacity: 0.7 }]}
+            style={[
+              styles.placeBtn,
+              { backgroundColor: colors.primary },
+              shadows.button3D,
+              isSubmitting && { opacity: 0.7 },
+            ]}
             activeOpacity={0.88}
           >
             <LinearGradient
-              colors={[colors.gradientStart, colors.gradientEnd]}
+              colors={colors.gradientPrimary || [colors.primary, colors.primaryPressed || '#E04A27']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.gradientBtn}
