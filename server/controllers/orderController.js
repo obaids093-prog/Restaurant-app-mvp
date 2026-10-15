@@ -110,11 +110,43 @@ const placeOrder = async (req, res) => {
       }
     }
 
+    // Compute financial totals: subtotal, discount, 5% service charge, 15% tax, nothing else
+    const PROMO_CODES = {
+      WELCOME10: 10,
+      FEAST20: 20,
+      AURA10: 10,
+      AURA20: 20,
+      AURA30: 30,
+      AURA50: 50,
+      SAVE10: 10,
+      TASTY20: 20,
+      CHEF15: 15,
+      GOURMET30: 30,
+    };
+
+    let discountPercent = 0;
+    if (req.body.promoCode && PROMO_CODES[String(req.body.promoCode).toUpperCase().trim()]) {
+      discountPercent = PROMO_CODES[String(req.body.promoCode).toUpperCase().trim()];
+    } else if (Number(req.body.discountPercent) > 0) {
+      discountPercent = Math.min(100, Math.max(0, Number(req.body.discountPercent)));
+    }
+
+    const subtotal = calculatedTotal;
+    const discountAmount = subtotal * (discountPercent / 100);
+    const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+    const serviceCharge = discountedSubtotal * 0.05; // 5% Service Charge
+    const salesTax = discountedSubtotal * 0.15;      // 15% Sales Tax
+    const finalTotalAmount = discountedSubtotal + serviceCharge + salesTax;
+
     const newOrder = await Order.create({
       user: req.user._id,
       customerName: req.user.name,
       items: verifiedItems,
-      totalAmount: calculatedTotal,
+      subtotal,
+      discountAmount,
+      serviceCharge,
+      salesTax,
+      totalAmount: Math.round(finalTotalAmount * 100) / 100,
       orderType: finalOrderType,
       tableNumber: typeof tableNumber === 'string' ? tableNumber.trim().slice(0, 20) : '',
       status: 'Pending',

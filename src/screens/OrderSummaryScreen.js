@@ -55,6 +55,8 @@ const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber
       note: item.note || '',
     })),
     subtotal: calculations.subtotal,
+    promoCode: cartState.promoCode || null,
+    discountPercent: cartState.discountPercent || 0,
     discountAmount: calculations.discountAmount,
     discountedSubtotal: calculations.discountedSubtotal,
     serviceCharge: calculations.serviceCharge,

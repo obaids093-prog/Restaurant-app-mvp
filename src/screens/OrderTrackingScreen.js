@@ -603,23 +603,60 @@ export default function OrderTrackingScreen({ route, navigation }) {
                   )}
 
                   {/* Expanded Receipt Breakdown (if toggled) */}
-                  {isExpanded && ord.items && (
-                    <View style={[styles.expandedReceipt, { borderTopColor: colors.surfaceBorder }]}>
-                      <Text style={[typography.caption, { color: colors.mutedText, textTransform: 'uppercase', marginBottom: 6 }]}>
-                        Course Breakdown
-                      </Text>
-                      {ord.items.map((it, i) => (
-                        <View key={i} style={styles.expandedRow}>
-                          <Text style={[typography.caption, { color: colors.textPrimary, flex: 1 }]}>
-                            {it.quantity || 1}x {it.name}
-                          </Text>
-                          <Text style={[typography.caption, { color: colors.textSecondary }]}>
-                            {brand.formatPrice(Number(it.price || 0) * (it.quantity || 1))}
-                          </Text>
+                  {isExpanded && ord.items && (() => {
+                    const rSubtotal = ord.subtotal !== undefined
+                      ? ord.subtotal
+                      : ord.items.reduce((s, it) => s + (Number(it.price || 0) * (it.quantity || 1)), 0);
+                    const rDiscount = ord.discountAmount || 0;
+                    const rDiscounted = Math.max(0, rSubtotal - rDiscount);
+                    const rService = ord.serviceCharge !== undefined ? ord.serviceCharge : (rDiscounted * 0.05);
+                    const rTax = ord.salesTax !== undefined ? ord.salesTax : (rDiscounted * 0.15);
+                    const rTotal = ord.totalAmount !== undefined
+                      ? ord.totalAmount
+                      : (ord.totalPrice || ord.total || (rDiscounted + rService + rTax));
+
+                    return (
+                      <View style={[styles.expandedReceipt, { borderTopColor: colors.surfaceBorder }]}>
+                        <Text style={[typography.caption, { color: colors.mutedText, textTransform: 'uppercase', marginBottom: 6 }]}>
+                          Course Breakdown
+                        </Text>
+                        {ord.items.map((it, i) => (
+                          <View key={i} style={styles.expandedRow}>
+                            <Text style={[typography.caption, { color: colors.textPrimary, flex: 1 }]}>
+                              {it.quantity || 1}x {it.name}
+                            </Text>
+                            <Text style={[typography.caption, { color: colors.textSecondary }]}>
+                              {brand.formatPrice(Number(it.price || 0) * (it.quantity || 1))}
+                            </Text>
+                          </View>
+                        ))}
+                        <View style={[styles.receiptDivider, { backgroundColor: colors.surfaceBorder }]} />
+                        <View style={styles.expandedRow}>
+                          <Text style={[typography.caption, { color: colors.textSecondary, flex: 1 }]}>Subtotal</Text>
+                          <Text style={[typography.caption, { color: colors.textPrimary }]}>{brand.formatPrice(rSubtotal)}</Text>
                         </View>
-                      ))}
-                    </View>
-                  )}
+                        {rDiscount > 0 && (
+                          <View style={styles.expandedRow}>
+                            <Text style={[typography.caption, { color: colors.success || '#10B981', flex: 1 }]}>Promo Discount</Text>
+                            <Text style={[typography.caption, { color: colors.success || '#10B981' }]}>-{brand.formatPrice(rDiscount)}</Text>
+                          </View>
+                        )}
+                        <View style={styles.expandedRow}>
+                          <Text style={[typography.caption, { color: colors.textSecondary, flex: 1 }]}>Service Charge (5%)</Text>
+                          <Text style={[typography.caption, { color: colors.textPrimary }]}>{brand.formatPrice(rService)}</Text>
+                        </View>
+                        <View style={styles.expandedRow}>
+                          <Text style={[typography.caption, { color: colors.textSecondary, flex: 1 }]}>Sales Tax (15%)</Text>
+                          <Text style={[typography.caption, { color: colors.textPrimary }]}>{brand.formatPrice(rTax)}</Text>
+                        </View>
+                        <View style={[styles.receiptDivider, { backgroundColor: colors.surfaceBorder }]} />
+                        <View style={styles.expandedRow}>
+                          <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700', flex: 1 }]}>Total</Text>
+                          <Text style={[typography.body, { color: colors.primary, fontWeight: '800' }]}>{brand.formatPrice(rTotal)}</Text>
+                        </View>
+                      </View>
+                    );
+                  })()}
 
                   {/* Action Footer Buttons */}
                   <View style={styles.folioActionRow}>
@@ -936,6 +973,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingTop: 10,
     marginBottom: 10,
+  },
+  receiptDivider: {
+    height: 1,
+    marginVertical: 6,
   },
   expandedRow: {
     flexDirection: 'row',

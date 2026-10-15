@@ -48,6 +48,22 @@ const orderSchema = new mongoose.Schema(
         message: 'Order must contain at least one item',
       },
     },
+    subtotal: {
+      type: Number,
+      default: 0,
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
+    },
+    serviceCharge: {
+      type: Number,
+      default: 0,
+    },
+    salesTax: {
+      type: Number,
+      default: 0,
+    },
     totalAmount: {
       type: Number,
       required: [true, 'Total amount is required'],

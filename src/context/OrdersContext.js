@@ -76,6 +76,8 @@ export const OrdersProvider = ({ children }) => {
         orderType: orderData.orderType || orderData.type || 'Dine-in',
         tableNumber: orderData.tableNumber || '',
         notes: orderData.notes || '',
+        promoCode: orderData.promoCode || null,
+        discountPercent: orderData.discountPercent || 0,
       };
 
       const created = await apiClient('/api/orders', {

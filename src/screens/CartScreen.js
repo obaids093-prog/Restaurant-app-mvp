@@ -1218,39 +1218,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  tipSection: {
-    marginTop: 8,
-    paddingTop: 8,
-  },
-  tipHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  tipLabel: {
-    fontSize: 12,
-  },
-  tipAmountText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  tipChipsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  tipChipBtn: {
-    flex: 1,
-    paddingVertical: 7,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tipChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
   totalDivider: {
     height: 1,
     marginVertical: 12,
