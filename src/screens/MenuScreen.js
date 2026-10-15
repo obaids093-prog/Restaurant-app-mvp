@@ -99,6 +99,119 @@ const DEALS_FOR_YOU = [
   },
 ];
 
+/**
+ * Pure helper to filter and sort menu dishes outside component
+ * to reduce Cognitive Complexity.
+ */
+function filterAndSortDishes(items, filters) {
+  const {
+    selectedCategory,
+    favouritesOnly,
+    favouriteIds,
+    specialsOnly,
+    availableOnly,
+    selectedPriceRange,
+    debouncedQuery,
+    selectedSort,
+  } = filters;
+
+  let result = [...items];
+
+  // 1. Category Filter
+  if (selectedCategory !== 'All') {
+    result = result.filter((item) => item.category === selectedCategory);
+  }
+
+  // 2. Favourites only filter
+  if (favouritesOnly) {
+    result = result.filter((item) => favouriteIds.includes(item.id));
+  }
+
+  // 3. Specials only filter
+  if (specialsOnly) {
+    result = result.filter((item) => item.isSpecial);
+  }
+
+  // 4. Available only filter
+  if (availableOnly) {
+    result = result.filter((item) => item.isAvailable);
+  }
+
+  // 5. Price Range filter
+  if (selectedPriceRange === 'under-1500') {
+    result = result.filter((item) => item.price < 1500);
+  } else if (selectedPriceRange === '1500-3000') {
+    result = result.filter((item) => item.price >= 1500 && item.price <= 3000);
+  } else if (selectedPriceRange === 'above-3000') {
+    result = result.filter((item) => item.price > 3000);
+  }
+
+  // 6. Search Query Filter
+  if (debouncedQuery) {
+    const q = debouncedQuery.toLowerCase();
+    result = result.filter(
+      (item) =>
+        item.name.toLowerCase().includes(q) ||
+        item.description.toLowerCase().includes(q) ||
+        item.category.toLowerCase().includes(q)
+    );
+  }
+
+  // 7. Sorting Options
+  switch (selectedSort) {
+    case 'price-asc':
+      result.sort((a, b) => a.price - b.price);
+      break;
+    case 'price-desc':
+      result.sort((a, b) => b.price - a.price);
+      break;
+    case 'name-asc':
+      result.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    case 'rating-desc':
+      result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      break;
+    default:
+      break;
+  }
+
+  return result;
+}
+
+/**
+ * Pure helper to resolve reorder items and availability against menu catalog.
+ */
+function resolveReorderItems(orderItems, menuItems) {
+  const toAdd = [];
+  const skipped = [];
+
+  (orderItems || []).forEach((orderItem) => {
+    if (!orderItem) return;
+    const dishId = orderItem.menuItem || orderItem.id || orderItem._id;
+    const currentDish = (menuItems || []).find(
+      (m) =>
+        m &&
+        (String(m.id || m._id) === String(dishId) ||
+          (m.name && orderItem.name && m.name.toLowerCase().trim() === orderItem.name.toLowerCase().trim()))
+    );
+
+    if (currentDish && currentDish.isAvailable !== false) {
+      const qty = Math.max(1, Number.parseInt(orderItem.quantity, 10) || 1);
+      for (let i = 0; i < qty; i++) {
+        toAdd.push({
+          ...currentDish,
+          id: currentDish.id || currentDish._id,
+          price: Number(currentDish.price),
+        });
+      }
+    } else {
+      skipped.push(orderItem.name || 'Unavailable dish');
+    }
+  });
+
+  return { toAdd, skipped };
+}
+
 export default function MenuScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { colors, isDark, fonts, typography, radius, shadows } = useTheme();
@@ -289,80 +402,30 @@ export default function MenuScreen({ navigation }) {
   /**
    * Single useMemo for filtering and sorting dishes as required by architecture.
    */
-  const displayedItems = useMemo(() => {
-    let result = [...menuItems];
-
-    // 1. Category Filter
-    if (selectedCategory !== 'All') {
-      result = result.filter((item) => item.category === selectedCategory);
-    }
-
-    // 2. Favourites only filter
-    if (favouritesOnly) {
-      result = result.filter((item) => favouriteIds.includes(item.id));
-    }
-
-    // 3. Specials only filter
-    if (specialsOnly) {
-      result = result.filter((item) => item.isSpecial);
-    }
-
-    // 4. Available only filter
-    if (availableOnly) {
-      result = result.filter((item) => item.isAvailable);
-    }
-
-    // 5. Price Range filter
-    if (selectedPriceRange === 'under-1500') {
-      result = result.filter((item) => item.price < 1500);
-    } else if (selectedPriceRange === '1500-3000') {
-      result = result.filter((item) => item.price >= 1500 && item.price <= 3000);
-    } else if (selectedPriceRange === 'above-3000') {
-      result = result.filter((item) => item.price > 3000);
-    }
-
-    // 6. Search Query Filter
-    if (debouncedQuery) {
-      const q = debouncedQuery.toLowerCase();
-      result = result.filter(
-        (item) =>
-          item.name.toLowerCase().includes(q) ||
-          item.description.toLowerCase().includes(q) ||
-          item.category.toLowerCase().includes(q)
-      );
-    }
-
-    // 7. Sorting Options
-    switch (selectedSort) {
-      case 'price-asc':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case 'name-asc':
-        result.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'rating-desc':
-        result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        break;
-      default:
-        // Keep default curated order
-        break;
-    }
-
-    return result;
-  }, [
-    menuItems,
-    selectedCategory,
-    favouritesOnly,
-    favouriteIds,
-    specialsOnly,
-    availableOnly,
-    selectedPriceRange,
-    debouncedQuery,
-    selectedSort,
-  ]);
+  const displayedItems = useMemo(
+    () =>
+      filterAndSortDishes(menuItems, {
+        selectedCategory,
+        favouritesOnly,
+        favouriteIds,
+        specialsOnly,
+        availableOnly,
+        selectedPriceRange,
+        debouncedQuery,
+        selectedSort,
+      }),
+    [
+      menuItems,
+      selectedCategory,
+      favouritesOnly,
+      favouriteIds,
+      specialsOnly,
+      availableOnly,
+      selectedPriceRange,
+      debouncedQuery,
+      selectedSort,
+    ]
+  );
 
   // Chef's picks for carousel
   const chefPicks = useMemo(() => {
@@ -410,52 +473,27 @@ export default function MenuScreen({ navigation }) {
         return;
       }
 
-      let addedCount = 0;
-      let skippedItems = [];
+      const { toAdd, skipped } = resolveReorderItems(order.items, menuItems);
+      toAdd.forEach((item) => addItem(item));
 
-      (order.items || []).forEach((orderItem) => {
-        if (!orderItem) return;
-        const dishId = orderItem.menuItem || orderItem.id || orderItem._id;
-        const currentDish = (menuItems || []).find(
-          (m) =>
-            m &&
-            (String(m.id || m._id) === String(dishId) ||
-              (m.name && orderItem.name && m.name.toLowerCase().trim() === orderItem.name.toLowerCase().trim()))
-        );
-
-        if (currentDish && currentDish.isAvailable !== false) {
-          const qty = Math.max(1, parseInt(orderItem.quantity, 10) || 1);
-          for (let i = 0; i < qty; i++) {
-            addItem({
-              ...currentDish,
-              id: currentDish.id || currentDish._id,
-              price: Number(currentDish.price),
-            });
-          }
-          addedCount += qty;
-        } else {
-          skippedItems.push(orderItem.name || 'Unavailable dish');
-        }
-      });
-
-      if (skippedItems.length > 0 && addedCount > 0) {
+      if (skipped.length > 0 && toAdd.length > 0) {
         Alert.alert(
           'Tray Updated',
-          `${addedCount} items re-added to your tray with current prices. Skipped unavailable: ${skippedItems.join(
+          `${toAdd.length} items re-added to your tray with current prices. Skipped unavailable: ${skipped.join(
             ', '
           )}.`
         );
-      } else if (skippedItems.length > 0 && addedCount === 0) {
+      } else if (skipped.length > 0 && toAdd.length === 0) {
         Alert.alert(
           'Dishes Unavailable',
-          `The items in this order (${skippedItems.join(
+          `The items in this order (${skipped.join(
             ', '
           )}) are currently sold out.`
         );
-      } else if (addedCount > 0) {
+      } else if (toAdd.length > 0) {
         Alert.alert(
           'Re-added to Tray',
-          `${addedCount} items re-added at current menu prices.`
+          `${toAdd.length} items re-added at current menu prices.`
         );
       }
     },
