@@ -405,20 +405,26 @@ export default function MenuScreen({ navigation }) {
   // "Order Again" Reorder handler: Re-adds items through ADD_ITEM action with current prices
   const handleReorder = useCallback(
     (order) => {
+      if (!order?.items || !Array.isArray(order.items) || order.items.length === 0) {
+        Alert.alert('Empty Order', 'This order has no dishes to reorder.');
+        return;
+      }
+
       let addedCount = 0;
       let skippedItems = [];
 
       (order.items || []).forEach((orderItem) => {
+        if (!orderItem) return;
         const dishId = orderItem.menuItem || orderItem.id || orderItem._id;
-        const currentDish = menuItems.find(
+        const currentDish = (menuItems || []).find(
           (m) =>
-            m.id === dishId ||
-            m._id === dishId ||
-            m.name.toLowerCase() === (orderItem.name || '').toLowerCase()
+            m &&
+            (String(m.id || m._id) === String(dishId) ||
+              (m.name && orderItem.name && m.name.toLowerCase().trim() === orderItem.name.toLowerCase().trim()))
         );
 
         if (currentDish && currentDish.isAvailable !== false) {
-          const qty = orderItem.quantity || 1;
+          const qty = Math.max(1, parseInt(orderItem.quantity, 10) || 1);
           for (let i = 0; i < qty; i++) {
             addItem({
               ...currentDish,
