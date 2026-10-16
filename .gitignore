@@ -55,3 +55,9 @@ api-tests.http
 .vscode/
 *.docx
 server/restaurant-api.postman_collection.json
+
+.agent/
+.agents/
+.gemini/
+.gsd/
+server/uploads/
