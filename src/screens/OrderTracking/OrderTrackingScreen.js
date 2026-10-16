@@ -17,6 +17,7 @@ import { useMenu } from '../../context/MenuContext';
 import { useTheme } from '../../context/ThemeContext';
 import FilterTabs from '../../components/ui/FilterTabs';
 import { styles, ACTIVE_STATUSES, CANCEL_WINDOW_MINUTES } from './trackingStyles';
+import { showTrackingAlert, getOrderListTitle, reorderDishes } from './trackingHelpers';
 import ActiveOrderHero from './ActiveOrderHero';
 import PastOrderCard from './PastOrderCard';
 import TrackingEmptyState from './TrackingEmptyState';
@@ -114,9 +115,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
     if (!activeOrder) return;
 
     const pollingInterval = setInterval(() => {
-      if (fetchOrders) {
-        fetchOrders().catch(() => {});
-      }
+      fetchOrders?.().catch(() => {});
     }, 10000);
 
     return () => {
@@ -145,14 +144,6 @@ export default function OrderTrackingScreen({ route, navigation }) {
     activeOrder?.status === 'Pending' &&
     !isCancelling &&
     (CANCEL_WINDOW_MINUTES === 0 || cancelRemaining > 0);
-
-  const showAlert = (title, message) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n\n${message}`);
-    } else {
-      Alert.alert(title, message);
-    }
-  };
 
   // Handle Cancel Order
   const handleCancelOrder = async (targetOrder = activeOrder) => {
@@ -190,76 +181,17 @@ export default function OrderTrackingScreen({ route, navigation }) {
         navigation.setParams({ orderId: undefined });
       }
 
-      if (fetchOrders) {
-        fetchOrders().catch(() => {});
-      }
-
-      showAlert('Order Cancelled', 'Your order has been cancelled successfully.');
+      fetchOrders?.().catch(() => {});
+      showTrackingAlert('Order Cancelled', 'Your order has been cancelled successfully.');
     } catch (err) {
-      showAlert('Cancel Failed', err.message || 'Could not cancel the order.');
+      showTrackingAlert('Cancel Failed', err.message || 'Could not cancel the order.');
     } finally {
       setIsCancelling(false);
     }
   };
 
-  // Reorder action — verifies dishes against current menu catalog and availability
   const handleReorder = (order) => {
-    if (!order?.items || order.items.length === 0) return;
-
-    let addedCount = 0;
-    let skippedItems = [];
-
-    (order.items || []).forEach((orderItem) => {
-      const dishId = orderItem.menuItem || orderItem.id || orderItem._id;
-      const currentDish = (menuItems || []).find(
-        (m) =>
-          String(m.id || m._id) === String(dishId) ||
-          (m.name && orderItem.name && m.name.toLowerCase().trim() === orderItem.name.toLowerCase().trim())
-      );
-
-      if (currentDish && currentDish.isAvailable !== false) {
-        const qty = orderItem.quantity || 1;
-        for (let i = 0; i < qty; i++) {
-          addItem({
-            ...currentDish,
-            id: currentDish.id || currentDish._id,
-            price: Number(currentDish.price), // current menu price
-          });
-        }
-        addedCount += qty;
-      } else {
-        skippedItems.push(orderItem.name || 'Sold out dish');
-      }
-    });
-
-    if (skippedItems.length > 0 && addedCount > 0) {
-      Alert.alert(
-        'Tray Updated',
-        `${addedCount} item(s) re-added at current menu prices. Note: ${skippedItems.join(
-          ', '
-        )} is currently unavailable and was omitted.`,
-        [
-          { text: 'Keep Browsing', style: 'cancel' },
-          { text: 'View Tray', onPress: () => navigation.navigate('CustomerApp', { screen: 'Cart' }) },
-        ]
-      );
-    } else if (skippedItems.length > 0 && addedCount === 0) {
-      Alert.alert(
-        'Dishes Unavailable',
-        `None of the creations in this order (${skippedItems.join(
-          ', '
-        )}) are currently available in the menu catalog.`
-      );
-    } else if (addedCount > 0) {
-      Alert.alert(
-        'Dishes Re-added to Tray',
-        `${addedCount} creation(s) have been placed in your tray at current menu prices.`,
-        [
-          { text: 'Keep Browsing', style: 'cancel' },
-          { text: 'View Tray', onPress: () => navigation.navigate('CustomerApp', { screen: 'Cart' }) },
-        ]
-      );
-    }
+    reorderDishes({ order, menuItems, addItem, navigation });
   };
 
   const navigateToMenu = () => {
@@ -337,7 +269,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
             {error}
           </Text>
           <TouchableOpacity
-            onPress={() => fetchOrders && fetchOrders().catch(() => {})}
+            onPress={() => fetchOrders?.().catch(() => {})}
             style={[
               styles.retryBtn,
               { backgroundColor: colors.primary },
@@ -459,11 +391,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
           <View style={styles.ordersListSection}>
             <View style={styles.ordersListHeader}>
               <Text style={[typography.headingSm, { color: colors.textPrimary, fontWeight: '700' }]}>
-                {activeTab === 'active'
-                  ? 'Past Dining Folios'
-                  : activeTab === 'completed'
-                  ? 'Completed Dining Folios'
-                  : 'All Dining Folios'}
+                {getOrderListTitle(activeTab)}
               </Text>
               <Text style={[typography.caption, { color: colors.mutedText }]}>
                 {displayedOrders.length} Total
