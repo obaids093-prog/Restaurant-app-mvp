@@ -16,7 +16,7 @@ const Table = require('../models/Table');
 // @access  Private (Customer or Manager)
 const createReservation = async (req, res) => {
   try {
-    const { tableId, date, time, guests, specialRequests, customerName, phone } = req.body;
+    const { tableId, date, time, guests, specialRequests, customerName, phone, branchId, branchName, branchCity } = req.body;
 
     if (!tableId || !date || !time || !guests) {
       return res.status(400).json({ message: 'Please provide tableId, date, time, and guests count' });
@@ -31,7 +31,7 @@ const createReservation = async (req, res) => {
       return res.status(404).json({ message: 'Table not found' });
     }
 
-    const guestCount = parseInt(guests, 10);
+    const guestCount = Number.parseInt(guests, 10);
 
     // Business Rule 1: Check capacity
     if (table.seats < guestCount) {
@@ -65,6 +65,9 @@ const createReservation = async (req, res) => {
       guests: guestCount,
       specialRequests: typeof specialRequests === 'string' ? specialRequests.trim().slice(0, 500) : '',
       status: 'Pending',
+      branchId: branchId || 'lhr_gulberg',
+      branchName: branchName || 'AURA • Gulberg III, Lahore',
+      branchCity: branchCity || 'Lahore',
     });
 
     const populatedReservation = await Reservation.findById(reservation._id).populate('table');
@@ -86,7 +89,7 @@ const createReservation = async (req, res) => {
 // @access  Private
 const getMyReservations = async (req, res) => {
   try {
-    const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 50), 100);
+    const limit = Math.min(Math.max(1, Number.parseInt(req.query.limit, 10) || 50), 100);
     const reservations = await Reservation.find({ user: req.user._id })
       .sort({ createdAt: -1 })
       .limit(limit)
@@ -103,7 +106,7 @@ const getMyReservations = async (req, res) => {
 // @access  Private/Manager
 const getAllReservations = async (req, res) => {
   try {
-    const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 50), 100);
+    const limit = Math.min(Math.max(1, Number.parseInt(req.query.limit, 10) || 50), 100);
     const reservations = await Reservation.find()
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit)
@@ -128,7 +131,7 @@ const updateReservationStatus = async (req, res) => {
       return res.status(400).json({ message: 'Invalid reservation ID' });
     }
 
-    const validStatuses = ['Pending', 'Confirmed', 'Declined', 'Cancelled'];
+    const validStatuses = ['Pending', 'Confirmed', 'Completed', 'No-Show', 'Declined', 'Cancelled'];
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,

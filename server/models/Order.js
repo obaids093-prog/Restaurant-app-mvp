@@ -92,6 +92,21 @@ const orderSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    branchId: {
+      type: String,
+      default: 'lhr_gulberg',
+      trim: true,
+    },
+    branchName: {
+      type: String,
+      default: 'AURA • Gulberg III, Lahore',
+      trim: true,
+    },
+    branchCity: {
+      type: String,
+      default: 'Lahore',
+      trim: true,
+    },
   },
   {
     timestamps: true, // Automatically manages createdAt and updatedAt

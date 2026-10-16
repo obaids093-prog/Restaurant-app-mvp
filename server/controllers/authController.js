@@ -7,7 +7,7 @@
 //     - GET  /api/auth/me       (returns authenticated user details)
 // ═══════════════════════════════════════════════════════════
 
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
@@ -475,8 +475,8 @@ const sendPhoneOtp = async (req, res) => {
       });
     }
 
-    // Generate 4-digit numeric OTP (1000 - 9999) using cryptographically secure randomInt
-    const otp = crypto.randomInt(1000, 10000).toString();
+    // Generate 6-digit numeric OTP (100000 - 999999) using cryptographically secure randomInt
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = now + OTP_EXPIRY_MS;
 
     otpStore.set(normalizedPhone, {
@@ -500,6 +500,32 @@ const sendPhoneOtp = async (req, res) => {
   }
 };
 
+// Helper to provision new customer record for phone-verified login
+const createPhoneOtpUser = async (normalizedPhone, name) => {
+  const cleanName =
+    name && typeof name === 'string' && name.trim().length >= 2
+      ? name.trim().slice(0, 100)
+      : `Customer ${normalizedPhone.slice(-4)}`;
+
+  const autoEmail = `${normalizedPhone}@customer.aura.pk`;
+  const existingByEmail = await User.findOne({ email: autoEmail });
+  const finalEmail = existingByEmail
+    ? `${normalizedPhone}_${Date.now()}@customer.aura.pk`
+    : autoEmail;
+
+  const randomPass = crypto.randomBytes(8).toString('hex') + '9aA';
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(randomPass, salt);
+
+  return User.create({
+    name: cleanName,
+    email: finalEmail,
+    phone: normalizedPhone,
+    password: hashedPassword,
+    role: 'customer',
+  });
+};
+
 // @desc    Verify SMS OTP and register or login user
 // @route   POST /api/auth/phone/verify-otp
 // @access  Public
@@ -512,8 +538,8 @@ const verifyPhoneOtp = async (req, res) => {
       return res.status(400).json({ message: 'Invalid Pakistani mobile number.' });
     }
 
-    if (!otp || typeof otp !== 'string') {
-      return res.status(400).json({ message: 'Please provide the 4-digit verification code.' });
+    if (!otp || typeof otp !== 'string' || !/^\d{6}$/.test(otp.trim())) {
+      return res.status(400).json({ message: 'Please provide the valid 6-digit verification code.' });
     }
 
     const record = otpStore.get(normalizedPhone);
@@ -558,31 +584,7 @@ const verifyPhoneOtp = async (req, res) => {
 
     if (!user) {
       isNewUser = true;
-      const cleanName =
-        name && typeof name === 'string' && name.trim().length >= 2
-          ? name.trim().slice(0, 100)
-          : `Customer ${normalizedPhone.slice(-4)}`;
-
-      const autoEmail = `${normalizedPhone}@customer.aura.pk`;
-
-      // Check if autoEmail is taken
-      const existingByEmail = await User.findOne({ email: autoEmail });
-      const finalEmail = existingByEmail
-        ? `${normalizedPhone}_${Date.now()}@customer.aura.pk`
-        : autoEmail;
-
-      // Cryptographically secure temporary password
-      const randomPass = crypto.randomBytes(8).toString('hex') + '9aA';
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(randomPass, salt);
-
-      user = await User.create({
-        name: cleanName,
-        email: finalEmail,
-        phone: normalizedPhone,
-        password: hashedPassword,
-        role: 'customer',
-      });
+      user = await createPhoneOtpUser(normalizedPhone, name);
     }
 
     const token = generateToken(user._id);
@@ -619,4 +621,5 @@ module.exports = {
   updateStaff,
   sendPhoneOtp,
   verifyPhoneOtp,
+  normalizePakPhone,
 };

@@ -38,7 +38,7 @@ const reservationSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: {
-        values: ['Pending', 'Confirmed', 'Cancelled', 'Declined'],
+        values: ['Pending', 'Confirmed', 'Completed', 'No-Show', 'Cancelled', 'Declined'],
         message: '{VALUE} is not a valid reservation status',
       },
       default: 'Pending',
@@ -46,6 +46,21 @@ const reservationSchema = new mongoose.Schema(
     specialRequests: {
       type: String,
       default: '',
+      trim: true,
+    },
+    branchId: {
+      type: String,
+      default: 'lhr_gulberg',
+      trim: true,
+    },
+    branchName: {
+      type: String,
+      default: 'AURA • Gulberg III, Lahore',
+      trim: true,
+    },
+    branchCity: {
+      type: String,
+      default: 'Lahore',
       trim: true,
     },
   },

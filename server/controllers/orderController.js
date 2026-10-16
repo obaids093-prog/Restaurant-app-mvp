@@ -29,7 +29,7 @@ const STATUS_ORDER = ['Pending', 'Preparing', 'Ready', 'Served'];
 // @access  Private (Customer or Manager)
 const placeOrder = async (req, res) => {
   try {
-    const { items, orderType, tableNumber, notes } = req.body;
+    const { items, orderType, tableNumber, notes, branchId, branchName, branchCity } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: 'Order must contain at least one item' });
@@ -148,9 +148,12 @@ const placeOrder = async (req, res) => {
       salesTax,
       totalAmount: Math.round(finalTotalAmount * 100) / 100,
       orderType: finalOrderType,
-      tableNumber: typeof tableNumber === 'string' ? tableNumber.trim().slice(0, 20) : '',
+      tableNumber: typeof tableNumber === 'string' ? tableNumber.trim().slice(0, 80) : '',
       status: 'Pending',
       notes: typeof notes === 'string' ? notes.trim().slice(0, 500) : '',
+      branchId: branchId || 'lhr_gulberg',
+      branchName: branchName || 'AURA • Gulberg III, Lahore',
+      branchCity: branchCity || 'Lahore',
     });
 
     res.status(201).json(newOrder);

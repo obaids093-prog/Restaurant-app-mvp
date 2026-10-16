@@ -19,6 +19,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const dotenv = require('dotenv');
+const path = require('path');
 const connectDB = require('./config/db');
 
 // Load .env variables into process.env
@@ -131,12 +132,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
+// ── Static File Serving for Uploaded Images ─────────────────
+// Serves files from server/uploads/ at /uploads/<filename>
+// This is how the app accesses uploaded dish photos
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // ── API Routes (Question 4, 5, 7) ──────────────────────────
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/menu', require('./routes/menuRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/reservations', require('./routes/reservationRoutes'));
 app.use('/api/tables', require('./routes/tableRoutes'));
+app.use('/api/upload', require('./routes/uploadRoutes'));
 
 // ── 404 Handler ─────────────────────────────────────────────
 app.use((req, res) => {
