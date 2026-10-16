@@ -20,6 +20,8 @@ Tracking log for the complete redesign, brand centralisation, and sale-ready pre
 | **Step 9** | **Sale-Ready Documentation** | Completed | `eabdebc` | `docs/SETUP.md`, `docs/WHITE_LABEL.md`, `docs/ASSETS_LICENSES.md`, `docs/ARCHITECTURE.md`, `README.md` documentation link list, `LICENSE` review note. |
 | **Step 10** | **Full Regression & Verification** | Completed | `04059a6` | 40/40 files present, all imports resolve, Stitch Extras clean, all animations have useNativeDriver, reduce-motion fallback on all animated screens, 12/12 deps present, all screens export default. |
 | **Step 11** | **Codebase Pruning, Re-render Loop Fix & Icon Repair** | Completed | `57831f7` | Removed 9 orphaned UI/drawer components and `.gitkeep` placeholders (-1,127 lines). Fixed invalid Ionicons identifiers in OrderSummaryScreen (`restaurant-outline`, `time-outline`). Stabilized MenuContext, OrdersContext, and MenuScreen callbacks with state bailout equality checks to eliminate "Maximum update depth exceeded" infinite loops. |
+| **Step 12** | **Multi-Branch Tracking, Reservation Lifecycle, Manager Image Upload & OTP Security** | Completed | — | **Multi-Branch Order/Reservation Tracking**: Added `branchId`, `branchName`, `branchCity` fields to `Order` and `Reservation` MongoDB schemas; backend controllers auto-extract branch metadata on creation; Manager Dashboard gains outlet filter pills (`All Outlets`, `📍 Lahore`, `📍 Islamabad`) with prominent city badges on order/reservation cards. **Smart Reservation Lifecycle**: Past/completed bookings auto-display "Dining Completed • Visited" green badge with "Reserve Again" CTA; cancel button only visible for future active reservations; filter tabs (All, Upcoming, Past, Cancelled) with live count badges. **Manager Dish Image Upload**: Add/Edit Dish modals include "Photo URL" input field + horizontal "Quick Photo Presets" scroller (🥩 Steak, 🍝 Pasta, 🍔 Burger, 🍰 Dessert, 🍹 Mocktail, 🥗 Salad) linking to curated Unsplash images. **6-Digit Cryptographic OTP**: Phone login uses `crypto.randomInt(100000, 1000000)` for high-entropy 6-digit codes with 5-min TTL, 30s resend cooldown, and 3-attempt lockout. **Manager Header Polish**: Renamed "Guest" button to "App View" for customer-perspective preview. |
+| **Step 13** | **Structure Cleanup & Code Hygiene** (`cleanup-structure` branch) | Completed | `6a5bcbb` | Modularized 6 oversized screens (Menu, Reservation, Manager, Login, Cart, OrderTracking) into focused sub-folders — each with dedicated styles, sub-components, and an `index.js` bridge preserving `AppNavigator.js` unchanged. Removed dead files (orphaned components, stale duplicates). Eliminated IDE Cognitive Complexity warnings in `PastOrderCard.js` and `OrderTrackingScreen.js`. Replaced hardcoded `#ef4444` error red and `#141211`/`#F8F9FA` background with `colors.error`/`colors.background` theme tokens. Created `docs/REPO_MAP.md`, updated `docs/ARCHITECTURE.md` with Section D (Modular Screen Architecture), and added step-by-step `CHANGE.MD` progress log. Android bundle passes 0 errors throughout (1043 modules). |
 
 ---
 
@@ -85,3 +87,12 @@ In accordance with the **STITCH EXTRAS RULE**, the Stitch reference designs cont
 - `src/screens/ManagerDashboardScreen.js` (Overview KPI cards from real data, Orders, Reservations, Menu, Team restyled)
 - `package.json` (`@expo-google-fonts/poppins` dependency addition)
 - `README.md` (Short "More documentation" link list added)
+
+---
+
+## Real-World Image Upload Pipeline (KFC / FoodPanda Model)
+- Added `POST /api/upload` (Manager-only, 5MB limit, JPEG/PNG/WebP validation via `multer`)
+- Static file serving at `/uploads/<filename>` in Express
+- `expo-image-picker` integrated in client with 4:3 landscape aspect ratio cropping and 70% quality auto-compression
+- Upload helper in `src/utils/imageUpload.js` supporting both web blobs and React Native native file payloads
+- Manager Add Dish and Edit Dish modals equipped with "Choose from Device / PC", live thumbnail preview, and presets fallback.

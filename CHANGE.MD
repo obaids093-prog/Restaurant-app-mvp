@@ -129,8 +129,12 @@
 
 
 ### Item 8: Documentation Updates
-- **Status:** Pending ⏳
-- **Scope:** Update `docs/ARCHITECTURE.md`, add `docs/REPO_MAP.md`, update `DESIGN_PROGRESS.md`.
+- **Status:** Completed ✅
+- **Details:**
+  - Updated `docs/ARCHITECTURE.md` with Section D (Modular Screen Architecture), specifying the modular folder breakdown for all 6 decomposed screens and documenting the bridge pattern.
+  - Created `docs/REPO_MAP.md` providing a comprehensive, structured map of root, client, screens, and server architecture.
+  - Updated `DESIGN_PROGRESS.md` with Step 13 capturing all `cleanup-structure` branch milestones and metrics.
+  - Android bundle export verified passing with 0 errors.
 
 ### Item 9: Final Empirical Validation
 - **Status:** Pending ⏳
