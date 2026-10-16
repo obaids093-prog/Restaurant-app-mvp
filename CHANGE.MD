@@ -78,8 +78,20 @@
   - Android bundle export passed with 0 errors (1022 modules).
 
 ### Item 5: LoginScreen Modularization
-- **Status:** Pending ⏳
-- **Scope:** Modularize ~1,470 line `LoginScreen.js` into `src/screens/Login/` subcomponents (`SignInForm`, `SignUpForm`, `PhoneOtpStep`, `NameEntryStep`, `loginStyles.js`, `LoginScreen.js`).
+- **Status:** Completed ✅
+- **Details:**
+  - Decomposed 1,500+ line `LoginScreen.js` into focused, clean subcomponents under `src/screens/Login/`:
+    - `loginStyles.js`: Shared styles, entrance/ambient animations, and pure validation helper functions.
+    - `BrandCanopy.js`: Luxury brand header with linear gradient, rotating ambient compass orbit, theme toggle, and logo emblem.
+    - `EmailPasswordForm.js`: Email and password authentication with real-time password rules checklist and remembered credentials.
+    - `PhoneOtpStep.js`: Mobile number input and 6-digit verification code step with OtpInput integration.
+    - `NameEntryStep.js`: Onboarding profile step for newly registered phone users.
+    - `GuestBrowseFooter.js`: Guest exploration CTA and subtle legal terms.
+    - `LoginScreen.js`: Main shell container coordinating state, transitions, and auth methods.
+    - `index.js`: Re-exporting container.
+  - Replaced root `src/screens/LoginScreen.js` with direct re-export bridge preserving external navigation imports.
+  - Cleared monolithic Cognitive Complexity issues completely.
+  - Android bundle export passed with 0 errors (1029 modules).
 
 ### Item 6: CartScreen & OrderTrackingScreen Review
 - **Status:** Pending ⏳
