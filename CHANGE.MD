@@ -58,8 +58,24 @@
   - Android bundle export passed with 0 errors.
 
 ### Item 4: ManagerDashboardScreen Modularization
-- **Status:** Pending ⏳
-- **Scope:** Modularize ~1,660 line `ManagerDashboardScreen.js` into `src/screens/Manager/` subcomponents (`OverviewTab`, `OrdersTab`, `ReservationsTab`, `MenuStockTab`, `TeamTab`, `managerStyles.js`, `ManagerDashboardScreen.js`).
+- **Status:** Completed ✅
+- **Details:**
+  - Decomposed 2,480+ line `ManagerDashboardScreen.js` into focused subcomponents under `src/screens/Manager/`:
+    - `managerStyles.js`: Shared dashboard styles, executive header styles, status helper mappings.
+    - `OrderItemCard.js`: Ticket card with city badges, line items, cooking/ready/served progression and cancel buttons.
+    - `ReservationCard.js`: Reservation card with slot badges, seating areas, special requests, and confirm/decline/visited/no-show actions.
+    - `MenuItemCard.js`: Menu card with stock availability switch, inline price editing, and edit dish modal trigger.
+    - `OverviewTab.js`: Executive greeting, live kitchen dispatch pulse, 3 real KPI cards, and quick shortcuts.
+    - `OrdersTab.js`: Multi-branch filter pills, tabbed status filters, and live order list.
+    - `ReservationsTab.js`: Multi-branch filter pills, status filter tabs, and reservations list.
+    - `MenuStockTab.js`: Catalog list with Add Dish trigger and inline price editing.
+    - `TeamTab.js`: Staff member registration form and existing team directory with role/status controls.
+    - `AddDishModal.js`: Modal for adding dishes with device photo upload, presets, and categories.
+    - `EditDishModal.js`: Modal for editing existing dish metadata and compressed photos.
+    - `ManagerDashboardScreen.js`: Main state and executive console shell.
+    - `index.js`: Re-exporting container.
+  - Replaced root `src/screens/ManagerDashboardScreen.js` with direct re-export bridge preserving external navigation imports.
+  - Android bundle export passed with 0 errors (1022 modules).
 
 ### Item 5: LoginScreen Modularization
 - **Status:** Pending ⏳
