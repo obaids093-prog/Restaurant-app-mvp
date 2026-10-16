@@ -1,23 +1,23 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import apiClient from '../api/client';
 
 export const MenuContext = createContext(null);
+
+// Pure helper to ensure each item has consistent id / _id
+const normalizeItems = (items) => {
+  if (!Array.isArray(items)) return [];
+  return items.map((item) => ({
+    ...item,
+    id: item._id || item.id,
+    _id: item._id || item.id,
+  }));
+};
 
 export const MenuProvider = ({ children }) => {
   const [menuItems, setMenuItems] = useState([]);
   const [isMenuLoaded, setIsMenuLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Helper to ensure each item has consistent id / _id
-  const normalizeItems = (items) => {
-    if (!Array.isArray(items)) return [];
-    return items.map((item) => ({
-      ...item,
-      id: item._id || item.id,
-      _id: item._id || item.id,
-    }));
-  };
 
   // Fetch full menu from server GET /api/menu
   const fetchMenu = useCallback(async () => {
@@ -26,7 +26,21 @@ export const MenuProvider = ({ children }) => {
     try {
       const data = await apiClient('/api/menu');
       const normalized = normalizeItems(data);
-      setMenuItems(normalized);
+      setMenuItems((prev) => {
+        if (
+          prev &&
+          prev.length === normalized.length &&
+          prev.every(
+            (p, idx) =>
+              p.id === normalized[idx]?.id &&
+              p.price === normalized[idx]?.price &&
+              p.isAvailable === normalized[idx]?.isAvailable
+          )
+        ) {
+          return prev;
+        }
+        return normalized;
+      });
       setIsMenuLoaded(true);
       return normalized;
     } catch (err) {
@@ -43,8 +57,29 @@ export const MenuProvider = ({ children }) => {
     fetchMenu().catch(() => {});
   }, [fetchMenu]);
 
+  // Stable sync callback with state-bailout check
+  const syncMenuItems = useCallback((items) => {
+    if (!Array.isArray(items)) return;
+    const normalized = normalizeItems(items);
+    setMenuItems((prev) => {
+      if (
+        prev &&
+        prev.length === normalized.length &&
+        prev.every(
+          (p, idx) =>
+            p.id === normalized[idx]?.id &&
+            p.price === normalized[idx]?.price &&
+            p.isAvailable === normalized[idx]?.isAvailable
+        )
+      ) {
+        return prev;
+      }
+      return normalized;
+    });
+  }, []);
+
   // 1. Toggle Item Availability (Manager PUT /api/menu/:id)
-  const toggleAvailability = async (itemId) => {
+  const toggleAvailability = useCallback(async (itemId) => {
     const item = menuItems.find((m) => m.id === itemId || m._id === itemId);
     if (!item) return;
 
@@ -60,10 +95,10 @@ export const MenuProvider = ({ children }) => {
       console.error('Failed to toggle availability:', err);
       throw err;
     }
-  };
+  }, [menuItems, fetchMenu]);
 
   // 2. Edit Item Price (Manager PUT /api/menu/:id)
-  const updatePrice = async (itemId, newPrice) => {
+  const updatePrice = useCallback(async (itemId, newPrice) => {
     const item = menuItems.find((m) => m.id === itemId || m._id === itemId);
     if (!item) return;
 
@@ -78,10 +113,10 @@ export const MenuProvider = ({ children }) => {
       console.error('Failed to update price:', err);
       throw err;
     }
-  };
+  }, [menuItems, fetchMenu]);
 
   // 3. Add New Item (Manager POST /api/menu)
-  const addMenuItem = async (itemData) => {
+  const addMenuItem = useCallback(async (itemData) => {
     try {
       const newItem = await apiClient('/api/menu', {
         method: 'POST',
@@ -108,10 +143,10 @@ export const MenuProvider = ({ children }) => {
       console.error('Failed to add menu item:', err);
       throw err;
     }
-  };
+  }, [fetchMenu]);
 
   // 4. Delete Item (Manager DELETE /api/menu/:id)
-  const deleteMenuItem = async (itemId) => {
+  const deleteMenuItem = useCallback(async (itemId) => {
     const item = menuItems.find((m) => m.id === itemId || m._id === itemId);
     if (!item) return;
 
@@ -124,24 +159,38 @@ export const MenuProvider = ({ children }) => {
       console.error('Failed to delete menu item:', err);
       throw err;
     }
-  };
+  }, [menuItems, fetchMenu]);
+
+  const value = useMemo(
+    () => ({
+      menuItems,
+      setMenuItems,
+      syncMenuItems,
+      isMenuLoaded,
+      isLoading,
+      error,
+      fetchMenu,
+      toggleAvailability,
+      updatePrice,
+      addMenuItem,
+      deleteMenuItem,
+    }),
+    [
+      menuItems,
+      syncMenuItems,
+      isMenuLoaded,
+      isLoading,
+      error,
+      fetchMenu,
+      toggleAvailability,
+      updatePrice,
+      addMenuItem,
+      deleteMenuItem,
+    ]
+  );
 
   return (
-    <MenuContext.Provider
-      value={{
-        menuItems,
-        setMenuItems,
-        syncMenuItems: (items) => setMenuItems(normalizeItems(items)),
-        isMenuLoaded,
-        isLoading,
-        error,
-        fetchMenu,
-        toggleAvailability,
-        updatePrice,
-        addMenuItem,
-        deleteMenuItem,
-      }}
-    >
+    <MenuContext.Provider value={value}>
       {children}
     </MenuContext.Provider>
   );

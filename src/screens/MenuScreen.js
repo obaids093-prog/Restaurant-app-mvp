@@ -336,7 +336,16 @@ export default function MenuScreen({ navigation }) {
         id: item._id || item.id,
         _id: item._id || item.id,
       }));
-      setMenuItems(normalized);
+      setMenuItems((prev) => {
+        if (
+          prev &&
+          prev.length === normalized.length &&
+          prev.every((p, idx) => p.id === normalized[idx]?.id && p.price === normalized[idx]?.price)
+        ) {
+          return prev;
+        }
+        return normalized;
+      });
       if (syncMenuItems) {
         syncMenuItems(normalized);
       }
@@ -346,7 +355,21 @@ export default function MenuScreen({ navigation }) {
   // Synchronize live menu modifications made in Manager Dashboard
   useEffect(() => {
     if (contextMenuItems && contextMenuItems.length > 0) {
-      setMenuItems(contextMenuItems);
+      setMenuItems((prev) => {
+        if (
+          prev &&
+          prev.length === contextMenuItems.length &&
+          prev.every(
+            (p, idx) =>
+              p.id === contextMenuItems[idx]?.id &&
+              p.price === contextMenuItems[idx]?.price &&
+              p.isAvailable === contextMenuItems[idx]?.isAvailable
+          )
+        ) {
+          return prev;
+        }
+        return contextMenuItems;
+      });
     }
   }, [contextMenuItems]);
 
@@ -385,7 +408,16 @@ export default function MenuScreen({ navigation }) {
               id: item._id || item.id,
               _id: item._id || item.id,
             }));
-            setMenuItems(normalized);
+            setMenuItems((prev) => {
+              if (
+                prev &&
+                prev.length === normalized.length &&
+                prev.every((p, idx) => p.id === normalized[idx]?.id && p.price === normalized[idx]?.price)
+              ) {
+                return prev;
+              }
+              return normalized;
+            });
             if (syncMenuItems) {
               syncMenuItems(normalized);
             }

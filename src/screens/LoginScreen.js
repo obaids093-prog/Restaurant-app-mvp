@@ -32,7 +32,6 @@ import {
   Button,
   Input,
   PhoneInput,
-  HeroCard,
   SegmentedControl,
   OtpInput,
 } from '../components/ui';

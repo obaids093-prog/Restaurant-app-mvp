@@ -1,28 +1,30 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import apiClient from '../api/client';
 import { useAuth } from './AuthContext';
 
 export const OrdersContext = createContext(null);
+
+const ACTIVE_STATUSES = ['Pending', 'Preparing', 'Ready'];
+
+// Helper to normalize backend order format with UI expectations
+const normalizeOrder = (o) => ({
+  ...o,
+  id: o._id || o.id,
+  _id: o._id || o.id,
+  total: o.totalAmount !== undefined ? o.totalAmount : o.total,
+  customerId: o.user?._id || o.user || o.customerId,
+  customerName: o.customerName || o.user?.name || 'Valued Patron',
+  type: o.orderType || 'Dine-in',
+  timestamp: o.createdAt
+    ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : 'Just now',
+});
 
 export const OrdersProvider = ({ children }) => {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Helper to normalize backend order format with UI expectations
-  const normalizeOrder = (o) => ({
-    ...o,
-    id: o._id || o.id,
-    _id: o._id || o.id,
-    total: o.totalAmount !== undefined ? o.totalAmount : o.total,
-    customerId: o.user?._id || o.user || o.customerId,
-    customerName: o.customerName || o.user?.name || 'Valued Patron',
-    type: o.orderType || 'Dine-in',
-    timestamp: o.createdAt
-      ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      : 'Just now',
-  });
 
   // Fetch orders (Customer calls /my, Manager calls /)
   const fetchOrders = useCallback(async () => {
@@ -64,7 +66,7 @@ export const OrdersProvider = ({ children }) => {
    * Place an order via POST /api/orders (Question 7 requirement)
    * Server recalculates total and validates item availability.
    */
-  const createOrder = async (orderData) => {
+  const createOrder = useCallback(async (orderData) => {
     try {
       const payload = {
         items: (orderData.items || []).map((item) => ({
@@ -92,12 +94,12 @@ export const OrdersProvider = ({ children }) => {
       console.error('Failed to place order:', err);
       throw err;
     }
-  };
+  }, []);
 
   /**
    * Update status via PATCH /api/orders/:id/status (Question 7 requirement)
    */
-  const updateOrderStatus = async (orderId, nextStatus) => {
+  const updateOrderStatus = useCallback(async (orderId, nextStatus) => {
     try {
       const updated = await apiClient(`/api/orders/${orderId}/status`, {
         method: 'PATCH',
@@ -113,37 +115,52 @@ export const OrdersProvider = ({ children }) => {
       console.error('Failed to update order status:', err);
       throw err;
     }
-  };
+  }, []);
 
-  const cancelOrder = async (orderId) => {
+  const cancelOrder = useCallback(async (orderId) => {
     return updateOrderStatus(orderId, 'Cancelled');
-  };
-
-  const ACTIVE_STATUSES = ['Pending', 'Preparing', 'Ready'];
+  }, [updateOrderStatus]);
 
   // Active orders (Pending, Preparing, Ready only) sorted newest first
-  const activeOrders = (orders || [])
-    .filter((o) => ACTIVE_STATUSES.includes(o.status))
-    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  const activeOrders = useMemo(
+    () =>
+      (orders || [])
+        .filter((o) => ACTIVE_STATUSES.includes(o.status))
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)),
+    [orders]
+  );
 
   // Most recent active order
   const activeOrder = activeOrders[0] || null;
 
+  const value = useMemo(
+    () => ({
+      orders,
+      activeOrders,
+      activeOrder,
+      hasActiveOrder: Boolean(activeOrder),
+      isLoading,
+      error,
+      fetchOrders,
+      createOrder,
+      updateOrderStatus,
+      cancelOrder,
+    }),
+    [
+      orders,
+      activeOrders,
+      activeOrder,
+      isLoading,
+      error,
+      fetchOrders,
+      createOrder,
+      updateOrderStatus,
+      cancelOrder,
+    ]
+  );
+
   return (
-    <OrdersContext.Provider
-      value={{
-        orders,
-        activeOrders,
-        activeOrder,
-        hasActiveOrder: Boolean(activeOrder),
-        isLoading,
-        error,
-        fetchOrders,
-        createOrder,
-        updateOrderStatus,
-        cancelOrder,
-      }}
-    >
+    <OrdersContext.Provider value={value}>
       {children}
     </OrdersContext.Provider>
   );

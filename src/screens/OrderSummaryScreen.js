@@ -283,7 +283,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
           <View style={styles.cardHeaderWithAction}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons
-                name={isDineIn ? 'deck' : 'timer'}
+                name={isDineIn ? 'restaurant-outline' : 'time-outline'}
                 size={18}
                 color={colors.primary}
                 style={{ marginRight: 6 }}
