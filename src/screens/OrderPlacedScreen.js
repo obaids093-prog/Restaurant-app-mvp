@@ -15,9 +15,15 @@ import { brand } from '../config/brand';
 import { LinearGradient } from '../utils/SafeLinearGradient';
 
 export default function OrderPlacedScreen({ route, navigation }) {
-  const { colors, isDark, shadows, typography, radius } = useTheme();
-  const { order = {}, orderType = 'Dine-in', tableNumber = 'Table A-01 (Atrium Window)', grandTotal, items = [] } =
-    route.params || {};
+  const { colors, isDark, shadows, typography } = useTheme();
+  const {
+    order = {},
+    orderType = 'Dine-in',
+    tableNumber = 'Table A-01 (Atrium Window)',
+    branch,
+    grandTotal,
+    items = [],
+  } = route.params || {};
 
   // Entrance animations
   const scaleAnim = useRef(new Animated.Value(0.7)).current;
@@ -210,7 +216,7 @@ export default function OrderPlacedScreen({ route, navigation }) {
                 {isDineIn ? tableNumber : 'Takeaway • Curbside Pickup'}
               </Text>
               <Text style={[typography.caption, { color: colors.primary, fontWeight: '500' }]}>
-                {isDineIn ? 'Artisan Dine-in Experience' : 'Express Collection'}
+                {branch?.fullName || (isDineIn ? 'Artisan Dine-in Experience' : 'Express Collection')}
               </Text>
             </View>
           </View>

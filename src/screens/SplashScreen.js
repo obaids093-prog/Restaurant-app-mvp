@@ -16,16 +16,14 @@
  * Reduced Motion:Simple smooth cross-fade only via AccessibilityInfo.
  * ═══════════════════════════════════════════════════════════
  */
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Animated,
   StatusBar,
-  Dimensions,
   AccessibilityInfo,
-  TouchableOpacity,
   Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,16 +35,20 @@ import brand from '../config/brand';
 import safeStorage from '../utils/safeStorage';
 import { SafeLinearGradient } from '../utils/SafeLinearGradient';
 
-const { width } = Dimensions.get('window');
 const ONBOARDING_KEY = '@aura_onboarding_complete';
 const SPLASH_SEEN_KEY = '@aura_splash_seen';
 
 export default function SplashScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { colors, typography, fonts, isDark } = useTheme();
+  const { colors, fonts, isDark } = useTheme();
   const { user, token } = useAuth();
 
   const appLetters = useMemo(() => brand.appName.split(''), []);
+  const activeLocationsText = useMemo(() => {
+    const list = (brand.outlets || []).filter((o) => o.isActive !== false);
+    if (list.length === 0) return 'FINE DINING';
+    return list.map((o) => o.city.toUpperCase()).join(' • ');
+  }, []);
 
   // Animation values (all opacity & transform using useNativeDriver: true)
   const masterFade = useRef(new Animated.Value(1)).current;
@@ -110,10 +112,15 @@ export default function SplashScreen({ navigation }) {
         return;
       }
 
-      // If user is not logged in, show the new luxury Onboarding screen
-      navigation.replace('Onboarding');
+      // Real-World Standard: Only show onboarding on first-ever launch
+      const hasSeenOnboarding = await safeStorage.getItem(ONBOARDING_KEY);
+      if (hasSeenOnboarding === 'true') {
+        navigation.replace('Login');
+      } else {
+        navigation.replace('Onboarding');
+      }
     } catch {
-      navigation.replace('Onboarding');
+      navigation.replace('Login');
     }
   }).current;
 
@@ -817,7 +824,7 @@ export default function SplashScreen({ navigation }) {
         >
           <View style={styles.locationLine} />
           <Text style={[styles.locationText, { color: colors.onPrimary, fontFamily: fonts.medium }]}>
-            LAHORE • ISLAMABAD
+            {activeLocationsText}
           </Text>
           <View style={styles.locationLine} />
         </Animated.View>

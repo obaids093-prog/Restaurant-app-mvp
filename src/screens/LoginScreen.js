@@ -77,7 +77,7 @@ const validatePasswordFields = (vals, isSignup, newErrors) => {
 
 export default function LoginScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { colors, isDark, toggleTheme, typography, fonts, radius, shadows } = useTheme();
+  const { colors, isDark, toggleTheme, fonts, radius, shadows } = useTheme();
   const {
     login,
     signup,
@@ -370,8 +370,8 @@ export default function LoginScreen({ navigation }) {
     setPhoneError('');
     setServerError(null);
 
-    if (!otpValue || otpValue.trim().length < 4) {
-      setPhoneError('Please enter the 4-digit verification code.');
+    if (!otpValue || otpValue.trim().length < 6) {
+      setPhoneError('Please enter the 6-digit verification code.');
       return;
     }
 
@@ -996,7 +996,7 @@ export default function LoginScreen({ navigation }) {
                           { color: colors.textPrimary, fontFamily: fonts.bold },
                         ]}
                       >
-                        Enter 4-Digit Code
+                        Enter 6-Digit Code
                       </Text>
                       <Text
                         style={[
@@ -1011,7 +1011,7 @@ export default function LoginScreen({ navigation }) {
                     {/* OtpInput Component */}
                     <OtpInput
                       code={otpValue}
-                      length={4}
+                      length={6}
                       onCodeChange={setOtpValue}
                     />
 
@@ -1139,26 +1139,41 @@ export default function LoginScreen({ navigation }) {
             )}
           </Animated.View>
 
-          {/* Explore Onboarding Walkthrough */}
+          {/* ─── OR Divider ─── */}
+          <View style={styles.orDividerRow}>
+            <View style={[styles.orDividerLine, { backgroundColor: colors.cardBorder }]} />
+            <Text style={[styles.orDividerText, { color: colors.mutedText, fontFamily: fonts.medium }]}>
+              OR
+            </Text>
+            <View style={[styles.orDividerLine, { backgroundColor: colors.cardBorder }]} />
+          </View>
+
+          {/* Guest Browse — Clean centered CTA like Uber Eats / Foodpanda */}
           <TouchableOpacity
-            onPress={() => navigation.navigate('Onboarding')}
-            style={styles.walkthroughLinkBtn}
+            onPress={() => navigation.navigate('CustomerApp')}
+            style={[
+              styles.guestBrowseBtn,
+              {
+                borderColor: colors.primary + '30',
+                backgroundColor: colors.primaryTint || (colors.primary + '08'),
+              },
+            ]}
             activeOpacity={0.75}
-            accessibilityLabel="Explore Artisan Dining Experience"
+            accessibilityLabel="Browse menu as guest"
           >
-            <Ionicons name="sparkles-outline" size={14} color={colors.primary} />
+            <Ionicons name="compass-outline" size={18} color={colors.primary} style={{ marginRight: 8 }} />
             <Text
               style={[
-                styles.walkthroughLinkText,
+                styles.guestBrowseText,
                 { color: colors.primary, fontFamily: fonts.semiBold },
               ]}
             >
-              Explore Artisan Dining Pillars & Walkthrough
+              Browse Menu as Guest
             </Text>
-            <Ionicons name="arrow-forward" size={13} color={colors.primary} />
+            <Ionicons name="arrow-forward" size={15} color={colors.primary} style={{ marginLeft: 8 }} />
           </TouchableOpacity>
 
-          {/* Discreet Luxury Legal Notice */}
+          {/* Discreet Legal Notice */}
           <Text
             style={[
               styles.legalNoticeText,
@@ -1450,20 +1465,38 @@ const styles = StyleSheet.create({
   skipBtnText: {
     fontSize: 13,
   },
-  walkthroughLinkBtn: {
+  orDividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginTop: 14,
-    marginBottom: 20,
-    borderRadius: 20,
-    backgroundColor: 'rgba(252, 88, 52, 0.08)',
+    gap: 12,
+    marginTop: 18,
+    marginBottom: 6,
+    width: '100%',
   },
-  walkthroughLinkText: {
-    fontSize: 12.5,
+  orDividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  orDividerText: {
+    fontSize: 11,
+    letterSpacing: 1.5,
+    fontWeight: '600',
+  },
+  guestBrowseBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginTop: 12,
+    marginBottom: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    width: '100%',
+  },
+  guestBrowseText: {
+    fontSize: 14,
     letterSpacing: 0.2,
   },
 });

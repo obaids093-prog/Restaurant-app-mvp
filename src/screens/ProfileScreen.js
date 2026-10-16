@@ -7,7 +7,6 @@ import {
   ScrollView,
   Platform,
   Alert,
-  Image,
   Modal,
   ActivityIndicator,
   StatusBar,
@@ -20,7 +19,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useOrders } from '../context/OrdersContext';
 import { brand } from '../config/brand';
 import { normalizePkPhone } from '../utils/phone';
-import { Input, PhoneInput, Button, Switch } from '../components/ui';
+import { Input, PhoneInput, Switch } from '../components/ui';
 
 const PRESET_DIETARY_OPTIONS = [
   { id: 'halal', label: 'Halal Only', icon: 'shield-checkmark-outline' },
@@ -28,7 +27,7 @@ const PRESET_DIETARY_OPTIONS = [
   { id: 'shellfish', label: 'Shellfish Alert', icon: 'alert-circle-outline' },
   { id: 'gluten', label: 'Gluten Conscious', icon: 'leaf-outline' },
   { id: 'vegetarian', label: 'Vegetarian', icon: 'flower-outline' },
-  { id: 'window', label: 'Window Seating', icon: 'grid-outline' },
+  { id: 'dairy_free', label: 'Dairy Free', icon: 'water-outline' },
 ];
 
 export default function ProfileScreen({ navigation }) {
@@ -64,13 +63,19 @@ export default function ProfileScreen({ navigation }) {
 
   // Compute User Initials (e.g. "Zainab Malik" -> "ZM")
   const userInitials = useMemo(() => {
-    if (!user?.name) return 'ZM';
+    if (!user?.name) return '?';
     const parts = user.name.trim().split(/\s+/);
     if (parts.length >= 2) {
       return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
     }
     return user.name.slice(0, 2).toUpperCase();
   }, [user?.name]);
+
+  const activeLocationsText = useMemo(() => {
+    const list = (brand.outlets || []).filter((o) => o.isActive !== false);
+    if (list.length === 0) return 'Fine Dining';
+    return list.map((o) => o.city).join(' & ');
+  }, []);
 
   const togglePref = (id) => {
     setDietaryPrefs((prev) =>
@@ -182,28 +187,9 @@ export default function ProfileScreen({ navigation }) {
           },
         ]}
       >
-        <View style={styles.topHeaderBrand}>
-          <View style={[styles.brandLogoSquare, { backgroundColor: colors.primary }]}>
-            <Text style={styles.brandLogoLetter}>A</Text>
-          </View>
-          <View>
-            <Text style={[typography.caption, { color: colors.mutedText, fontSize: 10, letterSpacing: 1.5 }]}>
-              DINING ACCOUNT
-            </Text>
-            <Text style={[typography.headingSm, { color: colors.textPrimary, fontWeight: '800' }]}>
-              Guest Profile
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          onPress={openEditModal}
-          style={[styles.headerIconBtn, { backgroundColor: colors.surfaceSubtle, borderColor: colors.cardBorder }]}
-          activeOpacity={0.8}
-          accessibilityLabel="Edit Profile"
-        >
-          <Ionicons name="create-outline" size={18} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <Text style={[typography.headingLg, { color: colors.textPrimary, fontWeight: '800', fontSize: 22 }]}>
+          Profile
+        </Text>
       </View>
 
       <ScrollView
@@ -213,6 +199,101 @@ export default function ProfileScreen({ navigation }) {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* ─── GUEST SIGN-IN PROMPT (when user is not logged in) ─── */}
+        {!user ? (
+          <>
+            {/* Guest Welcome Card */}
+            <View style={[styles.membershipCardWrapper, shadows.deep3D]}>
+              <LinearGradient
+                colors={['#64748B', '#475569', '#334155']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.membershipCardInner, { borderRadius: radius.card * 1.5 }]}
+              >
+                <View style={styles.cardWatermarkCircle} />
+                <View style={styles.membershipCardHeader}>
+                  <View style={styles.avatarContainer}>
+                    <View style={[styles.avatarInitialsCircle, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+                      <Ionicons name="person-outline" size={26} color="#FFFFFF" />
+                    </View>
+                  </View>
+                  <View style={styles.memberIdentityCol}>
+                    <Text style={[styles.memberNameText, { fontSize: 18 }]}>Welcome to {brand.name}</Text>
+                    <Text style={[styles.memberEmailText, { marginTop: 4 }]}>
+                      Sign in to unlock reservations, orders, and personalised dining.
+                    </Text>
+                  </View>
+                </View>
+              </LinearGradient>
+            </View>
+
+            {/* Sign In / Register CTA */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Login')}
+              activeOpacity={0.88}
+              style={[styles.managerBannerBtn, shadows.soft]}
+            >
+              <LinearGradient
+                colors={['#FC5834', '#E03816']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.managerBannerGradient, { borderRadius: radius.card }]}
+              >
+                <View style={styles.managerBannerLeft}>
+                  <View style={[styles.managerIconBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                    <Ionicons name="log-in-outline" size={20} color="#FFFFFF" />
+                  </View>
+                  <View>
+                    <Text style={[styles.managerBannerTitle, { color: '#FFFFFF' }]}>Sign In or Register</Text>
+                    <Text style={[styles.managerBannerSub, { color: 'rgba(255,255,255,0.7)' }]}>Create an account to start ordering</Text>
+                  </View>
+                </View>
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Night Theme Toggle (available for guests too) */}
+            <View
+              style={[
+                styles.groupedRowsContainer,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.cardBorder,
+                  borderRadius: radius.card,
+                },
+                shadows.soft,
+              ]}
+            >
+              <View style={styles.menuRow}>
+                <View style={styles.menuRowLeft}>
+                  <View style={[styles.menuIconCircle, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+                    <Ionicons name={isDark ? 'moon' : 'sunny'} size={18} color={isDark ? colors.secondary : colors.primary} />
+                  </View>
+                  <View>
+                    <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700', fontSize: 14 }]}>
+                      Ambient Night Theme
+                    </Text>
+                    <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
+                      {isDark ? 'Dark mode enabled' : 'Light mode active'}
+                    </Text>
+                  </View>
+                </View>
+                <Switch value={isDark} onValueChange={toggleTheme} />
+              </View>
+            </View>
+
+            {/* APP VERSION & COPYRIGHT FOOTER */}
+            <View style={styles.versionFooter}>
+              <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
+                {brand.name} • {brand.tagline}
+              </Text>
+              <Text style={[typography.caption, { color: colors.mutedText, fontSize: 10, marginTop: 2 }]}>
+                Version 1.0.0 • {activeLocationsText}
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
         {/* ─── VIBRANT PRIMARY MEMBERSHIP CARD (Stitch Variant 2) ─── */}
         <View style={[styles.membershipCardWrapper, shadows.deep3D]}>
           <LinearGradient
@@ -237,30 +318,32 @@ export default function ProfileScreen({ navigation }) {
               <View style={styles.memberIdentityCol}>
                 <View style={styles.memberNameRow}>
                   <Text style={styles.memberNameText} numberOfLines={1}>
-                    {user?.name || 'Zainab Malik'}
+                    {user.name}
                   </Text>
                   <View style={styles.roleBadgePill}>
                     <Text style={styles.roleBadgeText}>
-                      {(user?.role || 'Customer').toUpperCase()}
+                      {user.role.toUpperCase()}
                     </Text>
                   </View>
                 </View>
 
                 <Text style={styles.memberEmailText} numberOfLines={1}>
-                  {user?.email || 'zainab.malik@aurahospitality.pk'}
+                  {user.email}
                 </Text>
 
                 {/* Verified Phone Chip */}
+                {user.phone ? (
                 <View style={styles.memberMetaRow}>
                   <Ionicons name="call-outline" size={12} color="#FFFFFF" style={{ opacity: 0.85 }} />
                   <Text style={styles.memberPhoneText}>
-                    {user?.phone ? normalizePkPhone(user.phone).display : '0300 8472910'}
+                    {normalizePkPhone(user.phone).display}
                   </Text>
                   <View style={styles.verifiedMiniTag}>
                     <Ionicons name="checkmark-circle" size={11} color="#4ADE80" />
                     <Text style={styles.verifiedMiniText}>Verified</Text>
                   </View>
                 </View>
+                ) : null}
               </View>
             </View>
           </LinearGradient>
@@ -407,7 +490,8 @@ export default function ProfileScreen({ navigation }) {
               backgroundColor: colors.surfaceSubtle,
               borderColor: colors.cardBorder,
               borderRadius: radius.card,
-              padding: 14,
+              padding: 16,
+              paddingBottom: 16,
             },
             shadows.soft,
           ]}
@@ -477,28 +561,6 @@ export default function ProfileScreen({ navigation }) {
             shadows.soft,
           ]}
         >
-          {/* REPLAY ONBOARDING WALKTHROUGH */}
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Onboarding')}
-            style={[styles.menuRow, { borderBottomColor: colors.cardBorder }]}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuRowLeft}>
-              <View style={[styles.menuIconCircle, { backgroundColor: colors.primaryTint, borderColor: colors.primary + '30' }]}>
-                <Ionicons name="sparkles" size={18} color={colors.primary} />
-              </View>
-              <View>
-                <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700', fontSize: 14 }]}>
-                  Artisan App Walkthrough
-                </Text>
-                <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
-                  Explore fine dining pillars & features
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.mutedText} />
-          </TouchableOpacity>
-
           {/* LOG OUT BUTTON */}
           <TouchableOpacity
             onPress={handleLogoutPress}
@@ -553,9 +615,11 @@ export default function ProfileScreen({ navigation }) {
             {brand.name} • {brand.tagline}
           </Text>
           <Text style={[typography.caption, { color: colors.mutedText, fontSize: 10, marginTop: 2 }]}>
-            Version 1.0.0 • Lahore & Islamabad
+            Version 1.0.0 • {activeLocationsText}
           </Text>
         </View>
+          </>
+        )}
       </ScrollView>
 
       {/* ─── EDIT PROFILE MODAL ─── */}
@@ -750,38 +814,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-  },
-  topHeaderBrand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  brandLogoSquare: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandLogoLetter: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 16,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  headerIconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   scrollContent: {
     padding: 16,

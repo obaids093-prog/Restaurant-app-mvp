@@ -6,19 +6,15 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  Animated,
   ActivityIndicator,
   Alert,
   Platform,
-  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from '../utils/SafeLinearGradient';
 import apiClient from '../api/client';
 import { useOrders } from '../context/OrdersContext';
 import { useCart } from '../context/CartContext';
 import { useMenu } from '../context/MenuContext';
-import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { brand } from '../config/brand';
 import OrderStepper from '../components/ui/OrderStepper';
@@ -28,8 +24,7 @@ const ACTIVE_STATUSES = ['Pending', 'Preparing', 'Ready'];
 const CANCEL_WINDOW_MINUTES = 10;
 
 export default function OrderTrackingScreen({ route, navigation }) {
-  const { colors, isDark, shadows, typography, radius, fonts } = useTheme();
-  const { user, logout } = useAuth();
+  const { colors, isDark, shadows, typography, fonts } = useTheme();
   const { orders, cancelOrder, fetchOrders, isLoading, error } = useOrders();
   const { addItem } = useCart();
   const { menuItems } = useMenu();

@@ -39,7 +39,6 @@ export default function OnboardingScreen({ navigation }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
 
   const slides = brand.onboardingSlides;
 

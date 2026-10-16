@@ -19,6 +19,8 @@ import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrdersContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMenu } from '../context/MenuContext';
+import { useBranch } from '../context/BranchContext';
+import { BranchChip } from '../components/ui';
 import { brand } from '../config/brand';
 
 // Named rate constants for transparent breakdown
@@ -35,7 +37,7 @@ const showOrderAlert = (title, message) => {
 };
 
 // Pure payload builder
-const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber, pickupTime, getItemPrice) => {
+const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber, pickupTime, getItemPrice, activeBranch) => {
   const isTakeaway =
     String(orderType || '').toLowerCase().includes('takeaway') ||
     String(orderType || '').toLowerCase().includes('curbside');
@@ -47,6 +49,9 @@ const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber
     type: normalizedType,
     tableNumber: isTakeaway ? 'Takeaway Counter' : (tableNumber || 'Table A-01'),
     pickupTime: isTakeaway ? (pickupTime || 'In 25 minutes') : null,
+    branchId: activeBranch?.id || 'lhr_gulberg',
+    branchName: activeBranch?.fullName || 'AURA • Gulberg III, Lahore',
+    branchCity: activeBranch?.city || 'Lahore',
     items: (cartState.items || []).map((item) => ({
       id: item.id || item._id,
       name: item.name,
@@ -68,8 +73,9 @@ const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber
 };
 
 export default function OrderSummaryScreen({ route, navigation }) {
-  const { colors, isDark, shadows, typography, radius } = useTheme();
+  const { colors, isDark, shadows, typography } = useTheme();
   const { user } = useAuth();
+  const { activeBranch } = useBranch();
   const { cartState, clearCart } = useCart();
   const { createOrder } = useOrders();
   const { menuItems, fetchMenu } = useMenu();
@@ -102,7 +108,6 @@ export default function OrderSummaryScreen({ route, navigation }) {
     orderType: initialOrderType = 'Dine-in',
     tableNumber = 'Table A-01 (Atrium Glasshouse)',
     pickupTime = 'In 25 minutes',
-    calculations: rawCalculations,
   } = route.params || {};
 
   // Interactive dining type switcher
@@ -170,7 +175,8 @@ export default function OrderSummaryScreen({ route, navigation }) {
         activeDiningType,
         tableNumber,
         pickupTime,
-        getItemPrice
+        getItemPrice,
+        activeBranch
       );
 
       const newOrder = await createOrder(orderPayload);
@@ -182,6 +188,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
         order: newOrder,
         orderType: activeDiningType,
         tableNumber,
+        branch: activeBranch,
         grandTotal: calculations.grandTotal,
         items: snapshotItems,
       });
@@ -205,7 +212,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
       >
         {/* Verification Title & Ready Badge */}
         <View style={styles.topHeaderRow}>
-          <View>
+          <View style={{ flex: 1, paddingRight: 8 }}>
             <Text style={[typography.headingLg, { color: colors.textPrimary, fontWeight: '800' }]}>
               Order Summary
             </Text>
@@ -213,12 +220,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
               Review details before transmission to kitchen brigade
             </Text>
           </View>
-          <View style={[styles.readyBadge, { backgroundColor: colors.primaryTint }]}>
-            <Ionicons name="hourglass-outline" size={14} color={colors.primary} />
-            <Text style={[styles.readyBadgeText, { color: colors.primary }]}>
-              Ready to Fire
-            </Text>
-          </View>
+          <BranchChip compact />
         </View>
 
         {/* Dine-in vs Takeaway Segmented Pill Switcher */}
@@ -302,7 +304,9 @@ export default function OrderSummaryScreen({ route, navigation }) {
               {isDineIn ? tableNumber : 'Takeaway Express Pickup'}
             </Text>
             <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-              {isDineIn ? 'Glasshouse Window Enclave View' : `Estimated collection ${pickupTime}`}
+              {isDineIn
+                ? `Sanctuary: ${activeBranch?.fullName || 'AURA Dining'}`
+                : `Pickup at: ${activeBranch?.address || brand.address}`}
             </Text>
           </View>
 

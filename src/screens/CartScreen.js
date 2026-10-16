@@ -10,7 +10,6 @@ import {
   ScrollView,
   Alert,
   StatusBar,
-  Platform,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -88,7 +87,7 @@ const EmptyClocheIllustration = ({ colors, isDark }) => (
 );
 
 export default function CartScreen({ navigation }) {
-  const { colors, isDark, shadows, typography, radius } = useTheme();
+  const { colors, isDark, shadows, typography } = useTheme();
   const {
     cartState,
     addItem,

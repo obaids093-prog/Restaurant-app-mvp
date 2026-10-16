@@ -26,9 +26,6 @@ const MenuItemCard = React.memo(function MenuItemCard({
   typography,
   radius,
 }) {
-  // Demonstration console.log as required by Question 8:
-  console.log(`[PERF - React.memo] Rendered MenuItemCard ID: ${item.id} - ${item.name}`);
-
   const isAvailable = item.isAvailable;
   const bounceAnim = useRef(new Animated.Value(1)).current;
   const heartAnim = useRef(new Animated.Value(1)).current;
