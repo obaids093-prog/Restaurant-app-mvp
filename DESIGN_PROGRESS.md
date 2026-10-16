@@ -19,6 +19,7 @@ Tracking log for the complete redesign, brand centralisation, and sale-ready pre
 | **Step 8** | **Manager Console** | Completed | `01e91d8` | Executive overview, live KPI cards (Active Orders, Pending Bookings, Today's Revenue), Orders progression, Reservations management, Menu catalog & pricing, and Team staff accounts. |
 | **Step 9** | **Sale-Ready Documentation** | Completed | `eabdebc` | `docs/SETUP.md`, `docs/WHITE_LABEL.md`, `docs/ASSETS_LICENSES.md`, `docs/ARCHITECTURE.md`, `README.md` documentation link list, `LICENSE` review note. |
 | **Step 10** | **Full Regression & Verification** | Completed | `04059a6` | 40/40 files present, all imports resolve, Stitch Extras clean, all animations have useNativeDriver, reduce-motion fallback on all animated screens, 12/12 deps present, all screens export default. |
+| **Step 11** | **Codebase Pruning, Re-render Loop Fix & Icon Repair** | Completed | `57831f7` | Removed 9 orphaned UI/drawer components and `.gitkeep` placeholders (-1,127 lines). Fixed invalid Ionicons identifiers in OrderSummaryScreen (`restaurant-outline`, `time-outline`). Stabilized MenuContext, OrdersContext, and MenuScreen callbacks with state bailout equality checks to eliminate "Maximum update depth exceeded" infinite loops. |
 
 ---
 
