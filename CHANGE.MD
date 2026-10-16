@@ -39,8 +39,23 @@
   - Android bundle export passed with 0 errors.
 
 ### Item 3: ReservationScreen Modularization
-- **Status:** Pending ⏳
-- **Scope:** Modularize ~1,780 line `ReservationScreen.js` into `src/screens/Reservation/` subcomponents (`DateRow`, `PartyStepper`, `SlotGrid`, `BookingForm`, `ConfirmSheet`, `MyBookingsList`, `reservationStyles.js`, `ReservationScreen.js`).
+- **Status:** Completed ✅
+- **Details:**
+  - Decomposed 1,900+ line `ReservationScreen.js` into focused, cohesive subcomponents under `src/screens/Reservation/`:
+    - `reservationStyles.js`: Shared styles, dining slot groups, sanctuary zone constants, and status helper functions.
+    - `DateRow.js`: Next 7 days ribbon with availability status chips.
+    - `PartyStepper.js`: Guest count stepper and quick 2/4/6/8+ guest selection pills.
+    - `ZonePicker.js`: Curated dining zone selection (Glasshouse, Botanica Garden Terrace, Chef's Counter Booth).
+    - `SlotGrid.js`: Time-slot grid separated by service periods with past/capacity checks.
+    - `BookingForm.js`: Guest contact info, phone formatting, special requests, and error banners.
+    - `BookTabContent.js`: Full composition for table booking with loading and connection retry states.
+    - `ConfirmSheet.js`: Modal for pre-booking verification.
+    - `SuccessSheet.js`: Bento-style confirmed reservation sheet.
+    - `MyBookingsList.js`: Tabbed filterable reservation history with dynamic counts and cancellation handling.
+    - `ReservationScreen.js`: Main state and composition shell.
+    - `index.js`: Re-exporting container.
+  - Replaced root `src/screens/ReservationScreen.js` with direct re-export bridge preserving external navigation imports.
+  - Android bundle export passed with 0 errors.
 
 ### Item 4: ManagerDashboardScreen Modularization
 - **Status:** Pending ⏳
