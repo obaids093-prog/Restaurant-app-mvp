@@ -387,12 +387,12 @@ function MenuItemCard({
 // ─── MAIN MANAGER DASHBOARD SCREEN ──────────────────────────────────────────
 export default function ManagerDashboardScreen({ navigation }) {
   const { user, logout } = useAuth();
-  const { colors, typography, radius, shadows, isDark } = useTheme();
+  const { colors, typography, radius, shadows, isDark, fonts } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const { orders, updateOrderStatus, cancelOrder } = useOrders();
-  const { menuItems, updatePrice, toggleAvailability, addMenuItem } = useMenu();
-  const { reservationsList, refetchReservations } = useReservation(user);
+  const { orders, updateOrderStatus, cancelOrder, isLoading: ordersLoading, error: ordersError, fetchOrders } = useOrders();
+  const { menuItems, updatePrice, toggleAvailability, addMenuItem, isLoading: menuLoading, error: menuError, fetchMenu } = useMenu();
+  const { reservationsList, refetchReservations, isLoading: resLoading, error: resError } = useReservation(user);
 
   // Active Tab: 'overview' | 'orders' | 'reservations' | 'menu' | 'team'
   const [activeTab, setActiveTab] = useState('overview');
@@ -605,6 +605,109 @@ export default function ManagerDashboardScreen({ navigation }) {
       showConsoleAlert('Demote Failed', err.message || 'Could not demote account.');
     }
   };
+
+  const isFirstLoad =
+    (ordersLoading && (!orders || orders.length === 0)) ||
+    (menuLoading && (!menuItems || menuItems.length === 0));
+
+  const isInitialError =
+    (ordersError && (!orders || orders.length === 0)) ||
+    (menuError && (!menuItems || menuItems.length === 0));
+
+  const handleRetryConsole = () => {
+    if (fetchOrders) fetchOrders().catch(() => {});
+    if (fetchMenu) fetchMenu().catch(() => {});
+    if (refetchReservations) refetchReservations().catch(() => {});
+    if (refetchStaff) refetchStaff().catch(() => {});
+  };
+
+  // ─── LOADING STATE (First Load) ──────────────────────────────────────────
+  if (isFirstLoad) {
+    return (
+      <View style={[styles.stateContainer, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <View
+          style={[
+            styles.loadingBox,
+            { backgroundColor: colors.card, borderColor: colors.subtleBorder || colors.cardBorder },
+            shadows.cardLight || shadows.soft,
+          ]}
+        >
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text
+            style={[
+              styles.stateHeading,
+              { color: colors.textPrimary, fontFamily: fonts?.bold || typography.headingSm?.fontFamily },
+            ]}
+          >
+            Loading Executive Console
+          </Text>
+          <Text
+            style={[
+              styles.stateSubheading,
+              { color: colors.mutedText, fontFamily: fonts?.regular || typography.body?.fontFamily },
+            ]}
+          >
+            Synchronizing live service floor, orders, bookings and brigade...
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // ─── ERROR STATE WITH RETRY ───────────────────────────────────────────────
+  if (isInitialError) {
+    const errorMsg = ordersError || menuError || resError || 'Could not load management console data.';
+    return (
+      <View style={[styles.stateContainer, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <View
+          style={[
+            styles.loadingBox,
+            { backgroundColor: colors.card, borderColor: colors.subtleBorder || colors.cardBorder },
+            shadows.cardLight || shadows.soft,
+          ]}
+        >
+          <Ionicons name="cloud-offline-outline" size={54} color={colors.cancelled || colors.error} />
+          <Text
+            style={[
+              styles.stateHeading,
+              { color: colors.textPrimary, fontFamily: fonts?.bold || typography.headingSm?.fontFamily },
+            ]}
+          >
+            Console Connection Error
+          </Text>
+          <Text
+            style={[
+              styles.stateSubheading,
+              { color: colors.mutedText, fontFamily: fonts?.regular || typography.body?.fontFamily },
+            ]}
+          >
+            {errorMsg}
+          </Text>
+          <TouchableOpacity
+            onPress={handleRetryConsole}
+            style={[
+              styles.retryBtn,
+              { backgroundColor: colors.primary },
+              shadows.buttonPrimary || shadows.button3D,
+            ]}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="refresh" size={18} color={colors.onPrimary} style={{ marginRight: 8 }} />
+            <Text
+              style={[
+                styles.retryBtnText,
+                { color: colors.onPrimary, fontFamily: fonts?.semiBold || typography.caption?.fontFamily },
+              ]}
+            >
+              Retry Console
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -1660,5 +1763,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
+  },
+  stateContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  loadingBox: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  stateHeading: {
+    fontSize: 18,
+    marginTop: 16,
+    letterSpacing: -0.2,
+  },
+  stateSubheading: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 19,
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    height: 44,
+    borderRadius: 12,
+    marginTop: 18,
+  },
+  retryBtnText: {
+    fontSize: 14,
   },
 });

@@ -28,9 +28,9 @@ const ACTIVE_STATUSES = ['Pending', 'Preparing', 'Ready'];
 const CANCEL_WINDOW_MINUTES = 10;
 
 export default function OrderTrackingScreen({ route, navigation }) {
-  const { colors, isDark, shadows, typography, radius } = useTheme();
+  const { colors, isDark, shadows, typography, radius, fonts } = useTheme();
   const { user, logout } = useAuth();
-  const { orders, cancelOrder, fetchOrders } = useOrders();
+  const { orders, cancelOrder, fetchOrders, isLoading, error } = useOrders();
   const { addItem } = useCart();
   const { menuItems } = useMenu();
 
@@ -277,6 +277,93 @@ export default function OrderTrackingScreen({ route, navigation }) {
     if (activeTab === 'completed') return completedOrders;
     return orders || [];
   }, [activeTab, activeOrders, completedOrders, orders]);
+
+  // ─── LOADING STATE (First Load) ──────────────────────────────────────────
+  if (isLoading && (!orders || orders.length === 0)) {
+    return (
+      <View style={[styles.stateContainer, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <View
+          style={[
+            styles.loadingBox,
+            { backgroundColor: colors.card, borderColor: colors.surfaceBorder || colors.cardBorder },
+            shadows.cardLight || shadows.soft,
+          ]}
+        >
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text
+            style={[
+              styles.stateHeading,
+              { color: colors.textPrimary, fontFamily: fonts?.bold || typography.headingSm?.fontFamily },
+            ]}
+          >
+            Retrieving Dining Folios
+          </Text>
+          <Text
+            style={[
+              styles.stateSubheading,
+              { color: colors.mutedText, fontFamily: fonts?.regular || typography.body?.fontFamily },
+            ]}
+          >
+            Fetching active kitchen dispatches and order history...
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // ─── ERROR STATE WITH RETRY ───────────────────────────────────────────────
+  if (error && (!orders || orders.length === 0)) {
+    return (
+      <View style={[styles.stateContainer, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <View
+          style={[
+            styles.loadingBox,
+            { backgroundColor: colors.card, borderColor: colors.surfaceBorder || colors.cardBorder },
+            shadows.cardLight || shadows.soft,
+          ]}
+        >
+          <Ionicons name="cloud-offline-outline" size={54} color={colors.cancelled || colors.error} />
+          <Text
+            style={[
+              styles.stateHeading,
+              { color: colors.textPrimary, fontFamily: fonts?.bold || typography.headingSm?.fontFamily },
+            ]}
+          >
+            Connection Interrupted
+          </Text>
+          <Text
+            style={[
+              styles.stateSubheading,
+              { color: colors.mutedText, fontFamily: fonts?.regular || typography.body?.fontFamily },
+            ]}
+          >
+            {error}
+          </Text>
+          <TouchableOpacity
+            onPress={() => fetchOrders && fetchOrders().catch(() => {})}
+            style={[
+              styles.retryBtn,
+              { backgroundColor: colors.primary },
+              shadows.buttonPrimary || shadows.button3D,
+            ]}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="refresh" size={18} color={colors.onPrimary} style={{ marginRight: 8 }} />
+            <Text
+              style={[
+                styles.retryBtnText,
+                { color: colors.onPrimary, fontFamily: fonts?.semiBold || typography.caption?.fontFamily },
+              ]}
+            >
+              Retry Orders
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -1021,5 +1108,42 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  stateContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  loadingBox: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  stateHeading: {
+    fontSize: 18,
+    marginTop: 16,
+    letterSpacing: -0.2,
+  },
+  stateSubheading: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 19,
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    height: 44,
+    borderRadius: 12,
+    marginTop: 18,
+  },
+  retryBtnText: {
+    fontSize: 14,
   },
 });
