@@ -4,6 +4,87 @@ import { Ionicons } from '@expo/vector-icons';
 import { brand } from '../../config/brand';
 import { styles } from './trackingStyles';
 
+function getStatusBadgeConfig(status, primaryColor, primaryTint) {
+  if (status === 'Served' || status === 'Delivered') {
+    return {
+      bg: '#22c55e18',
+      border: '#22c55e44',
+      color: '#22c55e',
+      icon: 'checkmark-circle',
+    };
+  }
+  if (status === 'Cancelled') {
+    return {
+      bg: '#ef444418',
+      border: '#ef444444',
+      color: '#ef4444',
+      icon: 'close-circle',
+    };
+  }
+  return {
+    bg: primaryTint,
+    border: primaryColor + '44',
+    color: primaryColor,
+    icon: 'time',
+  };
+}
+
+function ReceiptBreakdown({ order, colors, typography }) {
+  const items = order.items || [];
+  const rSubtotal = order.subtotal !== undefined
+    ? order.subtotal
+    : items.reduce((s, it) => s + (Number(it.price || 0) * (it.quantity || 1)), 0);
+  const rDiscount = order.discountAmount || 0;
+  const rDiscounted = Math.max(0, rSubtotal - rDiscount);
+  const rService = order.serviceCharge !== undefined ? order.serviceCharge : (rDiscounted * 0.05);
+  const rTax = order.salesTax !== undefined ? order.salesTax : (rDiscounted * 0.15);
+  const rTotal = order.totalAmount !== undefined
+    ? order.totalAmount
+    : (order.totalPrice || order.total || (rDiscounted + rService + rTax));
+
+  return (
+    <View style={[styles.expandedReceipt, { borderTopColor: colors.surfaceBorder }]}>
+      <Text style={[typography.caption, { color: colors.mutedText, textTransform: 'uppercase', marginBottom: 6 }]}>
+        Course Breakdown
+      </Text>
+      {items.map((it, i) => (
+        <View key={it.id || it._id || it.menuItem || `${it.name}-${i}`} style={styles.expandedRow}>
+          <Text style={[typography.caption, { color: colors.textPrimary, flex: 1 }]}>
+            {it.quantity || 1}x {it.name}
+          </Text>
+          <Text style={[typography.caption, { color: colors.textSecondary }]}>
+            {brand.formatPrice(Number(it.price || 0) * (it.quantity || 1))}
+          </Text>
+        </View>
+      ))}
+      <View style={[styles.receiptDivider, { backgroundColor: colors.surfaceBorder }]} />
+      <View style={styles.expandedRow}>
+        <Text style={[typography.caption, { color: colors.textSecondary, flex: 1 }]}>Subtotal</Text>
+        <Text style={[typography.caption, { color: colors.textPrimary }]}>{brand.formatPrice(rSubtotal)}</Text>
+      </View>
+      {rDiscount > 0 && (
+        <View style={styles.expandedRow}>
+          <Text style={[typography.caption, { color: colors.success || '#10B981', flex: 1 }]}>Promo Discount</Text>
+          <Text style={[typography.caption, { color: colors.success || '#10B981' }]}>-{brand.formatPrice(rDiscount)}</Text>
+        </View>
+      )}
+      <View style={styles.expandedRow}>
+        <Text style={[typography.caption, { color: colors.textSecondary, flex: 1 }]}>Service Charge (5%)</Text>
+        <Text style={[typography.caption, { color: colors.textPrimary }]}>{brand.formatPrice(rService)}</Text>
+      </View>
+      <View style={styles.expandedRow}>
+        <Text style={[typography.caption, { color: colors.textSecondary, flex: 1 }]}>Sales Tax (15%)</Text>
+        <Text style={[typography.caption, { color: colors.textPrimary }]}>{brand.formatPrice(rTax)}</Text>
+      </View>
+      <View style={[styles.receiptDivider, { backgroundColor: colors.surfaceBorder }]} />
+      <View style={styles.expandedRow}>
+        <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700', flex: 1 }]}>Total</Text>
+        <Text style={[typography.body, { color: colors.primary, fontWeight: '800' }]}>{brand.formatPrice(rTotal)}</Text>
+      </View>
+    </View>
+  );
+}
+
 export default function PastOrderCard({
   order,
   isExpanded,
@@ -14,8 +95,6 @@ export default function PastOrderCard({
   shadows,
   typography,
 }) {
-  const isServed = order.status === 'Served' || order.status === 'Delivered';
-  const isCancelled = order.status === 'Cancelled';
   const isPending = order.status === 'Pending';
   const formattedDate = order.createdAt
     ? new Date(order.createdAt).toLocaleDateString([], {
@@ -27,6 +106,7 @@ export default function PastOrderCard({
     : 'Recent';
 
   const orderTicket = String(order.id || order._id).slice(-4).toUpperCase();
+  const badgeConfig = getStatusBadgeConfig(order.status, colors.primary, colors.primaryTint);
 
   return (
     <View
@@ -59,31 +139,18 @@ export default function PastOrderCard({
           style={[
             styles.folioStatusBadge,
             {
-              backgroundColor: isServed
-                ? '#22c55e18'
-                : isCancelled
-                ? '#ef444418'
-                : colors.primaryTint,
-              borderColor: isServed
-                ? '#22c55e44'
-                : isCancelled
-                ? '#ef444444'
-                : colors.primary + '44',
+              backgroundColor: badgeConfig.bg,
+              borderColor: badgeConfig.border,
             },
           ]}
         >
           <Ionicons
-            name={isServed ? 'checkmark-circle' : isCancelled ? 'close-circle' : 'time'}
+            name={badgeConfig.icon}
             size={13}
-            color={isServed ? '#22c55e' : isCancelled ? '#ef4444' : colors.primary}
+            color={badgeConfig.color}
             style={{ marginRight: 4 }}
           />
-          <Text
-            style={[
-              styles.folioStatusText,
-              { color: isServed ? '#22c55e' : isCancelled ? '#ef4444' : colors.primary },
-            ]}
-          >
+          <Text style={[styles.folioStatusText, { color: badgeConfig.color }]}>
             {order.status}
           </Text>
         </View>
@@ -118,60 +185,13 @@ export default function PastOrderCard({
       )}
 
       {/* Expanded Receipt Breakdown (if toggled) */}
-      {isExpanded && order.items && (() => {
-        const rSubtotal = order.subtotal !== undefined
-          ? order.subtotal
-          : order.items.reduce((s, it) => s + (Number(it.price || 0) * (it.quantity || 1)), 0);
-        const rDiscount = order.discountAmount || 0;
-        const rDiscounted = Math.max(0, rSubtotal - rDiscount);
-        const rService = order.serviceCharge !== undefined ? order.serviceCharge : (rDiscounted * 0.05);
-        const rTax = order.salesTax !== undefined ? order.salesTax : (rDiscounted * 0.15);
-        const rTotal = order.totalAmount !== undefined
-          ? order.totalAmount
-          : (order.totalPrice || order.total || (rDiscounted + rService + rTax));
-
-        return (
-          <View style={[styles.expandedReceipt, { borderTopColor: colors.surfaceBorder }]}>
-            <Text style={[typography.caption, { color: colors.mutedText, textTransform: 'uppercase', marginBottom: 6 }]}>
-              Course Breakdown
-            </Text>
-            {order.items.map((it, i) => (
-              <View key={i} style={styles.expandedRow}>
-                <Text style={[typography.caption, { color: colors.textPrimary, flex: 1 }]}>
-                  {it.quantity || 1}x {it.name}
-                </Text>
-                <Text style={[typography.caption, { color: colors.textSecondary }]}>
-                  {brand.formatPrice(Number(it.price || 0) * (it.quantity || 1))}
-                </Text>
-              </View>
-            ))}
-            <View style={[styles.receiptDivider, { backgroundColor: colors.surfaceBorder }]} />
-            <View style={styles.expandedRow}>
-              <Text style={[typography.caption, { color: colors.textSecondary, flex: 1 }]}>Subtotal</Text>
-              <Text style={[typography.caption, { color: colors.textPrimary }]}>{brand.formatPrice(rSubtotal)}</Text>
-            </View>
-            {rDiscount > 0 && (
-              <View style={styles.expandedRow}>
-                <Text style={[typography.caption, { color: colors.success || '#10B981', flex: 1 }]}>Promo Discount</Text>
-                <Text style={[typography.caption, { color: colors.success || '#10B981' }]}>-{brand.formatPrice(rDiscount)}</Text>
-              </View>
-            )}
-            <View style={styles.expandedRow}>
-              <Text style={[typography.caption, { color: colors.textSecondary, flex: 1 }]}>Service Charge (5%)</Text>
-              <Text style={[typography.caption, { color: colors.textPrimary }]}>{brand.formatPrice(rService)}</Text>
-            </View>
-            <View style={styles.expandedRow}>
-              <Text style={[typography.caption, { color: colors.textSecondary, flex: 1 }]}>Sales Tax (15%)</Text>
-              <Text style={[typography.caption, { color: colors.textPrimary }]}>{brand.formatPrice(rTax)}</Text>
-            </View>
-            <View style={[styles.receiptDivider, { backgroundColor: colors.surfaceBorder }]} />
-            <View style={styles.expandedRow}>
-              <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700', flex: 1 }]}>Total</Text>
-              <Text style={[typography.body, { color: colors.primary, fontWeight: '800' }]}>{brand.formatPrice(rTotal)}</Text>
-            </View>
-          </View>
-        );
-      })()}
+      {isExpanded && order.items && (
+        <ReceiptBreakdown
+          order={order}
+          colors={colors}
+          typography={typography}
+        />
+      )}
 
       {/* Action Footer Buttons */}
       <View style={styles.folioActionRow}>
