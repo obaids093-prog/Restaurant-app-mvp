@@ -13,6 +13,35 @@ const normalizeItems = (items) => {
   }));
 };
 
+// Field-by-field equality check across all displayed fields without JSON serialization
+const areMenuItemsEqual = (listA, listB) => {
+  if (listA === listB) return true;
+  if (!Array.isArray(listA) || !Array.isArray(listB)) return false;
+  if (listA.length !== listB.length) return false;
+
+  for (let i = 0; i < listA.length; i++) {
+    const a = listA[i];
+    const b = listB[i];
+    if (!a || !b) return false;
+    if (
+      (a.id || a._id) !== (b.id || b._id) ||
+      a.name !== b.name ||
+      a.description !== b.description ||
+      Number(a.price) !== Number(b.price) ||
+      a.category !== b.category ||
+      a.image !== b.image ||
+      Boolean(a.isAvailable) !== Boolean(b.isAvailable) ||
+      Boolean(a.isSpecial) !== Boolean(b.isSpecial) ||
+      a.prepTime !== b.prepTime ||
+      Number(a.rating) !== Number(b.rating) ||
+      a.tag !== b.tag
+    ) {
+      return false;
+    }
+  }
+  return true;
+};
+
 export const MenuProvider = ({ children }) => {
   const [menuItems, setMenuItems] = useState([]);
   const [isMenuLoaded, setIsMenuLoaded] = useState(false);
@@ -27,16 +56,7 @@ export const MenuProvider = ({ children }) => {
       const data = await apiClient('/api/menu');
       const normalized = normalizeItems(data);
       setMenuItems((prev) => {
-        if (
-          prev &&
-          prev.length === normalized.length &&
-          prev.every(
-            (p, idx) =>
-              p.id === normalized[idx]?.id &&
-              p.price === normalized[idx]?.price &&
-              p.isAvailable === normalized[idx]?.isAvailable
-          )
-        ) {
+        if (areMenuItemsEqual(prev, normalized)) {
           return prev;
         }
         return normalized;
@@ -57,21 +77,12 @@ export const MenuProvider = ({ children }) => {
     fetchMenu().catch(() => {});
   }, [fetchMenu]);
 
-  // Stable sync callback with state-bailout check
+  // Stable sync callback with comprehensive field equality check
   const syncMenuItems = useCallback((items) => {
     if (!Array.isArray(items)) return;
     const normalized = normalizeItems(items);
     setMenuItems((prev) => {
-      if (
-        prev &&
-        prev.length === normalized.length &&
-        prev.every(
-          (p, idx) =>
-            p.id === normalized[idx]?.id &&
-            p.price === normalized[idx]?.price &&
-            p.isAvailable === normalized[idx]?.isAvailable
-        )
-      ) {
+      if (areMenuItemsEqual(prev, normalized)) {
         return prev;
       }
       return normalized;
