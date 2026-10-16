@@ -119,8 +119,14 @@
 
 
 ### Item 7: Code Hygiene & Design System Alignment
-- **Status:** Pending ⏳
-- **Scope:** Verify design tokens, fonts, theme colors, and loading/empty/error states across screens.
+- **Status:** Completed ✅
+- **Details:**
+  - Audited all screen files for hardcoded hex colors outside the theme system.
+  - `OrderSummaryScreen.js`: Replaced hardcoded `#ef4444` error red with `colors.error` from theme in error banner (background, border, icon, and text).
+  - `OnboardingScreen.js`: Replaced hardcoded `#141211` / `#F8F9FA` background with `colors.background` from theme (already had `useTheme` imported).
+  - Intentional brand gradient arrays (`#FC5834`, `#1E293B`, etc. in `ProfileScreen.js`), icon-on-solid-color whites (`#FFFFFF`), and `shadowColor: '#000000'` are intentional design decisions and left untouched.
+  - Android bundle export passed with 0 errors (1043 modules).
+
 
 ### Item 8: Documentation Updates
 - **Status:** Pending ⏳

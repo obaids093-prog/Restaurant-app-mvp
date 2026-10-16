@@ -590,8 +590,8 @@ export default function OrderSummaryScreen({ route, navigation }) {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                backgroundColor: '#ef444422',
-                borderColor: '#ef4444',
+                backgroundColor: colors.error + '22',
+                borderColor: colors.error,
                 borderWidth: 1,
                 borderRadius: 12,
                 padding: 12,
@@ -599,8 +599,8 @@ export default function OrderSummaryScreen({ route, navigation }) {
                 marginBottom: 8,
               }}
             >
-              <Ionicons name="alert-circle" size={20} color="#ef4444" style={{ marginRight: 8 }} />
-              <Text style={{ color: '#ef4444', fontSize: 13, flex: 1, fontWeight: '600' }}>
+              <Ionicons name="alert-circle" size={20} color={colors.error} style={{ marginRight: 8 }} />
+              <Text style={{ color: colors.error, fontSize: 13, flex: 1, fontWeight: '600' }}>
                 {errorMessage}
               </Text>
             </View>

@@ -139,7 +139,7 @@ export default function OnboardingScreen({ navigation }) {
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#141211' : '#F8F9FA' }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       {/* Floating Top Bar (Brand + Skip) */}
