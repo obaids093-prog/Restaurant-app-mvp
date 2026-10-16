@@ -93,9 +93,30 @@
   - Cleared monolithic Cognitive Complexity issues completely.
   - Android bundle export passed with 0 errors (1029 modules).
 
-### Item 6: CartScreen & OrderTrackingScreen Review
-- **Status:** Pending ⏳
-- **Scope:** Check line counts and split into subcomponents if files exceed ~600 lines.
+### Item 6: CartScreen & OrderTrackingScreen Modularization
+- **Status:** Completed ✅
+- **Details:**
+  - Modularized `CartScreen.js` (1,273 lines) into `src/screens/Cart/`:
+    - `cartStyles.js`: Shared styling and named financial constants (`SERVICE_CHARGE_RATE`, `SALES_TAX_RATE`).
+    - `EmptyClocheIllustration.js`: Pure View cloche illustration with ambient glow and sparks.
+    - `CartEmptyState.js`: Empty tray graphic, welcome voucher banner, and Chef's recommendations row.
+    - `CartItemCard.js`: Cart item card with thumbnail/fallback, price, delete confirmation, special instruction note, and quantity stepper.
+    - `VoucherSection.js`: Patron privilege vouchers input, hints, and active promo badge.
+    - `BillSummary.js`: Folio breakdown with subtotal, privilege savings, 5% service, 15% tax, and grand total.
+    - `FloatingCartFooter.js`: Pinned bottom bar with item count, total price, and "Review Order" linear gradient button.
+    - `CartScreen.js`: Main state and composition container.
+    - `index.js`: Re-export for `CartScreen` and financial constants.
+    - Replaced root `src/screens/CartScreen.js` with direct re-export bridge preserving external navigation imports.
+  - Modularized `OrderTrackingScreen.js` (1,145 lines) into `src/screens/OrderTracking/`:
+    - `trackingStyles.js`: Shared styling and status constants (`ACTIVE_STATUSES`, `CANCEL_WINDOW_MINUTES`).
+    - `ActiveOrderHero.js`: Active order card with elapsed live timer, status pill, `OrderStepper`, items preview, and cancel order button.
+    - `PastOrderCard.js`: Historical folio card with dish preview, expandable digital receipt, reorder flavors, and pending order cancel actions.
+    - `TrackingEmptyState.js`: Empty state with cloche beacon and artisan menu CTA.
+    - `OrderTrackingScreen.js`: Main state container with 10s live kitchen polling, filter tabs, and order history.
+    - `index.js`: Re-export for `OrderTrackingScreen` and constants.
+    - Replaced root `src/screens/OrderTrackingScreen.js` with direct re-export bridge preserving external navigation imports.
+  - Android bundle export passed with 0 errors (1042 modules).
+
 
 ### Item 7: Code Hygiene & Design System Alignment
 - **Status:** Pending ⏳
