@@ -17,12 +17,17 @@ const normalizeReservation = (r) => ({
   ...r,
   id: r._id || r.id,
   _id: r._id || r.id,
+  customerName: r.customerName || r.user?.name || 'Valued Guest',
+  phone: r.phone || r.user?.phone || '03XX-XXXXXXX',
   partySize: r.guests !== undefined ? r.guests : r.partySize || 2,
   timeSlot: r.time || r.timeSlot || '19:00',
   tableName: r.table
     ? `Table ${r.table.tableNumber} (${r.table.location || r.table.zone || 'Dining Area'})`
     : r.tableName || 'Reserved Table',
   tableId: r.table?._id || r.table?.id || r.table || r.tableId,
+  branchId: r.branchId || 'lhr_gulberg',
+  branchName: r.branchName || 'AURA • Gulberg III, Lahore',
+  branchCity: r.branchCity || 'Lahore',
 });
 
 /**
@@ -80,12 +85,13 @@ export function useReservation(currentUser) {
     }
   }, []);
 
-  // 2. Fetch customer's live bookings from backend GET /api/reservations/my
+  // 2. Fetch bookings from backend: Manager gets all reservations, customer gets their own
   const loadReservations = useCallback(async () => {
     try {
       setIsLoadingReservations(true);
       setError(null);
-      const data = await apiClient('/api/reservations/my');
+      const endpoint = currentUser?.role === 'manager' ? '/api/reservations' : '/api/reservations/my';
+      const data = await apiClient(endpoint);
       if (Array.isArray(data)) {
         const normalized = data
           .map(normalizeReservation)
@@ -233,7 +239,7 @@ export function useReservation(currentUser) {
   /**
    * Create Reservation action (Question 7 Requirement: POST /api/reservations)
    */
-  const createReservation = useCallback(async () => {
+  const createReservation = useCallback(async (branchInfo = {}) => {
     if (!validateReservation()) {
       throw new Error('Please correct the highlighted validation errors.');
     }
@@ -246,6 +252,9 @@ export function useReservation(currentUser) {
       specialRequests: specialRequests.trim(),
       customerName: contactName.trim(),
       phone: normalizePkPhone(contactPhone).display || contactPhone.trim(),
+      branchId: branchInfo.branchId || 'lhr_gulberg',
+      branchName: branchInfo.branchName || 'AURA • Gulberg III, Lahore',
+      branchCity: branchInfo.branchCity || 'Lahore',
     };
 
     // Calls backend POST /api/reservations (throws error on 409 Conflict if double booked)

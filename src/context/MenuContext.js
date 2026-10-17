@@ -108,23 +108,28 @@ export const MenuProvider = ({ children }) => {
     }
   }, [menuItems, fetchMenu]);
 
-  // 2. Edit Item Price (Manager PUT /api/menu/:id)
-  const updatePrice = useCallback(async (itemId, newPrice) => {
+  // 2. Update Menu Item Details (Manager PUT /api/menu/:id)
+  const updateMenuItem = useCallback(async (itemId, updates) => {
     const item = menuItems.find((m) => m.id === itemId || m._id === itemId);
     if (!item) return;
 
     try {
       await apiClient(`/api/menu/${item._id || item.id}`, {
         method: 'PUT',
-        body: { price: Number(newPrice) },
+        body: updates,
       });
-      // Reload updated menu list from server (Question 6 requirement)
+      // Reload updated menu list from server
       await fetchMenu();
     } catch (err) {
-      console.error('Failed to update price:', err);
+      console.error('Failed to update menu item:', err);
       throw err;
     }
   }, [menuItems, fetchMenu]);
+
+  // Edit Item Price shortcut (Manager PUT /api/menu/:id)
+  const updatePrice = useCallback(async (itemId, newPrice) => {
+    return updateMenuItem(itemId, { price: Number(newPrice) });
+  }, [updateMenuItem]);
 
   // 3. Add New Item (Manager POST /api/menu)
   const addMenuItem = useCallback(async (itemData) => {
@@ -183,6 +188,7 @@ export const MenuProvider = ({ children }) => {
       fetchMenu,
       toggleAvailability,
       updatePrice,
+      updateMenuItem,
       addMenuItem,
       deleteMenuItem,
     }),
@@ -195,6 +201,7 @@ export const MenuProvider = ({ children }) => {
       fetchMenu,
       toggleAvailability,
       updatePrice,
+      updateMenuItem,
       addMenuItem,
       deleteMenuItem,
     ]

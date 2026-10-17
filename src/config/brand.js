@@ -27,6 +27,30 @@ export const brand = {
   supportEmail: 'concierge@aurahospitality.pk',
   openingHours: '12:00 PM – 11:00 PM',
 
+  // Branch Outlets (Config-Driven: Set isActive to false or remove to make single-city)
+  outlets: [
+    {
+      id: 'lhr_gulberg',
+      city: 'Lahore',
+      area: 'Gulberg III',
+      fullName: 'AURA • Gulberg III, Lahore',
+      address: '14-C Gulberg III, MM Alam Road, Lahore',
+      phone: '0300-8472910',
+      openingHours: '12:00 PM – 11:00 PM',
+      isActive: true,
+    },
+    {
+      id: 'isb_f7',
+      city: 'Islamabad',
+      area: 'F-7 Markaz',
+      fullName: 'AURA • Beverly Centre, Islamabad',
+      address: 'Beverly Centre, Blue Area / F-7, Islamabad',
+      phone: '0300-8472911',
+      openingHours: '12:00 PM – 12:00 AM',
+      isActive: true,
+    },
+  ],
+
   // Onboarding Slides (3 Simple, Clear Restaurant Steps)
   onboardingSlides: [
     {

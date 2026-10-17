@@ -98,13 +98,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingVertical: 4,
+    paddingRight: 24,
   },
   tabItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 44,
-    paddingHorizontal: 16,
+    minHeight: 40,
+    paddingHorizontal: 14,
     borderWidth: 1,
   },
   tabText: {

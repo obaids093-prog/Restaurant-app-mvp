@@ -11,3 +11,5 @@ export { default as Switch } from './Switch';
 export { default as TabBar } from './TabBar';
 export { default as DealCard } from './DealCard';
 export { default as OnboardingSlide } from './OnboardingSlide';
+export { default as BranchChip } from './BranchChip';
+export { default as BranchPickerModal } from './BranchPickerModal';

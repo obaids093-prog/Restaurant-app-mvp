@@ -11,7 +11,7 @@ import { useTheme } from '../../context/ThemeContext';
 
 export default function OtpInput({
   code = '',
-  length = 4,
+  length = 6,
   onCodeChange,
   style,
 }) {
@@ -46,12 +46,12 @@ export default function OtpInput({
         caretHidden
       />
 
-      {/* 4 visible code boxes */}
+      {/* 6 visible code boxes */}
       <TouchableOpacity
         activeOpacity={1}
         onPress={handleBoxPress}
         style={styles.boxesRow}
-        accessibilityLabel="4-digit verification code"
+        accessibilityLabel={`${length}-digit verification code`}
         accessibilityRole="none"
       >
         {Array.from({ length }).map((_, index) => {
@@ -64,6 +64,7 @@ export default function OtpInput({
               key={index}
               style={[
                 styles.codeBox,
+                length > 4 && styles.codeBoxCompact,
                 {
                   borderRadius: radius.input,
                   backgroundColor: colors.inputBackground,
@@ -82,6 +83,7 @@ export default function OtpInput({
                 style={[
                   typography.headingLg,
                   styles.digitText,
+                  length > 4 && styles.digitTextCompact,
                   {
                     color: colors.textPrimary,
                   },
@@ -122,7 +124,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 8,
   },
   codeBox: {
     width: 58,
@@ -132,14 +134,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
+  codeBoxCompact: {
+    width: 46,
+    height: 56,
+  },
   digitText: {
     fontSize: 24,
     fontWeight: '700',
   },
+  digitTextCompact: {
+    fontSize: 20,
+  },
   cursorLine: {
     position: 'absolute',
-    bottom: 12,
-    width: 18,
+    bottom: 10,
+    width: 16,
     height: 2.5,
     borderRadius: 2,
   },

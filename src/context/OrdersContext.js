@@ -15,6 +15,9 @@ const normalizeOrder = (o) => ({
   customerId: o.user?._id || o.user || o.customerId,
   customerName: o.customerName || o.user?.name || 'Valued Patron',
   type: o.orderType || 'Dine-in',
+  branchId: o.branchId || 'lhr_gulberg',
+  branchName: o.branchName || 'AURA • Gulberg III, Lahore',
+  branchCity: o.branchCity || (String(o.branchName || '').toLowerCase().includes('islamabad') ? 'Islamabad' : 'Lahore'),
   timestamp: o.createdAt
     ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : 'Just now',
@@ -80,6 +83,9 @@ export const OrdersProvider = ({ children }) => {
         notes: orderData.notes || '',
         promoCode: orderData.promoCode || null,
         discountPercent: orderData.discountPercent || 0,
+        branchId: orderData.branchId || 'lhr_gulberg',
+        branchName: orderData.branchName || 'AURA • Gulberg III, Lahore',
+        branchCity: orderData.branchCity || 'Lahore',
       };
 
       const created = await apiClient('/api/orders', {

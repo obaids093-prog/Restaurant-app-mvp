@@ -164,7 +164,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Request 4-digit SMS OTP to Pakistani mobile number
+   * Request 6-digit SMS OTP to Pakistani mobile number
    */
   const sendPhoneOtp = async (phone) => {
     try {
