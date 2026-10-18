@@ -1,5 +1,31 @@
 # Project Log
 
+## [2026-10-18] - Phase 1 Item 4: Database Documentation & Seed Hygiene
+
+- **Date**: 2026-10-18
+- **Title**: Phase 1 Item 4: Database Documentation & Seed Hygiene
+- **WHAT changed**:
+  - Created `docs/DATABASE.md` documenting all 5 Mongoose collections (`users`, `menuitems`, `tables`, `reservations`, `orders`) with field types, validations, defaults, enums, relations, and indexes.
+  - Documented database-level business constraints: email uniqueness & case-normalization, unique table numbers, double-booking prevention via compound partial unique index (`{ table: 1, date: 1, time: 1 }` on active statuses), order item validation, and numeric constraints.
+  - Made `server/seed.js` safe and idempotent by default: searches existing records by unique identifiers (email, name, tableNumber, reservation timeslot) and skips duplicates without wiping.
+  - Added mandatory `--reset` / `--wipe` flag check in `server/seed.js` before executing any destructive `deleteMany({})`, backed by prominent console warning banners.
+  - Updated `docs/SETUP.md`, `docs/ARCHITECTURE.md`, and `docs/REPO_MAP.md` to reference `docs/DATABASE.md` and document safe seed options.
+- **WHY (the problem or goal)**:
+  - Provide a single verified reference for database schemas and prevent accidental data loss during local onboarding or testing by replacing unconditional collection wipe with idempotent seeding.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Audited live schemas in `server/models/` line-by-line without altering any schema definitions.
+  - Structured `server/seed.js` to run in Safe Idempotent Mode unless `--reset` is passed explicitly.
+- **HOW TO TEST**:
+  - Review `docs/DATABASE.md` against `server/models/`.
+  - In `server/`, test safe seeding: `npm run seed` (or `node seed.js`) preserves existing data.
+  - Test reset seeding: `npm run seed -- --reset` (or `node seed.js --reset`) warns and resets demo data.
+- **RISKS or follow-ups**:
+  - Zero schema modifications made.
+- **Commit hashes**:
+  - `70edfa1` (docs(db): generate DATABASE.md and add idempotent safe seed hygiene (Item 4))
+
+---
+
 ## [2026-10-18] - Phase 1 Item 3: Layer Audit
 
 - **Date**: 2026-10-18

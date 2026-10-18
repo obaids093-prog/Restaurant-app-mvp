@@ -81,13 +81,20 @@ CORS_ORIGINS=http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081
 ### Step 3.3: Seed the Database
 Populate your MongoDB database with essential accounts, gourmet menu items, and dining tables:
 ```bash
+# Safe idempotent mode (default: preserves existing records, never wipes):
 npm run seed
+
+# Destructive fresh reset (wipes existing collections and re-seeds baseline):
+npm run seed -- --reset
 ```
-This automatically seeds:
-- **1 Manager Account**: `manager@aurabistro.pk` (Password: `Manager123!`)
-- **1 Customer Account**: `customer@aurabistro.pk` (Password: `Customer123!`)
+This seeds:
+- **1 Executive Manager Account**: `farhan.chef@aurabistro.pk` (Password: `Admin1234`)
+- **2 Customer Accounts**: `zainab.malik@aurabistro.pk` (`Password123`), `hamza.abbasi@aurabistro.pk` (`Password1`)
 - **16 Curated Dishes**: Starters, Mains, Desserts, and Artisan Beverages.
 - **8 Dining Tables**: Covering Glasshouse, Courtyard, and Chef's Counter areas.
+- **1 Sample Reservation & 1 Sample Order**.
+
+*See [docs/DATABASE.md](file:///docs/DATABASE.md) for full collection schemas, validation rules, indexes, and idempotent seed behaviors.*
 
 ### Step 3.4: Launch Backend Server
 ```bash

@@ -17,7 +17,10 @@ mad assignment/
 ├── LICENSE
 ├── designs/stitch/               # Stitch design references (do not modify)
 ├── docs/                         # Technical documentation
+│   ├── AI_RULES.md               # Standing instructions for AI and human contributors
 │   ├── ARCHITECTURE.md           # System architecture spec (updated this branch)
+│   ├── DATABASE.md               # Database collections, schemas, indexes & seed hygiene
+│   ├── PROJECT_LOG.md            # Living project history and change log
 │   ├── REPO_MAP.md               # This file
 │   ├── SETUP.md                  # Developer setup guide
 │   ├── WHITE_LABEL.md            # White-label customisation guide

@@ -97,7 +97,7 @@ Root Stack Navigator
 
 ## 4. Backend REST API Architecture (`server/`)
 
-The backend is built with Express.js using a modular controller-route-model architecture:
+The backend is built with Express.js using a modular controller-route-model architecture. For detailed Mongoose collections, field validations, indexes, and seed hygiene, see [docs/DATABASE.md](file:///docs/DATABASE.md).
 
 ### Endpoints Directory
 

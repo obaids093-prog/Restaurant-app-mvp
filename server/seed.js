@@ -1,13 +1,16 @@
 // seed.js
 // ═══════════════════════════════════════════════════════════
 // WHAT THIS DOES:
-//   Seeds MongoDB Atlas with initial A1 mock data.
-//   1. Empties existing collections (User, MenuItem, Table, Reservation, Order)
-//   2. Hashes user passwords with bcryptjs (Q5 requirement)
-//   3. Inserts 3 users (2 customers, 1 manager)
-//   4. Inserts 16 artisan menu items (Starters, Mains, Desserts, Drinks)
-//   5. Inserts 8 dining tables
-//   6. Adds sample orders and reservations
+//   Seeds MongoDB Atlas with initial A1/A2 mock data.
+//   Modes:
+//     1. Default (Safe Idempotent):
+//        node seed.js  (or: npm run seed)
+//        Checks existing records and only inserts missing records.
+//        NEVER deletes or wipes existing data.
+//     2. Hard Reset (Destructive Wipe):
+//        node seed.js --reset  (or: npm run seed -- --reset)
+//        Explicit flag required. Warns loudly and wipes all collections
+//        before re-inserting fresh baseline demo data.
 // ═══════════════════════════════════════════════════════════
 
 const dotenv = require('dotenv');
@@ -27,24 +30,37 @@ const Order = require('./models/Order');
 const seedData = async () => {
   try {
     await connectDB();
-    console.log('🌱 Starting database seeding...');
+    console.log('🌱 Connecting to database for seeding...');
 
-    // 1. Clear all existing collections
-    await User.deleteMany({});
-    await MenuItem.deleteMany({});
-    await Table.deleteMany({});
-    await Reservation.deleteMany({});
-    await Order.deleteMany({});
-    console.log('🧹 Emptied existing collections.');
+    const isReset = process.argv.includes('--reset') || process.argv.includes('--wipe');
 
-    // 2. Hash passwords
+    if (isReset) {
+      console.warn('\n⚠️  ══════════════════════════════════════════════════════════');
+      console.warn('⚠️  RESET FLAG DETECTED (--reset)');
+      console.warn('⚠️  Wiping all existing collections (User, MenuItem, Table, Reservation, Order)...');
+      console.warn('⚠️  ══════════════════════════════════════════════════════════\n');
+
+      await User.deleteMany({});
+      await MenuItem.deleteMany({});
+      await Table.deleteMany({});
+      await Reservation.deleteMany({});
+      await Order.deleteMany({});
+      console.log('🧹 Emptied existing collections.');
+    } else {
+      console.log('\n🔒 Safe Idempotent Mode Active (no --reset flag passed).');
+      console.log('ℹ️  Existing collections will NOT be wiped.');
+      console.log('ℹ️  To wipe and recreate fresh baseline data, run:');
+      console.log('    npm run seed -- --reset   (or: node seed.js --reset)\n');
+    }
+
+    // 1. Prepare hashed passwords
     const salt = await bcrypt.genSalt(10);
     const customerPasswordHash = await bcrypt.hash('Password123', salt);
     const managerPasswordHash = await bcrypt.hash('Admin1234', salt);
     const secondUserPasswordHash = await bcrypt.hash('Password1', salt);
 
-    // 3. Insert Users
-    const users = await User.insertMany([
+    // 2. Baseline Users
+    const initialUsers = [
       {
         name: 'Zainab Malik',
         email: 'zainab.malik@aurabistro.pk',
@@ -75,11 +91,33 @@ const seedData = async () => {
         membership: 'Gold Dining Patron',
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop',
       },
-    ]);
-    console.log(`👤 Inserted ${users.length} users (passwords hashed with bcrypt).`);
+    ];
 
-    // 4. Insert Menu Items (16 total from A1)
-    const menuItems = await MenuItem.insertMany([
+    const users = [];
+    let usersInserted = 0;
+    let usersSkipped = 0;
+
+    for (const u of initialUsers) {
+      if (isReset) {
+        const created = await User.create(u);
+        users.push(created);
+        usersInserted++;
+      } else {
+        const existing = await User.findOne({ email: u.email });
+        if (!existing) {
+          const created = await User.create(u);
+          users.push(created);
+          usersInserted++;
+        } else {
+          users.push(existing);
+          usersSkipped++;
+        }
+      }
+    }
+    console.log(`👤 Users: ${usersInserted} inserted, ${usersSkipped} already existed.`);
+
+    // 3. Baseline Menu Items (16 artisan items)
+    const initialMenuItems = [
       // Starters
       {
         name: 'Saffron Infused Lobster Bisque',
@@ -288,11 +326,33 @@ const seedData = async () => {
         rating: 4.6,
         tag: 'Organic Zero-Proof',
       },
-    ]);
-    console.log(`🍽️  Inserted ${menuItems.length} menu items.`);
+    ];
 
-    // 5. Insert Tables (8 tables)
-    const tables = await Table.insertMany([
+    const menuItems = [];
+    let menuItemsInserted = 0;
+    let menuItemsSkipped = 0;
+
+    for (const item of initialMenuItems) {
+      if (isReset) {
+        const created = await MenuItem.create(item);
+        menuItems.push(created);
+        menuItemsInserted++;
+      } else {
+        const existing = await MenuItem.findOne({ name: item.name });
+        if (!existing) {
+          const created = await MenuItem.create(item);
+          menuItems.push(created);
+          menuItemsInserted++;
+        } else {
+          menuItems.push(existing);
+          menuItemsSkipped++;
+        }
+      }
+    }
+    console.log(`🍽️  Menu Items: ${menuItemsInserted} inserted, ${menuItemsSkipped} already existed.`);
+
+    // 4. Baseline Tables (8 tables)
+    const initialTables = [
       { tableNumber: 'A-01', name: 'Atrium Glasshouse Window', seats: 2, location: 'Glasshouse Atrium', isWindow: true },
       { tableNumber: 'B-02', name: 'Botanica Garden Terrace', seats: 2, location: 'Outdoor Botanica', isWindow: false },
       { tableNumber: 'C-03', name: "Chef's Counter Booth", seats: 4, location: 'Main Open Kitchen', isWindow: false },
@@ -301,48 +361,97 @@ const seedData = async () => {
       { tableNumber: 'P-06', name: 'Penthouse Skyline Lounge', seats: 6, location: 'Rooftop Terrace', isWindow: true },
       { tableNumber: 'V-07', name: 'Sommelier Reserve Room', seats: 8, location: 'Wine Cellar Salon', isWindow: false },
       { tableNumber: 'E-08', name: 'The Grand Presidential Suite', seats: 12, location: 'Private Penthouse Suite', isWindow: true },
-    ]);
-    console.log(`🪑 Inserted ${tables.length} dining tables.`);
+    ];
 
-    // 6. Insert Sample Reservation
-    const sampleReservation = await Reservation.create({
-      user: users[0]._id,
-      customerName: users[0].name,
-      phone: users[0].phone,
-      table: tables[0]._id,
+    const tables = [];
+    let tablesInserted = 0;
+    let tablesSkipped = 0;
+
+    for (const t of initialTables) {
+      if (isReset) {
+        const created = await Table.create(t);
+        tables.push(created);
+        tablesInserted++;
+      } else {
+        const existing = await Table.findOne({ tableNumber: t.tableNumber });
+        if (!existing) {
+          const created = await Table.create(t);
+          tables.push(created);
+          tablesInserted++;
+        } else {
+          tables.push(existing);
+          tablesSkipped++;
+        }
+      }
+    }
+    console.log(`🪑 Tables: ${tablesInserted} inserted, ${tablesSkipped} already existed.`);
+
+    // 5. Baseline Sample Reservation (idempotent lookup by table, date, time)
+    const targetTable = tables[0];
+    const targetUser = users[0];
+
+    const existingReservation = await Reservation.findOne({
+      table: targetTable._id,
       date: '2026-10-15',
       time: '19:00',
-      guests: 2,
-      status: 'Confirmed',
-      specialRequests: 'Anniversary celebration by the window',
     });
-    console.log(`📅 Created sample reservation for ${sampleReservation.customerName}.`);
 
-    // 7. Insert Sample Order
-    const sampleOrder = await Order.create({
-      user: users[0]._id,
-      customerName: users[0].name,
-      items: [
-        {
-          menuItem: menuItems[0]._id,
-          name: menuItems[0].name,
-          price: menuItems[0].price,
-          quantity: 2,
-        },
-        {
-          menuItem: menuItems[4]._id,
-          name: menuItems[4].name,
-          price: menuItems[4].price,
-          quantity: 1,
-        },
-      ],
-      totalAmount: menuItems[0].price * 2 + menuItems[4].price * 1,
-      orderType: 'Dine-in',
+    if (!existingReservation) {
+      const sampleReservation = await Reservation.create({
+        user: targetUser._id,
+        customerName: targetUser.name,
+        phone: targetUser.phone,
+        table: targetTable._id,
+        date: '2026-10-15',
+        time: '19:00',
+        guests: 2,
+        status: 'Confirmed',
+        specialRequests: 'Anniversary celebration by the window',
+      });
+      console.log(`📅 Created sample reservation for ${sampleReservation.customerName}.`);
+    } else {
+      console.log(`📅 Sample reservation already exists (skipped).`);
+    }
+
+    // 6. Baseline Sample Order (idempotent lookup by user and tableNumber)
+    const existingOrder = await Order.findOne({
+      user: targetUser._id,
       tableNumber: 'A-01',
-      status: 'Preparing',
-      notes: 'No shellfish allergy notes, extra bread requested',
+      orderType: 'Dine-in',
     });
-    console.log(`🧾 Created sample order #${sampleOrder._id} (Total: Rs. ${sampleOrder.totalAmount}).`);
+
+    if (!existingOrder) {
+      const item1 = menuItems[0];
+      const item2 = menuItems[4] || menuItems[1];
+      const subtotal = item1.price * 2 + item2.price * 1;
+      const sampleOrder = await Order.create({
+        user: targetUser._id,
+        customerName: targetUser.name,
+        items: [
+          {
+            menuItem: item1._id,
+            name: item1.name,
+            price: item1.price,
+            quantity: 2,
+          },
+          {
+            menuItem: item2._id,
+            name: item2.name,
+            price: item2.price,
+            quantity: 1,
+          },
+        ],
+        subtotal: subtotal,
+        totalAmount: subtotal,
+        orderType: 'Dine-in',
+        tableNumber: 'A-01',
+        status: 'Preparing',
+        notes: 'No shellfish allergy notes, extra bread requested',
+      });
+      console.log(`🧾 Created sample order #${sampleOrder._id} (Total: Rs. ${sampleOrder.totalAmount}).`);
+    } else {
+      console.log(`🧾 Sample order already exists (skipped).`);
+    }
 
     console.log('\n✨ Database seeding completed successfully! ✨');
     process.exit(0);
