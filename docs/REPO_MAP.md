@@ -15,8 +15,6 @@ mad assignment/
 ├── seed.js                       # Dev-only DB seed script
 ├── README.md
 ├── LICENSE
-├── CHANGE.MD                     # Step-by-step cleanup-structure progress log
-├── DESIGN_PROGRESS.md            # Design-refresh branch progress log
 ├── designs/stitch/               # Stitch design references (do not modify)
 ├── docs/                         # Technical documentation
 │   ├── ARCHITECTURE.md           # System architecture spec (updated this branch)
@@ -24,6 +22,9 @@ mad assignment/
 │   ├── SETUP.md                  # Developer setup guide
 │   ├── WHITE_LABEL.md            # White-label customisation guide
 │   ├── ASSETS_LICENSES.md       # Third-party asset attributions
+│   ├── archive/                  # Historical branch logs (CHANGE.MD, DESIGN_PROGRESS.md)
+│   │   ├── CHANGE.MD             # Step-by-step cleanup-structure progress log
+│   │   └── DESIGN_PROGRESS.md    # Design-refresh branch progress log
 │   └── academic/                 # Coursework deliverables & SRS specs
 │       ├── A1/                   # Assignment 1 deliverables & SRS v1
 │       ├── A2/                   # Assignment 2 deliverables & Postman collection

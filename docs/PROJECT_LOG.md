@@ -1,5 +1,28 @@
 # Project Log
 
+## [2026-10-18] - Phase 1 Item 2 (Proposal 3): Historical Session Logs Archival
+
+- **Date**: 2026-10-18
+- **Title**: Phase 1 Item 2 (Proposal 3): Historical Session Logs Archival
+- **WHAT changed**:
+  - Moved legacy session logs `CHANGE.MD` and `DESIGN_PROGRESS.md` to `docs/archive/` via `git mv`.
+  - Verified and ensured all developer/AI instructions (`AGENTS.md`, `docs/AI_RULES.md`, and docs) direct contributors to `docs/PROJECT_LOG.md`.
+  - Retained `assets/splash-icon.png` per instruction.
+  - Updated `docs/REPO_MAP.md` tree hierarchy.
+- **WHY (the problem or goal)**:
+  - Consolidate active progress tracking exclusively into `docs/PROJECT_LOG.md` while safely preserving previous branch milestones in `docs/archive/`.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Used `git mv` to keep historical log files in `docs/archive/`.
+- **HOW TO TEST**:
+  - Verify `docs/archive/CHANGE.MD` and `docs/archive/DESIGN_PROGRESS.md` exist.
+  - Verify `AGENTS.md` and `docs/AI_RULES.md` reference `docs/PROJECT_LOG.md`.
+- **RISKS or follow-ups**:
+  - Run full link audit over `README.md` and `docs/` before proceeding to Item 3.
+- **Commit hashes**:
+  - `210afbb` (chore(docs): archive historical branch logs to docs/archive)
+
+---
+
 ## [2026-10-18] - Phase 1 Item 2 (Proposal 2): Duplicate Academic File Elimination
 
 - **Date**: 2026-10-18
