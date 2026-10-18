@@ -140,3 +140,87 @@ The backend is built with Express.js using a modular controller-route-model arch
 6. **Cryptographic 6-Digit OTP**: Phone authentication generates a high-entropy 6-digit integer (`crypto.randomInt(100000, 1000000)`), stored in a volatile in-memory Map with a 5-minute TTL, 30-second resend rate limit, and strict invalidation after 3 failed attempts.
 7. **Simulated SMS Security Isolation**: OTP codes print strictly to the development server console and are never sent in API JSON payloads, preventing inspection by malicious network sniffers.
 8. **Multi-Branch Data Integrity**: Every order and reservation embeds immutable branch identifiers (`branchId`, `branchName`, `branchCity`), ensuring accurate kitchen fulfillment and preventing cross-city order misrouting.
+
+---
+
+## 6. Layers and Known Violations
+
+### Layer Rules
+
+**App side**:
+- Screens and components **must only** consume React Contexts, hooks, and utils — never call `fetch` or `apiClient` directly.
+- Contexts and hooks own all data fetching and network side-effects.
+- All HTTP communication must flow through `src/api/client.js`.
+
+**Server side**:
+- **Routes** (`server/routes/`): Pure URL → middleware/controller mappings. No business logic.
+- **Controllers** (`server/controllers/`): Thin — parse request, call logic, send response. Business rules live here today and should migrate to `server/services/` over time.
+- **Models** (`server/models/`): Own schemas, validation, defaults, indexes.
+- **Middleware** (`server/middleware/`): Auth, RBAC, security headers, upload handling, rate limiting.
+- **Config** (`server/config/`): DB connection, environment constants.
+
+### Known Violations (ordered by risk)
+
+#### HIGH — Screens calling `apiClient` directly (bypasses context layer)
+
+| # | File | Lines | What it does | Fix plan |
+|---|------|-------|--------------|----------|
+| 1 | `src/screens/Manager/ManagerDashboardScreen.js` | L20, L175, L298, L323, L337 | Directly calls `apiClient` for reservation actions, staff registration, staff status toggle, and staff demotion | Move staff CRUD and reservation-action logic into a `useStaff` hook and extend `useReservation` hook; screen only calls hook methods |
+| 2 | `src/screens/OrderTracking/OrderTrackingScreen.js` | L13, L174 | Fallback `apiClient` call for order cancellation when `cancelOrder` context method is missing | Remove fallback — always use `cancelOrder` from `OrdersContext`; ensure context provides the method |
+
+#### MEDIUM — Util bypassing `apiClient` for HTTP
+
+| # | File | Lines | What it does | Fix plan |
+|---|------|-------|--------------|----------|
+| 3 | `src/utils/imageUpload.js` | L20, L76, L98 | Uses raw `fetch` for multipart image upload and imports `BASE_URL`/`TOKEN_KEY` from `api/client` | Add a `uploadFormData` method to `apiClient` supporting multipart/form-data, then call it from `imageUpload.js` |
+
+#### MEDIUM — Screen importing API internals
+
+| # | File | Lines | What it does | Fix plan |
+|---|------|-------|--------------|----------|
+| 4 | `src/screens/SplashScreen.js` | L33 | Imports `TOKEN_KEY` constant from `api/client` for direct storage key lookup | Move `TOKEN_KEY` to a shared constants file (e.g. `src/config/keys.js`) or use `AuthContext` to check auth state |
+
+#### LOW — Hardcoded hex colors in screens (should use theme tokens)
+
+| # | File | Approximate count | Fix plan |
+|---|------|--------------------|----------|
+| 5 | `src/screens/SplashScreen.js` | ~16 hardcoded hex values | Extract splash-specific palette into theme tokens or a `splashColors` constant object |
+| 6 | `src/screens/ProfileScreen.js` | ~20 hardcoded hex values | Replace with `colors.*` from `useTheme()` |
+| 7 | `src/screens/Reservation/MyBookingsList.js` | ~8 hardcoded hex values | Replace with semantic status colors from theme |
+| 8 | `src/screens/Reservation/reservationStyles.js` | ~4 hardcoded hex values | Replace with theme tokens |
+| 9 | `src/screens/Reservation/ZonePicker.js` | 1 (`#FFFFFF`) | Replace with `colors.onPrimary` or equivalent |
+| 10 | `src/screens/Reservation/ConfirmSheet.js` | 1 (`#FFFFFF`) | Replace with theme token |
+| 11 | `src/screens/Reservation/BookingForm.js` | 1 (`#FFFFFF`) | Replace with theme token |
+| 12 | `src/screens/Reservation/SuccessSheet.js` | 1 hardcoded `'AURA'` fallback | Replace with `brand.appName` from `src/config/brand.js` |
+
+#### INFO — File size violations (~400 line threshold)
+
+| # | File | Lines | Fix plan |
+|---|------|-------|----------|
+| 13 | `src/screens/SplashScreen.js` | 1023 | Decompose into `src/screens/Splash/` folder with sub-components (animations, cloche, text reveal) |
+| 14 | `src/screens/ProfileScreen.js` | 1061 | Decompose into `src/screens/Profile/` folder |
+| 15 | `src/screens/Menu/MenuScreen.js` | 895 | Extract more sub-components from existing modular folder |
+| 16 | `src/screens/Menu/menuStyles.js` | 861 | Split into per-component style files |
+| 17 | `src/screens/OrderSummaryScreen.js` | 812 | Decompose into `src/screens/OrderSummary/` folder |
+| 18 | `src/screens/Manager/ManagerDashboardScreen.js` | 660 | Further decompose tab logic into sub-components |
+| 19 | `src/screens/OrderPlacedScreen.js` | 579 | Decompose into `src/screens/OrderPlaced/` folder |
+| 20 | `src/screens/Login/LoginScreen.js` | 535 | Extract more sub-components from existing modular folder |
+| 21 | `src/screens/Cart/cartStyles.js` | 521 | Split into per-component style files |
+| 22 | `src/screens/Reservation/reservationStyles.js` | 506 | Split into per-component style files |
+| 23 | `src/screens/OnboardingScreen.js` | 453 | Decompose into `src/screens/Onboarding/` folder |
+| 24 | `src/screens/Manager/managerStyles.js` | 438 | Split into per-tab style files |
+| 25 | `src/components/ui/OnboardingSlide.js` | 430 | Extract animation logic into a helper |
+| 26 | `server/controllers/authController.js` | 533 | Extract OTP logic and staff management into `server/services/authService.js` |
+
+#### INFO — Missing `server/services/` layer
+
+- No `server/services/` directory exists. All business logic (OTP generation, collision checks, price recalculation, staff management) lives directly in controllers.
+- **Fix plan**: Gradually extract domain logic from controllers into service modules (`authService.js`, `orderService.js`, `reservationService.js`). Controllers become thin HTTP adapters.
+
+### Server Routes Assessment
+
+All 6 route files (`authRoutes.js`, `menuRoutes.js`, `orderRoutes.js`, `reservationRoutes.js`, `tableRoutes.js`, `uploadRoutes.js`) are **clean** — pure URL → middleware → controller mappings with zero inline business logic.
+
+### Contexts and Hooks Assessment
+
+`AuthContext`, `MenuContext`, `OrdersContext`, `CartContext`, `useReservation`, and `useApi` correctly own their data fetching via `apiClient`. No violations in the context/hook layer.

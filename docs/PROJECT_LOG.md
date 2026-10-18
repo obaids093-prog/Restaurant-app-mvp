@@ -1,5 +1,32 @@
 # Project Log
 
+## [2026-10-18] - Phase 1 Item 3: Layer Audit
+
+- **Date**: 2026-10-18
+- **Title**: Phase 1 Item 3: Layer Audit (read-only)
+- **WHAT changed**:
+  - Added section 6 "Layers and Known Violations" to `docs/ARCHITECTURE.md`.
+  - Documented 26 violations across 4 severity tiers: HIGH (2 screens calling `apiClient` directly), MEDIUM (util bypassing `apiClient`, screen importing API internals), LOW (hardcoded hex colors in 8 files, 1 hardcoded app name), INFO (14 files over 400 lines, missing `server/services/` layer).
+  - Confirmed all 6 server route files are clean (pure mappings).
+  - Confirmed all contexts and hooks correctly own data fetching.
+- **WHY (the problem or goal)**:
+  - Establish a verified baseline of layer boundary violations to guide future refactoring priorities.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Searched all `src/screens/` and `src/components/` for `apiClient` and `fetch` imports via grep.
+  - Reviewed all 6 route files line-by-line for inline business logic.
+  - Scanned all screen files for hardcoded hex colors (`#[0-9a-fA-F]`) and hardcoded app name strings.
+  - Counted line counts of all source files to identify >400-line violations.
+  - No code changes — read-only audit.
+- **HOW TO TEST**:
+  - Read `docs/ARCHITECTURE.md` section 6 for the full violation inventory.
+  - Verify no source files were modified (only `docs/ARCHITECTURE.md` and `docs/PROJECT_LOG.md`).
+- **RISKS or follow-ups**:
+  - HIGH violations (#1, #2) should be addressed in the next refactoring phase.
+- **Commit hashes**:
+  - `2b1127b` (docs(arch): add layer audit with 26 violations to ARCHITECTURE.md (Item 3))
+
+---
+
 ## [2026-10-18] - Phase 1 Item 2 (Proposal 3): Historical Session Logs Archival
 
 - **Date**: 2026-10-18
