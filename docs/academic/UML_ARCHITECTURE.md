@@ -22,6 +22,7 @@ graph TD
     subgraph State_Management_Layer ["State & Context Layer"]
         AuthContext["AuthContext<br/>(user, login, signup, logout)"]
         ThemeContext["ThemeContext<br/>(isDark, toggleTheme, colors, shadows)"]
+        BranchContext["BranchContext<br/>(selectedBranch, branchId, branchCity)"]
         CartContext["CartContext + cartReducer<br/>(items, promoCode, discountPercent)"]
         OrdersContext["OrdersContext + ordersReducer<br/>(orders list, status progression)"]
         ReservationContext["ReservationContext / Hook<br/>(table booking, availability check)"]
@@ -127,7 +128,10 @@ classDiagram
         +String timeSlot ("12:00" - "22:00")
         +Integer partySize
         +String tableId
-        +String status ("Confirmed" | "Cancelled" | "Declined")
+        +String branchId
+        +String branchName
+        +String branchCity
+        +String status ("Confirmed" | "Cancelled" | "Declined" | "Completed")
     }
 
     class Order {
@@ -139,7 +143,10 @@ classDiagram
         +String pickupTime
         +List~CartItem~ items
         +Float grandTotal
-        +String status ("Pending" | "Preparing" | "Ready" | "Served")
+        +String branchId
+        +String branchName
+        +String branchCity
+        +String status ("Pending" | "Preparing" | "Ready" | "Served" | "Cancelled")
         +Integer elapsedSeconds
         +String timestamp
     }

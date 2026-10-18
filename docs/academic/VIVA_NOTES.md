@@ -35,8 +35,8 @@ The mobile app is like a **customer** sitting at a table — they don't walk int
 | `users` | `server/models/User.js` | `User` | name, email (unique, lowercase), password (hashed), role (`customer` or `manager`), phone, dob, avatar |
 | `menuitems` | `server/models/MenuItem.js` | `MenuItem` | name, description, price (min 0), category (enum: Starters/Mains/Desserts/Drinks), image, isSpecial, isAvailable, prepTime, rating, tag |
 | `tables` | `server/models/Table.js` | `Table` | tableNumber (unique), name, seats (min 1), location, isWindow, isAvailable |
-| `reservations` | `server/models/Reservation.js` | `Reservation` | user (ObjectId ref), table (ObjectId ref), date, time, guests, status (Pending/Confirmed/Cancelled/Declined), specialRequests |
-| `orders` | `server/models/Order.js` | `Order` | user (ObjectId ref), items (sub-documents with menuItem ref, name, price, quantity), totalAmount, orderType, tableNumber, status (Pending/Preparing/Ready/Served/Cancelled), notes |
+| `reservations` | `server/models/Reservation.js` | `Reservation` | user (ObjectId ref), table (ObjectId ref), date, time, guests, status (Pending/Confirmed/Cancelled/Declined), specialRequests, branchId, branchName, branchCity |
+| `orders` | `server/models/Order.js` | `Order` | user (ObjectId ref), items (sub-documents with menuItem ref, name, price, quantity), totalAmount, orderType, tableNumber, status (Pending/Preparing/Ready/Served/Cancelled), notes, branchId, branchName, branchCity |
 
 Think of each model as a **section of the storeroom**: users is the employee register, menuitems is the recipe book, tables is the floor plan, reservations is the booking diary, and orders is the kitchen ticket queue.
 
@@ -173,9 +173,9 @@ The `OrderTrackingScreen` checks for order updates every 10 seconds, like a cust
 ## 14. Phone OTP in 5 lines
 
 1. User enters a Pakistani mobile number (e.g., `0300-1234567`); `normalizePakPhone()` validates and normalizes it to `03XXXXXXXXX` format.
-2. Server generates a 4-digit code using `crypto.randomInt(1000, 10000)`, stores it in an **in-memory `Map`** (not in the database) with a 5-minute expiry, and prints it to the server console (simulated SMS — the code is **never** returned in the response).
+2. Server generates a **6-digit** code using `crypto.randomInt(100000, 1000000)`, stores it in an **in-memory `Map`** (not in the database) with a 5-minute expiry, and prints it to the server console (simulated SMS — the code is **never** returned in the response).
 3. 30-second resend cooldown prevents spam.
-4. User submits the code; `verifyPhoneOtp()` checks it. After 3 wrong attempts, the code is **invalidated**.
+4. User submits the 6-digit code; `verifyPhoneOtp()` checks it. After 3 wrong attempts, the code is **invalidated**.
 5. If correct, the server either logs in the existing user (found by phone) or creates a new customer account automatically, and returns a JWT.
 
 **Show in code:** `server/controllers/authController.js` → `sendPhoneOtp()` (lines 367–411) and `verifyPhoneOtp()` (lines 416–519).
@@ -184,7 +184,7 @@ The `OrderTrackingScreen` checks for order updates every 10 seconds, like a cust
 
 ## 15. How was the API tested and what do the screenshots prove?
 
-The API was tested using **Postman** (collection at `A2/restaurant-api.postman_collection.json` with auto-token capture). Each screenshot in `A2/screenshots/` proves a specific test case:
+The API was tested using **Postman** (collection at `docs/academic/A2/restaurant-api.postman_collection.json` with auto-token capture). Each screenshot in `docs/academic/A2/screenshots/` proves a specific test case:
 
 | Screenshot | What It Proves |
 |---|---|
@@ -205,7 +205,7 @@ The API was tested using **Postman** (collection at `A2/restaurant-api.postman_c
 | `price-manager.png` | Price updated by manager device |
 | `newprice-customer.jpeg` | Same updated price reflected on customer device (real-time sync proof) |
 
-**Show in code:** `A2/screenshots/` directory; `A2/restaurant-api.postman_collection.json`.
+**Show in code:** `docs/academic/A2/screenshots/` directory; `docs/academic/A2/restaurant-api.postman_collection.json`.
 
 ---
 
@@ -286,6 +286,65 @@ No. Public registration (`POST /api/auth/register`) **always** forces `role: 'cu
 6. Cart: useReducer + pure reducer (10 actions). Totals computed via useMemo. Cards use React.memo.
 7. Orders: Server recalculates total from DB prices (never trusts client). Status: Pending→Preparing→Ready→Served.
 8. Reservations: Double-booking prevented by app-level check + partial unique compound index (409 Conflict).
-9. OTP: crypto.randomInt 4-digit code, in-memory Map, 5-min expiry, 3-attempt limit, 30s cooldown.
+9. OTP: crypto.randomInt 6-digit code (100000–999999), in-memory Map, 5-min expiry, 3-attempt limit, 30s cooldown.
 10. Polling: OrderTrackingScreen polls GET /api/orders/my every 10s. Stops when no active orders remain.
+11. Multi-branch: Orders & Reservations carry branchId/branchName/branchCity. Manager filters by outlet.
+12. Reservation lifecycle: Cancel only if future & active. Past bookings show "Dining Completed" badge.
+13. Image upload: expo-image-picker (4:3 aspect, 70% quality compression) ➔ multer POST /api/upload ➔ server/uploads/.
 ```
+
+---
+
+## 20. Multi-Branch Order & Reservation Tracking
+
+Every order and reservation now carries **immutable branch metadata** (`branchId`, `branchName`, `branchCity`) stored directly in MongoDB. Think of it like a **kitchen ticket stamp** — every order ticket says which restaurant location it came from, so a central manager overseeing multiple outlets can filter and track orders by city.
+
+- **Backend**: `orderController.js` and `reservationController.js` extract branch info from the request body during creation.
+- **Manager Dashboard**: Outlet filter pills (`All Outlets`, `📍 Lahore`, `📍 Islamabad`) filter the orders/reservations list. Each card displays a prominent **branch city badge** so the manager immediately knows which kitchen prepared the order.
+
+**Show in code:** `server/models/Order.js` (branchId, branchName, branchCity fields); `server/controllers/orderController.js` → `placeOrder()`; `src/screens/ManagerDashboardScreen.js` (outlet filter pills and branch badges).
+
+---
+
+## 21. Smart Reservation Cancellation Lifecycle
+
+Reservation cards intelligently adapt their action buttons based on the booking's temporal state and manager actions:
+
+| Booking State | Manager Controls | What the Customer Sees |
+|---|---|---|
+| **Pending** | `Confirm Table` or `Decline` | 🟡 `Pending` badge + 🔴 "Cancel Reservation" button |
+| **Confirmed (Future)** | `Mark Visited (Seated)` or `Mark No-Show` | 🟢 `Confirmed` badge + 🔴 "Cancel Reservation" button (until dining time) |
+| **Completed / Visited** | Marked when guest arrives & is seated | ✅ `Visited` badge + `Dining Completed • Visited` + `Reserve Again` (Cancel disabled) |
+| **No-Show (Missed)** | Marked by manager if guest fails to arrive | ⚠️ `No-Show` badge + `Missed Reservation (No-Show)` + `Reserve Again` (Cancel disabled) |
+| **Cancelled / Declined** | Historical record | 💬 "Cancelled by guest request" or "Declined by restaurant" + `Re-book` |
+
+The logic calculates `isPast` by checking: (1) `status === 'Completed'`, (2) `booking.date < today`, or (3) booking is same-day but time has already passed. `canCancel = !isCancelled && !isPast && !isNoShow`.
+
+**Show in code:** 
+- Server: `server/models/Reservation.js` (`values: ['Pending', 'Confirmed', 'Completed', 'No-Show', 'Cancelled', 'Declined']`) & `server/controllers/reservationController.js`.
+- Manager UI: `src/screens/ManagerDashboardScreen.js` (ReservationCard `Mark Visited` and `Mark No-Show` buttons).
+- Customer UI: `src/screens/ReservationScreen.js` → `HistoryTabContent` (lines 734–800 for badges, lines 870–925 for conditional notes).
+
+---
+
+## 22. Manager Dish Image Upload (KFC / FoodPanda / McDonald's Model)
+
+In real-world enterprise food applications, managers never have to manually host an image or copy-paste complicated web URLs. The app provides a fully automated 4-step pipeline:
+
+1. **Device Picker & Permissions:**
+   - On mobile/PC, `expo-image-picker` opens the native camera roll or file browser with permission safeguards.
+2. **Automatic Aspect Ratio & Cropping (4:3 Standard):**
+   - Professional food delivery apps enforce a 4:3 (or 16:9) aspect ratio so dish images in menu lists, category cards, and order summaries maintain consistent proportions without stretching or letterboxing.
+3. **Client-Side Compression (70% JPEG Quality):**
+   - High-resolution smartphone cameras capture photos at 12–48 megapixels (10–25 MB). Uploading raw files wastes bandwidth and crashes mobile rendering. The picker compresses the image to 70% quality, reducing file size to ~150–300 KB with imperceptible visual loss.
+4. **Multipart File Upload (`POST /api/upload`):**
+   - Sent via `FormData` protected with manager authentication (`protect, managerOnly`).
+   - Server-side `multer` validates MIME types (`image/jpeg`, `image/png`, `image/webp`), limits files to 5MB, assigns a collision-proof name (`dish_<timestamp>_<random>.ext`), and stores it in `server/uploads/`.
+   - The server statically serves `/uploads/` and returns the public URL, which is saved to `MenuItem.image` in MongoDB.
+5. **Live Thumbnail Preview & Fallbacks:**
+   - Instant thumbnail preview with clear/trash option. Presets and manual URL inputs remain available as alternative options.
+
+**Show in code:**
+- Server: `server/controllers/uploadController.js`, `server/routes/uploadRoutes.js`, and `server/server.js` (static `/uploads` mount).
+- Client: `src/utils/imageUpload.js` (`pickDishImageFromDevice` and `uploadDishImageToServer`).
+- UI: `src/screens/ManagerDashboardScreen.js` (Add Dish & Edit Dish modals with dashed upload button and thumbnail preview).

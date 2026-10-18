@@ -284,7 +284,7 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["api", "auth", "phone", "send-otp"]
 						},
-						"description": "Generates and sends a 4-digit OTP to a Pakistani mobile number. OTP is returned in the response for dev/testing convenience."
+						"description": "Generates and sends a 6-digit cryptographic OTP to a Pakistani mobile number. OTP is printed to server console as simulated SMS."
 					},
 					"response": [],
 					"event": [
@@ -310,14 +310,14 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"phone\": \"0300-1234567\",\n  \"otp\": \"1234\",\n  \"name\": \"OTP Test User\"\n}"
+							"raw": "{\n  \"phone\": \"0300-1234567\",\n  \"otp\": \"123456\",\n  \"name\": \"OTP Test User\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/phone/verify-otp",
 							"host": ["{{baseUrl}}"],
 							"path": ["api", "auth", "phone", "verify-otp"]
 						},
-						"description": "Verifies the OTP code. If the phone number is new, creates a customer account. The static dev code '1234' is always accepted."
+						"description": "Verifies the 6-digit OTP code. If the phone number is new, creates a customer account. In development mode, the standard code '123456' or console OTP is accepted."
 					},
 					"response": [],
 					"event": [
@@ -592,6 +592,48 @@
 								"exec": [
 									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Upload Dish Image (Manager)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{managerToken}}" }
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "image",
+									"type": "file",
+									"description": "Dish photo (JPEG, PNG, WebP up to 5MB, auto-compressed on client)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/upload",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "upload"]
+						},
+						"description": "Manager-only: uploads a dish photo using multipart/form-data. Returns imageUrl hosted on server static uploads."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test('Has imageUrl', function () {",
+									"    pm.expect(pm.response.json()).to.have.property('imageUrl');",
 									"});"
 								]
 							}

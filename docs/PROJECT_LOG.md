@@ -1,5 +1,28 @@
 # Project Log
 
+## [2026-10-18] - Phase 1 Item 2 (Proposal 1): Academic Material Reorganization
+
+- **Date**: 2026-10-18
+- **Title**: Phase 1 Item 2 (Proposal 1): Academic Material Reorganization
+- **WHAT changed**:
+  - Relocated academic deliverables `A1/`, `A2/`, `uml/`, `VIVA_NOTES.md`, and `UML_ARCHITECTURE.md` into `docs/academic/` via `git mv`.
+  - Replaced `.gitignore` rule `A2/restaurent.mp4` with path-independent `**/restaurent.mp4`.
+  - Updated all referencing links in `README.md`, `docs/REPO_MAP.md`, `docs/academic/VIVA_NOTES.md`, and updated the A1 demo video GitHub URL to `docs/academic/A1/demo_video.mp4`.
+- **WHY (the problem or goal)**:
+  - Clean up root namespace by encapsulating coursework deliverables inside `docs/academic/` while maintaining link integrity across all documentation.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Used `git mv` to preserve commit history.
+  - Updated README deliverable sections, test evidence links, and repository layout tree.
+- **HOW TO TEST**:
+  - Verify `docs/academic/` contains `A1/`, `A2/`, `uml/`, `VIVA_NOTES.md`, and `UML_ARCHITECTURE.md`.
+  - Verify links in `README.md` and `docs/academic/VIVA_NOTES.md`.
+- **RISKS or follow-ups**:
+  - Proceed to Proposal 2 (duplicate elimination in `docs/academic/uml/`).
+- **Commit hashes**:
+  - `6a98b2d` (refactor(docs): move academic deliverables to docs/academic and update links)
+
+---
+
 ## [2026-10-18] - Phase 1 Item 2: Safe Cleanup Audit & Proposal List
 
 - **Date**: 2026-10-18

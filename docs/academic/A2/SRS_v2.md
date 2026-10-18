@@ -51,7 +51,8 @@ This Software Requirements Specification (SRS v2.0) establishes the full functio
 7. **Collision-Proof Table Reservations:** Server validation ensuring seat capacity requirements and blocking double-bookings with HTTP 409 Conflict.
 8. **Automated Live Status Polling:** Client-side 10-second polling intervals (`setInterval`) on `OrderTrackingScreen` to provide real-time kitchen status synchronization without manual restarts.
 9. **Mobile API Client & Custom Hooks:** Centralized HTTP client (`src/api/client.js`) and reusable data-fetching hook (`src/hooks/useApi.js`) handling loading, error, and refetch lifecycles across screens.
-10. **Phone OTP Authentication (Extra Feature):** A Pakistani mobile phone number OTP login flow beyond the assignment requirements. The server generates a 4-digit numeric code using `crypto.randomInt`, stores it in an in-memory `Map` (not in the database), and prints the code exclusively to the server console as a simulated SMS gateway (not returned in response). The OTP is valid for 5 minutes with a 30-second resend cooldown. After verification (strictly invalidated after 3 incorrect attempts), the server either logs in the existing user or creates a new customer account automatically, returning a JWT token.
+10. **Phone OTP Authentication (Extra Feature):** A Pakistani mobile phone number OTP login flow beyond the assignment requirements. The server generates a cryptographically secure 6-digit numeric code using `crypto.randomInt(100000, 1000000)`, stores it in an in-memory `Map` (not in the database), and prints the code exclusively to the server console as a simulated SMS gateway (not returned in response). The OTP is valid for 5 minutes with a 30-second resend cooldown and strict 6-digit format validation (`/^\d{6}$/`). After verification (strictly invalidated after 3 incorrect attempts), the server either logs in the existing user or creates a new customer account automatically, returning a JWT token.
+11. **Config-Driven Multi-Branch Architecture (Extra Feature):** Comprehensive multi-outlet operational support (`src/config/brand.js`, `BranchContext`). Allows patrons to choose their active dining branch (e.g., Lahore Gulberg vs. Islamabad F-7) with persistence (`@aura_selected_branch_id`). Orders and reservations are tagged with immutable branch metadata (`branchId`, `branchName`, `branchCity`). Restaurant Managers can monitor live kitchen operations across all branches or filter by specific outlet from an executive supervision dashboard.
 
 #### Out-of-Scope (Excluded from A2):
 1. **Real Payment Gateways:** Real credit card transactions (Stripe, JazzCash, EasyPaisa) remain out of scope; orders are placed with simulated payment processing.
@@ -198,7 +199,7 @@ graph TD
 
 ## 8. API Endpoints Specification (New Section 8)
 
-The table below documents all **25 REST API endpoints** implemented in the backend server:
+The table below documents all **26 REST API endpoints** implemented in the backend server:
 
 > *Note: The SRS PDF cannot be edited directly and must be regenerated from this markdown/HTML source.*
 
@@ -213,22 +214,23 @@ The table below documents all **25 REST API endpoints** implemented in the backe
 | **7** | `GET` | `/api/auth/staff` | Private (Manager Only) | None (Bearer Token) | `200 OK`: `User[]` — Lists managers (`name, email, role, isActive`) without passwords. |
 | **8** | `POST` | `/api/auth/staff` | Private (Manager Only) | `{ name, email, password }` | `201 Created`: `{ user }` — Creates a new manager account. |
 | **9** | `PATCH` | `/api/auth/staff/:id` | Private (Manager Only) | `{ isActive?, role? }` | `200 OK`: `{ user }` — Updates status (deactivate/reactivate) or demotes to customer. Guarded against self-action and disabling the last manager. |
-| **10** | `POST` | `/api/auth/phone/send-otp` | Public | `{ phone }` | `200 OK`: `{ success, message, phone }` — Generates 4-digit OTP with 30s resend cooldown, prints exclusively to server console as simulated SMS. |
-| **11** | `POST` | `/api/auth/phone/verify-otp` | Public | `{ phone, otp, name? }` | `200 OK` or `201 Created`: `{ token, user, isNewUser }` — Verifies 4-digit OTP (invalidated after 3 incorrect attempts) and logs in or creates customer account. |
+| **10** | `POST` | `/api/auth/phone/send-otp` | Public | `{ phone }` | `200 OK`: `{ success, message, phone }` — Generates 6-digit cryptographic OTP with 30s resend cooldown, prints exclusively to server console as simulated SMS. |
+| **11** | `POST` | `/api/auth/phone/verify-otp` | Public | `{ phone, otp, name? }` | `200 OK` or `201 Created`: `{ token, user, isNewUser }` — Verifies 6-digit OTP (invalidated after 3 incorrect attempts) and logs in or creates customer account. |
 | **12** | `GET` | `/api/menu` | Public | None (Optional Query: `?category=...&search=...`) | `200 OK`: Array of `MenuItem` objects |
 | **13** | `POST` | `/api/menu` | Private (Manager Only) | `{ name, description, price, category, image, isSpecial?, isAvailable?, prepTime?, rating?, tag? }` | `201 Created`: Created `MenuItem` document<br/>`403 Forbidden`: If called by customer |
 | **14** | `GET` | `/api/menu/:id` | Public | None | `200 OK`: Single `MenuItem` object<br/>`400 Bad Request`: Invalid ObjectId<br/>`404 Not Found`: Item does not exist |
 | **15** | `PUT` | `/api/menu/:id` | Private (Manager Only) | Partial updates: `{ price?, isAvailable?, ... }` | `200 OK`: Updated `MenuItem` document |
 | **16** | `DELETE` | `/api/menu/:id` | Private (Manager Only) | None | `200 OK`: `{ message: "Menu item deleted successfully" }` |
 | **17** | `GET` | `/api/tables` | Public | None | `200 OK`: Array of all dining `Table` objects |
-| **18** | `POST` | `/api/reservations` | Private (Customer/Manager) | `{ tableId, date, time, guests, specialRequests?, customerName?, phone? }` | `201 Created`: Populated `Reservation` document<br/>`409 Conflict`: Table already booked for slot |
+| **18** | `POST` | `/api/reservations` | Private (Customer/Manager) | `{ tableId, date, time, guests, specialRequests?, customerName?, phone?, branchId?, branchName? }` | `201 Created`: Populated `Reservation` document<br/>`409 Conflict`: Table already booked for slot |
 | **19** | `GET` | `/api/reservations` | Private (Manager Only) | None | `200 OK`: Array of all restaurant bookings |
 | **20** | `GET` | `/api/reservations/my` | Private (Customer) | None | `200 OK`: Array of customer's own bookings |
 | **21** | `PATCH` | `/api/reservations/:id` | Private (Customer/Manager) | `{ status }` (`Confirmed`, `Declined`, `Cancelled`) | `200 OK`: Updated `Reservation` — Manager sets `Confirmed`/`Declined`; customer sets only `Cancelled` on own booking. |
-| **22** | `POST` | `/api/orders` | Private (Customer/Manager) | `{ items: [{ menuItem, quantity, specialInstructions? }], orderType?, tableNumber?, notes? }` | `201 Created`: Verified `Order` document with server-computed `totalAmount` |
+| **22** | `POST` | `/api/orders` | Private (Customer/Manager) | `{ items: [{ menuItem, quantity, specialInstructions? }], orderType?, tableNumber?, notes?, branchId?, branchName?, branchCity? }` | `201 Created`: Verified `Order` document with server-computed `totalAmount` and branch association |
 | **23** | `GET` | `/api/orders` | Private (Manager Only) | None | `200 OK`: Array of all restaurant `Order` documents |
 | **24** | `GET` | `/api/orders/my` | Private (Customer) | None | `200 OK`: Array of customer's own `Order` documents |
 | **25** | `PATCH` | `/api/orders/:id/status` | Private (Customer/Manager) | `{ status }` (`Pending`, `Preparing`, `Ready`, `Served`, `Cancelled`) | `200 OK`: Updated `Order` — Manager advances status forward monotonically; customer can set only `Cancelled` on own `Pending` order within 10-minute window.<br/>`400 Bad Request`: Illegal status jump |
+| **26** | `POST` | `/api/upload` | Private (Manager Only) | `multipart/form-data` with `image` file | `201 Created`: `{ message, imageUrl, filename, size, mimetype }` — Uploads and stores manager dish photos in `server/uploads/` with 5MB max size and MIME type validation (`jpeg, png, webp`). |
 
 ---
 
@@ -247,3 +249,6 @@ The table below documents all **25 REST API endpoints** implemented in the backe
 
 4. **"How does the customer receive kitchen status updates in real-time?"**  
    *Answer:* In `OrderTrackingScreen.js`, a `useEffect` hook initializes a 10-second `setInterval` that polls `GET /api/orders/my`. As soon as the manager marks an order as `Preparing` or `Ready`, the customer's state machine advances automatically without requiring app reloads.
+
+5. **"How does the app handle dish image uploads from a phone/laptop like KFC or FoodPanda?"**  
+   *Answer:* Rather than expecting managers to host web images manually, `expo-image-picker` allows managers to pick photos directly from device storage. The picker automatically crops to a 4:3 standard aspect ratio and compresses to 70% quality (reducing 15 MB raw camera files to ~200 KB). The client uploads it via `multipart/form-data` to `POST /api/upload`, where `multer` validates the MIME type and stores it under `server/uploads/`. The public URL is returned and saved to the dish in MongoDB.

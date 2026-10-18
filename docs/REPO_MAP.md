@@ -15,20 +15,21 @@ mad assignment/
 ├── seed.js                       # Dev-only DB seed script
 ├── README.md
 ├── LICENSE
-├── VIVA_NOTES.md
 ├── CHANGE.MD                     # Step-by-step cleanup-structure progress log
 ├── DESIGN_PROGRESS.md            # Design-refresh branch progress log
-├── UML_ARCHITECTURE.md
-├── A1/                           # SRS v1 docs (do not modify)
-├── A2/                           # SRS v2 + Postman collection (do not modify)
-├── uml/                          # UML diagrams (do not modify)
 ├── designs/stitch/               # Stitch design references (do not modify)
 ├── docs/                         # Technical documentation
 │   ├── ARCHITECTURE.md           # System architecture spec (updated this branch)
 │   ├── REPO_MAP.md               # This file
 │   ├── SETUP.md                  # Developer setup guide
 │   ├── WHITE_LABEL.md            # White-label customisation guide
-│   └── ASSETS_LICENSES.md       # Third-party asset attributions
+│   ├── ASSETS_LICENSES.md       # Third-party asset attributions
+│   └── academic/                 # Coursework deliverables & SRS specs
+│       ├── A1/                   # Assignment 1 deliverables & SRS v1
+│       ├── A2/                   # Assignment 2 deliverables & Postman collection
+│       ├── uml/                  # Architecture & sequence diagrams
+│       ├── VIVA_NOTES.md         # Viva prep notes & test verification
+│       └── UML_ARCHITECTURE.md  # Detailed UML system design
 └── assets/                       # App icons, splash, images referenced by app.json
 ```
 
