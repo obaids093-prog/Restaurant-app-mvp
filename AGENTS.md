@@ -1,5 +1,8 @@
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+> **CRITICAL**: All AI assistants and contributors must read and strictly follow [docs/AI_RULES.md](file:///docs/AI_RULES.md) and [docs/PROJECT_LOG.md](file:///docs/PROJECT_LOG.md) before modifying this repository.
+
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
