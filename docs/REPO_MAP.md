@@ -27,7 +27,6 @@ mad assignment/
 │   └── academic/                 # Coursework deliverables & SRS specs
 │       ├── A1/                   # Assignment 1 deliverables & SRS v1
 │       ├── A2/                   # Assignment 2 deliverables & Postman collection
-│       ├── uml/                  # Architecture & sequence diagrams
 │       ├── VIVA_NOTES.md         # Viva prep notes & test verification
 │       └── UML_ARCHITECTURE.md  # Detailed UML system design
 └── assets/                       # App icons, splash, images referenced by app.json

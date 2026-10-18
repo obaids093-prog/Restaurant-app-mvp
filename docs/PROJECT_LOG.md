@@ -1,5 +1,29 @@
 # Project Log
 
+## [2026-10-18] - Phase 1 Item 2 (Proposal 2): Duplicate Academic File Elimination
+
+- **Date**: 2026-10-18
+- **Title**: Phase 1 Item 2 (Proposal 2): Duplicate Academic File Elimination
+- **WHAT changed**:
+  - Computed and compared SHA-256 hashes of candidate duplicates in `docs/academic/uml/` against `docs/academic/A1/`:
+    - `Untitled Diagram-Page-1.drawio.png`: `265CCEAC28B8BEC539BA901B4D6A4A3D9118A16DB8EE604038994BE44FC7E570` (identical in both `uml/` and `A1/UML/`).
+    - Video asset: `1C20C8738647B17A090D06F61D30550B83EAF8C1D6F70A45635B308F871CEF46` (identical in `uml/WhatsApp Video...mp4` and `A1/demo_video.mp4`).
+  - Removed identical duplicates from `docs/academic/uml/` via `git rm`.
+  - Updated all references in `README.md` and `docs/REPO_MAP.md` to point to `docs/academic/A1/UML/Untitled Diagram-Page-1.drawio.png`.
+- **WHY (the problem or goal)**:
+  - Eliminate redundant binary assets and clean up repository storage without losing any diagrams or videos.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Validated 100% hash parity before removal.
+  - Redirected markdown documentation links to canonical copies in `docs/academic/A1/`.
+- **HOW TO TEST**:
+  - Verify `docs/academic/uml/` is deleted and diagrams link to `docs/academic/A1/UML/Untitled Diagram-Page-1.drawio.png`.
+- **RISKS or follow-ups**:
+  - None. Proceed to Proposal 3 (archiving legacy session logs).
+- **Commit hashes**:
+  - `ede506a` (chore(academic): eliminate duplicate uml diagrams and video verified by SHA-256)
+
+---
+
 ## [2026-10-18] - Phase 1 Item 2 (Proposal 1): Academic Material Reorganization
 
 - **Date**: 2026-10-18

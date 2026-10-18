@@ -183,7 +183,7 @@ When a manager adds or edits a menu item, the app does not require typing raw UR
 
 * **Assignment 1 Video**: [Watch A1 Demo Video on GitHub](https://github.com/obaids093-prog/Restaurant-app-mvp/blob/main/docs/academic/A1/demo_video.mp4)
 * **Assignment 2 Demo Video (max 4 minutes)**: [Watch A2 Demo Video](docs/academic/A2/demo-video2.mp4)
-* **UML & Diagrams**: Included in high resolution inside `docs/academic/A2/SRS_v2.pdf` and `docs/academic/uml/Untitled Diagram-Page-1.drawio.png`.
+* **UML & Diagrams**: Included in high resolution inside `docs/academic/A2/SRS_v2.pdf` and `docs/academic/A1/UML/Untitled Diagram-Page-1.drawio.png`.
 
 ### Screenshots & Test Evidence
 
@@ -222,7 +222,7 @@ When a manager adds or edits a menu item, the app does not require typing raw UR
   * `assets/icon.png` (App Launcher Icon)
   * `assets/splash-icon.png` (Splash Screen Icon)
   * `assets/favicon.png` (Web Favicon)
-  * `docs/academic/uml/Untitled Diagram-Page-1.drawio.png` (System Architecture & UML Diagram)
+  * `docs/academic/A1/UML/Untitled Diagram-Page-1.drawio.png` (System Architecture & UML Diagram)
 
 ---
 
