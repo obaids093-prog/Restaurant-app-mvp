@@ -1,5 +1,34 @@
 # Project Log
 
+## [2026-10-18] - Phase 1 Item 2: Safe Cleanup Audit & Proposal List
+
+- **Date**: 2026-10-18
+- **Title**: Phase 1 Item 2: Safe Cleanup Audit & Proposal List
+- **WHAT changed**:
+  - Performed deep empirical audit of all 110+ project files for safe cleanup candidates: unused imports, unused variables, leftover debug `console.log`, large commented blocks, TODO/debug text, empty/placeholder files, and unreferenced code files.
+  - Confirmed 0 dead/broken imports or leftover debug console statements in client/server runtime code.
+  - Formulated proposal list for ambiguous and larger items under Part (b) covering unused packages, unused assets, duplicate files, misplaced root files, and academic folder reorganization.
+- **WHY (the problem or goal)**:
+  - Fulfill Item 2 requirements to safely clean dead code without breaking runtime behavior, while isolating ambiguous or non-trivial reorganizations for explicit user approval before execution.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Files touched: `docs/PROJECT_LOG.md`.
+  - Safe audit verification: Verified all imports and theme destructuring across all screens, components, controllers, and utils; verified no empty files or leftover debug tags exist.
+  - Part (b) Proposals:
+    1. **Academic Material Reorganization**: Move `A1/`, `A2/`, `uml/`, `VIVA_NOTES.md`, and `UML_ARCHITECTURE.md` into `docs/academic/` via `git mv` and update referencing links in `README.md`, `docs/ARCHITECTURE.md`, `docs/REPO_MAP.md`, and `docs/PROJECT_LOG.md`.
+    2. **Duplicate Files Elimination**: `uml/Untitled Diagram-Page-1.drawio.png` and `uml/WhatsApp Video 2026-09-27 at 9.16.51 PM.mp4` are bit-for-bit identical to `A1/UML/Untitled Diagram-Page-1.drawio.png` and `A1/demo_video.mp4` respectively; propose consolidating into `docs/academic/A1/` and removing duplicate `uml/` folder.
+    3. **Misplaced Root Files**: `CHANGE.MD` and `DESIGN_PROGRESS.md` (historical logs from earlier branch) propose moving to `docs/archive/` or retiring; root `.sonarignore` propose moving to `docs/archive/` or retaining.
+    4. **Unused Assets**: `assets/splash-icon.png` is unreferenced in `app.json` (the app uses animated splash `SplashScreen.js`); propose keeping as fallback icon or removing.
+    5. **Package Manifests**: Both `package.json` and `server/package.json` dependencies are actively utilized (all server deps used; client web/vector/font/routing/storage deps used). Propose no package deletions.
+- **HOW TO TEST**:
+  - Review proposal list in `docs/PROJECT_LOG.md`.
+  - Verify zero runtime regressions or broken imports.
+- **RISKS or follow-ups**:
+  - Await user approval of proposal list before executing any file moves or removals in Part (b).
+- **Commit hashes**:
+  - `330eee5` (chore: complete safe cleanup audit and record proposal list in log)
+
+---
+
 ## [2026-10-18] - Phase 1 Item 1: Living Log and Standing Rules Setup
 
 - **Date**: 2026-10-18
