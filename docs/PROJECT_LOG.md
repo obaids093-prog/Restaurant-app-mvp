@@ -1,5 +1,32 @@
 # Project Log
 
+## [2026-10-19] - Phase 1 Item 6: Developer Tooling (ESLint, Prettier, EditorConfig)
+
+- **Date**: 2026-10-19
+- **Title**: Phase 1 Item 6: Developer Tooling (ESLint, Prettier, EditorConfig)
+- **WHAT changed**:
+  - Added `.editorconfig` setting 2-space indentation, UTF-8, and LF line endings.
+  - Added `.gitattributes` normalizing line endings to LF across all text and code files, eliminating Windows LF/CRLF warnings.
+  - Configured ESLint flat config (`eslint.config.js`) for root React Native client using `eslint-config-expo/flat` with sensible React Native rules, ignoring non-client directories.
+  - Configured ESLint flat config (`server/eslint.config.js`) for backend server with Node.js/CommonJS globals.
+  - Installed Prettier (`prettier`) in root and `server`, with `.prettierrc` configs in both.
+  - Added `lint`, `format`, and `check` npm scripts in both `package.json` and `server/package.json` using direct node module invocations to avoid Windows cmd path ampersand splitting bugs.
+  - Ran linting and autofix: 0 auto-fixable syntax issues were present; recorded 54 remaining warnings in app (React compiler/hook memoization/dependency notices) and 2 warnings in server (unused error catch parameter and unused next callback). Logic remained 100% untouched.
+- **WHY (the problem or goal)**:
+  - Standardize code style, stop cross-platform LF/CRLF git noise, and establish automated linting and formatting pipelines for both client and backend without altering business logic.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Configured flat configs compatible with ESLint 9/10.
+  - Configured direct node binary script paths to ensure cross-platform compatibility on Windows systems where directory names contain ampersands.
+- **HOW TO TEST**:
+  - Root: run `npm run lint`, `npm run format`, and `npm run check`.
+  - Server: run `npm run lint`, `npm run format`, and `npm run check` inside `server/`.
+- **RISKS or follow-ups**:
+  - Zero logic or behavioral changes. Warnings will be addressed during future feature refactoring phases.
+- **Commit hashes**:
+  - `1371a23` (chore(tooling): configure eslint, prettier, editorconfig, and gitattributes (Item 6))
+
+---
+
 ## [2026-10-19] - Phase 1 Item 5: Environment and Config Hygiene
 
 - **Date**: 2026-10-19
