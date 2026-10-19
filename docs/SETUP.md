@@ -72,11 +72,22 @@ Open `server/.env` and configure your settings:
 ```env
 PORT=5000
 NODE_ENV=development
-MONGO_URI=mongodb://127.0.0.1:27017/restaurant_app
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority
 JWT_SECRET=aura_super_secure_artisan_secret_key_2026_jwt
-JWT_EXPIRES_IN=7d
 CORS_ORIGINS=http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081
 ```
+
+#### Environment Variables Reference
+
+| Variable | Required | Default | Description |
+| :--- | :---: | :--- | :--- |
+| `MONGO_URI` | **Yes** | — | MongoDB Atlas SRV URI or local MongoDB connection string. Validated at startup; server halts if missing. |
+| `JWT_SECRET` | **Yes** | — | Cryptographic secret used by `authController` and auth middleware to sign and verify HMAC SHA-256 JWTs. Validated at startup; server halts if missing. |
+| `PORT` | No | `5000` | Port on which the Express REST API listens. |
+| `NODE_ENV` | No | `development` | Runtime environment mode (`development`, `production`, or `test`). |
+| `CORS_ORIGINS` | No | `http://localhost:8081, http://localhost:19006, http://localhost:3000, http://localhost:5000, http://127.0.0.1:8081, http://192.168.100.17:8081` | Comma-separated list of allowed origin headers for CORS middleware. |
+
+> **Startup Validation**: At launch, `server/server.js` verifies that all **REQUIRED** variables (`MONGO_URI`, `JWT_SECRET`) are present. If any are missing, the server exits immediately with status code `1` and a clear error message naming the missing variable without printing secret values.
 
 ### Step 3.3: Seed the Database
 Populate your MongoDB database with essential accounts, gourmet menu items, and dining tables:

@@ -25,6 +25,19 @@ const connectDB = require('./config/db');
 // Load .env variables into process.env
 dotenv.config();
 
+// Validate required environment variables before initializing services
+const requiredEnv = ['MONGO_URI', 'JWT_SECRET'];
+const missingEnv = requiredEnv.filter((key) => !process.env[key] || !process.env[key].trim());
+
+if (missingEnv.length > 0) {
+  console.error('\n❌ FATAL CONFIGURATION ERROR: Missing required environment variable(s):');
+  missingEnv.forEach((key) => {
+    console.error(`   - ${key} is required but not set.`);
+  });
+  console.error('Please configure them in your environment or server/.env (see server/.env.example).\n');
+  process.exit(1);
+}
+
 // Connect to MongoDB
 connectDB();
 

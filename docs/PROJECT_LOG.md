@@ -1,5 +1,32 @@
 # Project Log
 
+## [2026-10-19] - Phase 1 Item 5: Environment and Config Hygiene
+
+- **Date**: 2026-10-19
+- **Title**: Phase 1 Item 5: Environment and Config Hygiene
+- **WHAT changed**:
+  - Completed `server/.env.example` containing every environment variable the backend server reads (`PORT`, `NODE_ENV`, `MONGO_URI`, `JWT_SECRET`, `CORS_ORIGINS`), with placeholders and one-line descriptive comments.
+  - Added startup validation in `server/server.js` ensuring required variables (`MONGO_URI`, `JWT_SECRET`) are provided before initializing MongoDB or Express, exiting cleanly with status 1 and naming the missing variable without printing secret values.
+  - Added pre-flight check in `server/seed.js` validating `MONGO_URI` before executing database queries, and refactored seed routines to use batch queries, zero in-loop awaits, modular helper functions, and optional chaining.
+  - Documented all variables with a comprehensive reference table in `docs/SETUP.md` explaining purpose, defaults, and validation behavior.
+- **WHY (the problem or goal)**:
+  - Eliminate cryptic runtime crashes caused by unconfigured environment variables and provide unambiguous developer documentation for configuration.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Audited all `process.env` references across the server codebase.
+  - Added fail-fast validation in `server/server.js` and `server/seed.js` using array filtering without printing values.
+  - Converted sequential in-loop DB operations in `server/seed.js` to batch `$in` queries and `insertMany` calls, reducing cognitive complexity and network roundtrips.
+  - Never touched any real `.env` file per security rules.
+- **HOW TO TEST**:
+  - Test missing variable validation: start server with empty `JWT_SECRET` and confirm it logs `❌ FATAL CONFIGURATION ERROR: Missing required environment variable(s): - JWT_SECRET` and exits with code 1 without exposing secrets.
+  - Test valid startup: `npm start` (or `node server.js`) starts normally with configured `.env`.
+  - Test seed idempotency: run `node seed.js` in `server/` to verify zero errors and batch operations.
+- **RISKS or follow-ups**:
+  - Zero behavioral changes to default execution.
+- **Commit hashes**:
+  - `edfcce4` (feat(server): validate required env vars at startup and complete .env.example (Item 5))
+
+---
+
 ## [2026-10-18] - Phase 1 Item 4: Database Documentation & Seed Hygiene
 
 - **Date**: 2026-10-18
