@@ -30,6 +30,30 @@ export const brand = {
   serviceChargeRate: 0.05,               // 5% hospitality charge
   salesTaxRate: 0.15,                    // 15% provincial sales tax
 
+  // Branch Outlets (Multi-City / Single-City Configuration)
+  outlets: [
+    {
+      id: 'lhr_gulberg',
+      city: 'Lahore',
+      area: 'Gulberg III',
+      fullName: 'AURA • Gulberg III, Lahore',
+      address: '14-C Gulberg III, MM Alam Road, Lahore',
+      phone: '0300-8472910',
+      openingHours: '12:00 PM – 11:00 PM',
+      isActive: true,
+    },
+    {
+      id: 'isb_f7',
+      city: 'Islamabad',
+      area: 'F-7 Markaz',
+      fullName: 'AURA • Beverly Centre, Islamabad',
+      address: 'Beverly Centre, Blue Area / F-7, Islamabad',
+      phone: '0300-8472911',
+      openingHours: '12:00 PM – 12:00 AM',
+      isActive: true, // Set to false to disable multi-branch switching automatically
+    },
+  ],
+
   // Contact & Concierge
   supportPhone: '+92 42 3578 9123',
   supportEmail: 'concierge@aurahospitality.pk',
@@ -49,9 +73,12 @@ export const brand = {
 ### Steps to rebrand for a new client:
 1. Open `src/config/brand.js`.
 2. Update `name`, `fullName`, and `tagline` with the client's restaurant name.
-3. Update `currencySymbol`, `currencyCode`, and `formatPrice` to match the target country (e.g. `$`, `AED`, `SAR`, `£`).
-4. Update `serviceChargeRate` and `salesTaxRate` according to local tax regulations.
-5. Save the file — all price tags, receipts, summary screens, headers, and toasts update automatically.
+3. Configure `outlets`:
+   - For **Multi-Branch** operations (e.g., Lahore & Islamabad), provide the details for both outlets and set `isActive: true`. The app will automatically show the branch picker chips, modal, and manager filters.
+   - For **Single-Branch** boutique operations, set only one outlet's `isActive: true` (or delete the other). The app will automatically disable multi-branch switching and default to that single location.
+4. Update `currencySymbol`, `currencyCode`, and `formatPrice` to match the target country (e.g. `$`, `AED`, `SAR`, `£`).
+5. Update `serviceChargeRate` and `salesTaxRate` according to local tax regulations.
+6. Save the file — all price tags, receipts, summary screens, headers, and toasts update automatically.
 
 ---
 

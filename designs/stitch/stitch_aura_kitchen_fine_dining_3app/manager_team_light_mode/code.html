@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;min-height:100%;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "inverse-primary": "#ffb4a3", "on-secondary-container": "#656464", "tertiary-fixed-dim": "#bec6e0", "surface-container-low": "#f3f3f3", "secondary-fixed-dim": "#c8c6c5", "secondary": "#5f5e5e", "on-primary": "#ffffff", "on-surface-variant": "#5b403a", "surface-container-highest": "#e2e2e2", "inverse-surface": "#2f3131", "error": "#ba1a1a", "on-background": "#1a1c1c", "on-error": "#ffffff", "on-primary-fixed": "#3d0600", "on-surface": "#1a1c1c", "surface-bright": "#f9f9f9", "tertiary-container": "#6c748b", "on-tertiary-container": "#fefcff", "surface-container": "#eeeeee", "outline": "#8f7069", "error-container": "#ffdad6", "on-secondary-fixed": "#1b1c1c", "primary": "#b22301", "surface-dim": "#dadada", "surface": "#f9f9f9", "surface-tint": "#b52603", "background": "#f9f9f9", "inverse-on-surface": "#f1f1f1", "tertiary-fixed": "#dae2fd", "on-tertiary": "#ffffff", "outline-variant": "#e3beb6", "surface-container-lowest": "#ffffff", "secondary-fixed": "#e4e2e1", "primary-container": "#d53d1b", "tertiary": "#545c72", "on-secondary-fixed-variant": "#474746", "on-tertiary-fixed-variant": "#3f465c", "primary-fixed-dim": "#ffb4a3", "primary-fixed": "#ffdad2", "on-error-container": "#93000a", "on-primary-container": "#fffbff", "secondary-container": "#e4e2e1", "on-secondary": "#ffffff", "on-tertiary-fixed": "#131b2e", "surface-container-high": "#e8e8e8", "surface-variant": "#e2e2e2", "on-primary-fixed-variant": "#8c1900" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "gutter": "1rem", "space-sm": "0.5rem", "margin": "1.25rem", "space-md": "1rem", "space-xl": "2rem", "space-lg": "1.25rem", "space-xs": "0.25rem" }, fontFamily: { "display": ["Plus Jakarta Sans"], "button": ["Plus Jakarta Sans"], "body": ["Plus Jakarta Sans"], "heading-sm": ["Plus Jakarta Sans"], "price": ["Plus Jakarta Sans"], "caption": ["Plus Jakarta Sans"], "heading-lg": ["Plus Jakarta Sans"] }, fontSize: { "display": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }], "button": ["16px", { "lineHeight": "20px", "fontWeight": "600" }], "body": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "heading-sm": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "price": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "caption": ["13px", { "lineHeight": "18px", "fontWeight": "400" }], "heading-lg": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }] } } } };</script></head><body class="bg-surface font-body text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-inverse-surface text-inverse-on-surface pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.08)]"><div class="h-16 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-[0_4px_20px_-2px_rgba(42,42,42,0.05)]"><span class="material-symbols-outlined text-on-primary text-[22px]">local_dining</span></div><div class="flex flex-col min-w-0"><div class="flex items-center gap-space-xs"><span class="font-heading-sm text-heading-sm font-bold text-inverse-on-surface tracking-tight truncate">AURA</span><span class="px-1.5 py-0.5 rounded-full bg-primary/20 text-inverse-primary font-caption text-[10px] uppercase font-bold tracking-wider">Manager</span></div><p class="font-caption text-caption text-secondary-fixed-dim truncate">Management Portal | Lahore Flagship</p></div></div><div class="flex items-center gap-space-sm shrink-0"><div class="hidden sm:flex flex-col text-right"><span class="font-caption text-caption font-semibold text-inverse-on-surface leading-tight">Chef Farhan</span><span class="font-caption text-[11px] text-secondary-fixed-dim leading-none">Exec Chef &amp; GM</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col flex-1 relative w-full pt-16 pb-24 bg-surface px-margin"><div class="flex flex-col w-full pb-8">
+<!-- Header & Live Roster Summary -->
+<div class="flex flex-col gap-space-xs mb-space-md">
+<div class="flex items-center justify-between gap-space-sm">
+<div class="flex flex-col min-w-0">
+<h1 class="font-heading-lg text-heading-lg text-on-surface tracking-tight font-bold">Kitchen Brigade &amp; Team</h1>
+<p class="font-caption text-caption text-secondary mt-0.5">Staff directory, station assignments &amp; role permissions</p>
+</div>
+<button class="h-10 px-space-md rounded-[14px] bg-primary text-on-primary flex items-center gap-1.5 shrink-0 shadow-[0_8px_24px_-4px_rgba(252,88,52,0.20)] active:scale-95 transition-transform" id="quick-invite-btn">
+<span class="material-symbols-outlined text-[20px]">person_add</span>
+<span class="font-button text-[13px] font-semibold">Invite Staff</span>
+</button>
+</div>
+<!-- Live Shift Metrics Strip -->
+<div class="grid grid-cols-3 gap-2 mt-2">
+<div class="bg-surface-container-low rounded-xl p-2.5 flex flex-col justify-between">
+<span class="font-caption text-[11px] text-secondary font-medium uppercase tracking-wider">Active Pass</span>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="font-price text-heading-sm font-bold text-on-surface">12</span>
+<span class="font-caption text-[11px] text-secondary">/ 16 On Shift</span>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2.5 flex flex-col justify-between">
+<span class="font-caption text-[11px] text-secondary font-medium uppercase tracking-wider">Stations</span>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="font-price text-heading-sm font-bold text-on-surface">4</span>
+<span class="font-caption text-[11px] text-secondary">Fully Manned</span>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2.5 flex flex-col justify-between">
+<span class="font-caption text-[11px] text-secondary font-medium uppercase tracking-wider">2FA Compliance</span>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="font-price text-heading-sm font-bold text-primary">100%</span>
+<span class="font-caption text-[11px] text-secondary">Secured</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Role Segmented Navigation -->
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1 mb-space-md -mx-margin px-margin no-scrollbar">
+<button class="team-filter-tab px-3.5 h-9 rounded-full bg-inverse-surface text-inverse-on-surface font-caption text-[12px] font-semibold shrink-0 shadow-sm transition-all" data-filter="all">
+      All (16)
+    </button>
+<button class="team-filter-tab px-3.5 h-9 rounded-full bg-surface-container text-secondary font-caption text-[12px] font-semibold shrink-0 transition-all hover:text-on-surface" data-filter="mgmt">
+      Management (3)
+    </button>
+<button class="team-filter-tab px-3.5 h-9 rounded-full bg-surface-container text-secondary font-caption text-[12px] font-semibold shrink-0 transition-all hover:text-on-surface" data-filter="kitchen">
+      Kitchen Brigade (8)
+    </button>
+<button class="team-filter-tab px-3.5 h-9 rounded-full bg-surface-container text-secondary font-caption text-[12px] font-semibold shrink-0 transition-all hover:text-on-surface" data-filter="service">
+      Service &amp; Floor (5)
+    </button>
+</div>
+<!-- Staff Members Roster List -->
+<div class="flex flex-col gap-3 mb-space-xl">
+<!-- Card 1: Chef Farhan Siddiqui -->
+<div class="staff-card bg-surface-container-lowest rounded-[20px] p-4 shadow-[0_4px_20px_-2px_rgba(42,42,42,0.05)] transition-all" data-category="mgmt kitchen">
+<div class="flex items-start justify-between gap-3">
+<div class="relative shrink-0">
+<img class="w-14 h-14 rounded-2xl object-cover bg-surface-container shadow-sm" data-alt="Close-up professional portrait of Chef Farhan Siddiqui, executive chef in crisp modern dark slate culinary jacket, warm kitchen background with soft bokeh, distinguished leadership presence, Lahore artisan restaurant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCISk4risOSbref7hqTuq1F-laSWcDoQ0nb77-G-wfnAXRURls7iW6kEDJG72KvEKSoP37Z3HAY_7ezOJorhHtRhT2cBv-3XWkXJJUX0afztXFqpF_V8hLjKHz5pLBUe8qqgEam5Su-_YYW5F5Q1VSSs6JETPvFxng_LBEgrnk3wqscpAxS4TM3_9Q_Xd3z7DJmXZDqsyDC-DPD7p58v2eHXDn7fWHFsmurkuegA9OX2dfEfbvXb3gt"/>
+<div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[13px]">verified</span>
+</div>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center justify-between gap-2">
+<h2 class="font-heading-sm text-[16px] font-bold text-on-surface truncate">Chef Farhan Siddiqui</h2>
+<button aria-label="Staff options" class="text-secondary hover:text-on-surface p-0.5">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-1.5 mt-1 flex-wrap">
+<span class="px-2 py-0.5 rounded-full bg-primary-container/15 text-primary font-caption text-[11px] font-bold tracking-tight">
+              Executive Chef &amp; GM
+            </span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-secondary font-caption text-[10px] font-semibold">
+              Super Admin
+            </span>
+</div>
+<div class="flex items-center gap-1.5 mt-2 text-secondary">
+<span class="material-symbols-outlined text-[15px] shrink-0">mail</span>
+<span class="font-caption text-[12px] truncate">farhan.siddiqui@aurahospitality.pk</span>
+</div>
+</div>
+</div>
+<!-- Operational Duty Row -->
+<div class="mt-3.5 pt-3 bg-surface-container-low rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+<div class="flex items-center gap-2 min-w-0">
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0">table_restaurant</span>
+<div class="flex flex-col min-w-0">
+<span class="font-caption text-[10px] uppercase font-bold text-secondary tracking-wider">Station &amp; Shift</span>
+<span class="font-body text-[12px] font-semibold text-on-surface truncate">Executive Pass • Dinner Service Lead</span>
+</div>
+</div>
+<div class="flex items-center gap-1 shrink-0 px-2 py-1 rounded-lg bg-surface-container-lowest shadow-sm">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-caption text-[11px] font-bold text-on-surface">Active Duty</span>
+</div>
+</div>
+</div>
+<!-- Card 2: Shahbaz Ahmed -->
+<div class="staff-card bg-surface-container-lowest rounded-[20px] p-4 shadow-[0_4px_20px_-2px_rgba(42,42,42,0.05)] transition-all" data-category="mgmt service">
+<div class="flex items-start justify-between gap-3">
+<div class="relative shrink-0">
+<img class="w-14 h-14 rounded-2xl object-cover bg-surface-container shadow-sm" data-alt="Headshot of Pakistani hospitality maître d Shahbaz Ahmed wearing tailored sharp charcoal tuxedo waistcoat with subtle gold lapel pin, smiling warmly in sophisticated architectural dining room lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlpqHIhCsAZvSGJ-e3q_DSYRFQsPuZf40ThEUs3SwwNK_MmUagXP3I8Yku0C8JKhXpGir9mV8v-pqNuUwtqEKCtDstIQpklGSXGa33sk-vR4AkZLUdI-hQcexR-FXx8sVABkxPtEk4nspuQC0blMpxKv2UtX25HsJoaRD89WJSOYj4zVmHcUBEjdeUdLLnoEDy4Y0q0NHetDARMmS3FJvPH0LO3StZpqY-QXPxwznfOmEHWpZoxeh7"/>
+<div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[13px]">room_service</span>
+</div>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center justify-between gap-2">
+<h2 class="font-heading-sm text-[16px] font-bold text-on-surface truncate">Shahbaz Ahmed</h2>
+<button aria-label="Staff options" class="text-secondary hover:text-on-surface p-0.5">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-1.5 mt-1 flex-wrap">
+<span class="px-2 py-0.5 rounded-full bg-tertiary/15 text-tertiary font-caption text-[11px] font-bold tracking-tight">
+              Head Maître d'
+            </span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-secondary font-caption text-[10px] font-semibold">
+              Floor Lead
+            </span>
+</div>
+<div class="flex items-center gap-1.5 mt-2 text-secondary">
+<span class="material-symbols-outlined text-[15px] shrink-0">mail</span>
+<span class="font-caption text-[12px] truncate">shahbaz.a@aurahospitality.pk</span>
+</div>
+</div>
+</div>
+<!-- Operational Duty Row -->
+<div class="mt-3.5 pt-3 bg-surface-container-low rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+<div class="flex items-center gap-2 min-w-0">
+<span class="material-symbols-outlined text-tertiary text-[18px] shrink-0">chair</span>
+<div class="flex flex-col min-w-0">
+<span class="font-caption text-[10px] uppercase font-bold text-secondary tracking-wider">Station &amp; Access</span>
+<span class="font-body text-[12px] font-semibold text-on-surface truncate">Dining Room &amp; Valet • Reservations Lead</span>
+</div>
+</div>
+<div class="flex items-center gap-1 shrink-0 px-2 py-1 rounded-lg bg-surface-container-lowest shadow-sm">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="font-caption text-[11px] font-medium text-on-surface">Floor Roster</span>
+</div>
+</div>
+</div>
+<!-- Card 3: Bilal Tariq -->
+<div class="staff-card bg-surface-container-lowest rounded-[20px] p-4 shadow-[0_4px_20px_-2px_rgba(42,42,42,0.05)] transition-all" data-category="kitchen">
+<div class="flex items-start justify-between gap-3">
+<div class="relative shrink-0">
+<img class="w-14 h-14 rounded-2xl object-cover bg-surface-container shadow-sm" data-alt="Portrait of young professional sous chef Bilal Tariq wearing black apron, standing near an open artisan woodfire charcoal hearth with warm embers illuminating his face, professional cooking atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhzTdfGINBuR34L1CNR-feUSz5aLQzGBwgrxUeHuHjusg1hqoxfur_i-SVhtcdjVvEaiGiVf0BX78rIeWgD-M2NzTLGCr6sBjZmK0iJpK7Pfu4mPNRCgVtGKLHc5ScWmQ9bD6lJiPr33P_2IPFv8JaMHKwVYd1PMzbTapojv9GkuBrZzEo9ZtRoguFXYtYGLiDcaw56qu6ptG4DFTS54sAqYWwizlzDp6w76ARN6Y2443OPa4SHBXQ"/>
+<div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[13px]">local_fire_department</span>
+</div>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center justify-between gap-2">
+<h2 class="font-heading-sm text-[16px] font-bold text-on-surface truncate">Bilal Tariq</h2>
+<button aria-label="Staff options" class="text-secondary hover:text-on-surface p-0.5">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-1.5 mt-1 flex-wrap">
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-caption text-[11px] font-bold tracking-tight">
+              Sous Chef (Grill &amp; Fire)
+            </span>
+</div>
+<div class="flex items-center gap-1.5 mt-2 text-secondary">
+<span class="material-symbols-outlined text-[15px] shrink-0">mail</span>
+<span class="font-caption text-[12px] truncate">bilal.t@aurahospitality.pk</span>
+</div>
+</div>
+</div>
+<!-- Operational Duty Row -->
+<div class="mt-3.5 pt-3 bg-surface-container-low rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+<div class="flex items-center gap-2 min-w-0">
+<span class="material-symbols-outlined text-outline text-[18px] shrink-0">outdoor_grill</span>
+<div class="flex flex-col min-w-0">
+<span class="font-caption text-[10px] uppercase font-bold text-secondary tracking-wider">Station Allocation</span>
+<span class="font-body text-[12px] font-semibold text-on-surface truncate">Hearth &amp; Woodfire Charcoal Station</span>
+</div>
+</div>
+<div class="flex items-center gap-1 shrink-0 px-2 py-1 rounded-lg bg-surface-container-lowest shadow-sm">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-caption text-[11px] font-medium text-on-surface">Clocked In (15:00)</span>
+</div>
+</div>
+</div>
+<!-- Card 4: Maria Noor -->
+<div class="staff-card bg-surface-container-lowest rounded-[20px] p-4 shadow-[0_4px_20px_-2px_rgba(42,42,42,0.05)] transition-all" data-category="kitchen">
+<div class="flex items-start justify-between gap-3">
+<div class="relative shrink-0">
+<img class="w-14 h-14 rounded-2xl object-cover bg-surface-container shadow-sm" data-alt="Portrait of South Asian female pastry chef Maria Noor in modern white pastry chef jacket holding an offset spatula, serene focused smile in a high-end French-inspired patisserie studio with copper pans and marble counters" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMeQUfqFa56fMNu4UNe5W38wCtMhuXCWKEsRT2rIyoJClPLjcYwns7pA_-TvXtT3Fry1Susw-cBdNv86ykWFGTxLL_X5rPubhIpPqEm0nAx6SVx320Bg3TNOpFkTwbx2uFkXvMTFyg1k8or5v1-2PRPFLpP_ju2EuKswgF1hrAEFFF97zFiW2_KAz8UmngAQXdQ94F1CX69LEEFyi5CJY9kxpW2nmjNtpGkvk4FSQijmqxfk56-oXP"/>
+<div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-secondary text-on-secondary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[13px]">cake</span>
+</div>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center justify-between gap-2">
+<h2 class="font-heading-sm text-[16px] font-bold text-on-surface truncate">Maria Noor</h2>
+<button aria-label="Staff options" class="text-secondary hover:text-on-surface p-0.5">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-1.5 mt-1 flex-wrap">
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-caption text-[11px] font-bold tracking-tight">
+              Chef de Partie (Pastry)
+            </span>
+</div>
+<div class="flex items-center gap-1.5 mt-2 text-secondary">
+<span class="material-symbols-outlined text-[15px] shrink-0">mail</span>
+<span class="font-caption text-[12px] truncate">maria.n@aurahospitality.pk</span>
+</div>
+</div>
+</div>
+<!-- Operational Duty Row -->
+<div class="mt-3.5 pt-3 bg-surface-container-low rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+<div class="flex items-center gap-2 min-w-0">
+<span class="material-symbols-outlined text-outline text-[18px] shrink-0">kitchen</span>
+<div class="flex flex-col min-w-0">
+<span class="font-caption text-[10px] uppercase font-bold text-secondary tracking-wider">Station Allocation</span>
+<span class="font-body text-[12px] font-semibold text-on-surface truncate">Patisserie &amp; Cold Larder Prep</span>
+</div>
+</div>
+<div class="flex items-center gap-1 shrink-0 px-2 py-1 rounded-lg bg-surface-container-lowest shadow-sm">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-caption text-[11px] font-medium text-on-surface">Clocked In (16:30)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Invitation & Manager Access Form Card -->
+<div class="bg-surface-container-lowest rounded-[20px] p-5 shadow-[0_4px_20px_-2px_rgba(42,42,42,0.05)] mb-space-lg" id="grant-access-card">
+<div class="flex items-center justify-between pb-3 mb-4 bg-surface-container-low -mx-5 -mt-5 px-5 pt-4 rounded-t-[20px]">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">key</span>
+</div>
+<div>
+<h3 class="font-heading-sm text-[16px] font-bold text-on-surface">Grant Manager Access</h3>
+<p class="font-caption text-[11px] text-secondary">Issue authenticated digital passes to senior personnel</p>
+</div>
+</div>
+<span class="font-caption text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary uppercase">Encrypted</span>
+</div>
+<form class="flex flex-col gap-3.5" id="invite-form" onsubmit="event.preventDefault(); handleInviteSubmit();">
+<!-- Field 1: Full Name -->
+<div class="flex flex-col gap-1.5">
+<label class="font-caption text-[12px] font-semibold text-on-surface">Full Name</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-secondary text-[20px] pointer-events-none">person</span>
+<input class="w-full h-12 pl-11 pr-4 rounded-[12px] bg-surface-container-low font-body text-body text-on-surface placeholder:text-secondary focus:outline-none focus:bg-surface-container transition-colors" placeholder="e.g. Asad Rizvi" required="" type="text"/>
+</div>
+</div>
+<!-- Field 2: Work Email -->
+<div class="flex flex-col gap-1.5">
+<label class="font-caption text-[12px] font-semibold text-on-surface">Work Email</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-secondary text-[20px] pointer-events-none">mail</span>
+<input class="w-full h-12 pl-11 pr-4 rounded-[12px] bg-surface-container-low font-body text-body text-on-surface placeholder:text-secondary focus:outline-none focus:bg-surface-container transition-colors" placeholder="e.g. asad@aurahospitality.pk" required="" type="email"/>
+</div>
+</div>
+<!-- Field 3: Temporary Password -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<label class="font-caption text-[12px] font-semibold text-on-surface">Temporary Passkey</label>
+<span class="font-caption text-[11px] text-secondary">Auto-expires in 24h</span>
+</div>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-secondary text-[20px] pointer-events-none">lock</span>
+<input class="w-full h-12 pl-11 pr-11 rounded-[12px] bg-surface-container-low font-body text-body text-on-surface placeholder:text-secondary focus:outline-none focus:bg-surface-container transition-colors" id="password-field" required="" type="password" value="AuraPass#2025!"/>
+<button aria-label="Toggle password visibility" class="absolute right-3.5 text-secondary hover:text-on-surface p-1" id="toggle-password" type="button">
+<span class="material-symbols-outlined text-[20px]" id="eye-icon">visibility</span>
+</button>
+</div>
+</div>
+<!-- Field 4: Role Assignment Dropdown -->
+<div class="flex flex-col gap-1.5">
+<label class="font-caption text-[12px] font-semibold text-on-surface">Operational Privilege Level</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-secondary text-[20px] pointer-events-none">badge</span>
+<select class="w-full h-12 pl-11 pr-10 rounded-[12px] bg-surface-container-low font-body text-body text-on-surface focus:outline-none focus:bg-surface-container transition-colors appearance-none cursor-pointer">
+<option value="lead">Assistant Manager / Kitchen Lead</option>
+<option value="sommelier">Head Sommelier &amp; Beverage Director</option>
+<option value="sous">Sous Chef &amp; Inventory Supervisor</option>
+<option value="audit">Night Auditor &amp; Billing Clerk</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 text-secondary text-[20px] pointer-events-none">arrow_drop_down</span>
+</div>
+</div>
+<!-- Submit Action Button -->
+<button class="w-full h-[52px] mt-2 rounded-[14px] bg-primary text-on-primary font-button text-button flex items-center justify-center gap-2 shadow-[0_8px_24px_-4px_rgba(252,88,52,0.20)] active:scale-[0.98] transition-all hover:bg-primary-container" id="submit-invite-btn" type="submit">
+<span class="material-symbols-outlined text-[20px]">send</span>
+<span>Send Manager Invite</span>
+</button>
+<!-- Feedback container -->
+<div class="hidden p-3 rounded-xl bg-surface-container text-on-surface text-center font-caption text-[12px]" id="invite-feedback">
+        Invitation dispatched with two-factor authorization token.
+      </div>
+</form>
+</div>
+<!-- Security & Protocol Footnote -->
+<div class="rounded-2xl p-4 bg-surface-container-low flex items-center gap-3">
+<div class="w-9 h-9 rounded-xl bg-surface-container-highest text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">shield</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-caption text-[12px] font-bold text-on-surface leading-tight">Artisan Hospitality Role-Based Access Control</span>
+<span class="font-caption text-[11px] text-secondary mt-0.5">Two-Factor Authentication Enforced • Hardware passkey compatible</span>
+</div>
+</div>
+</div>
+<script>
+  // Tab segment filtering interaction
+  const tabs = document.querySelectorAll('.team-filter-tab');
+  const cards = document.querySelectorAll('.staff-card');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => {
+        t.classList.remove('bg-inverse-surface', 'text-inverse-on-surface');
+        t.classList.add('bg-surface-container', 'text-secondary');
+      });
+      tab.classList.add('bg-inverse-surface', 'text-inverse-on-surface');
+      tab.classList.remove('bg-surface-container', 'text-secondary');
+
+      const filter = tab.getAttribute('data-filter');
+      cards.forEach(card => {
+        const cat = card.getAttribute('data-category') || '';
+        if (filter === 'all' || cat.includes(filter)) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+  });
+
+  // Password visibility toggle
+  const togglePassBtn = document.getElementById('toggle-password');
+  const passInput = document.getElementById('password-field');
+  const eyeIcon = document.getElementById('eye-icon');
+
+  if (togglePassBtn && passInput && eyeIcon) {
+    togglePassBtn.addEventListener('click', () => {
+      const isPassword = passInput.getAttribute('type') === 'password';
+      passInput.setAttribute('type', isPassword ? 'text' : 'password');
+      eyeIcon.textContent = isPassword ? 'visibility_off' : 'visibility';
+    });
+  }
+
+  // Quick scroll to invite card
+  const quickInvite = document.getElementById('quick-invite-btn');
+  const grantCard = document.getElementById('grant-access-card');
+  if (quickInvite && grantCard) {
+    quickInvite.addEventListener('click', () => {
+      grantCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  // Handle invitation simulated dispatch
+  function handleInviteSubmit() {
+    const feedback = document.getElementById('invite-feedback');
+    const submitBtn = document.getElementById('submit-invite-btn');
+    if (submitBtn && feedback) {
+      submitBtn.classList.add('opacity-75');
+      submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span><span>Encrypting Credentials...</span>';
+      setTimeout(() => {
+        submitBtn.classList.remove('opacity-75');
+        submitBtn.innerHTML = '<span class="material-symbols-outlined text-[20px]">check_circle</span><span>Invite Transmitted</span>';
+        feedback.classList.remove('hidden');
+        setTimeout(() => {
+          submitBtn.innerHTML = '<span class="material-symbols-outlined text-[20px]">send</span><span>Send Manager Invite</span>';
+          feedback.classList.add('hidden');
+        }, 4000);
+      }, 700);
+    }
+  }
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-4px_20px_-2px_rgba(42,42,42,0.06)]" data-active-classes="text-primary font-semibold"><div class="flex items-center justify-between h-16 px-space-xs"><a class="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] min-w-[44px] text-secondary hover:text-on-surface transition-colors relative" data-path="overview" href="#"><span class="material-symbols-outlined text-[24px]">dashboard</span><span class="font-caption text-[11px] mt-0.5">Overview</span></a><a class="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] min-w-[44px] text-secondary hover:text-on-surface transition-colors relative" data-path="orders" href="#"><div class="relative flex items-center justify-center"><span class="material-symbols-outlined text-[24px]">receipt_long</span><span class="absolute -top-1 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-primary text-on-primary font-caption text-[10px] font-bold flex items-center justify-center leading-none">4</span></div><span class="font-caption text-[11px] mt-0.5">Orders</span></a><a class="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] min-w-[44px] text-secondary hover:text-on-surface transition-colors relative" data-path="tables" href="#"><div class="relative flex items-center justify-center"><span class="material-symbols-outlined text-[24px]">table_restaurant</span><span class="absolute -top-1 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-tertiary text-on-tertiary font-caption text-[10px] font-bold flex items-center justify-center leading-none">2</span></div><span class="font-caption text-[11px] mt-0.5">Tables</span></a><a class="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] min-w-[44px] text-secondary hover:text-on-surface transition-colors relative" data-path="menu" href="#"><span class="material-symbols-outlined text-[24px]">menu_book</span><span class="font-caption text-[11px] mt-0.5">Menu</span></a><a aria-current="page" class="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] min-w-[44px] transition-colors relative text-primary font-semibold" data-path="team" href="#"><span class="material-symbols-outlined text-[24px]">groups</span><span class="font-caption text-[11px] mt-0.5">Team</span></a></div></nav></body></html>

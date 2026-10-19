@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+
+<html class="h-full dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;min-height:100%;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "inverse-primary": "#ae3115", "on-secondary-container": "#b7b5b4", "tertiary-fixed-dim": "#56d9d8", "surface-container-low": "#1c1b1b", "secondary-fixed-dim": "#c8c6c5", "secondary": "#a0a0a0", "on-primary": "#ffffff", "on-surface-variant": "#d1c4c0", "surface-container-highest": "#353534", "inverse-surface": "#e5e2e1", "error": "#ffb4ab", "on-background": "#f5f5f5", "on-error": "#690005", "on-primary-fixed": "#3d0600", "on-surface": "#f5f5f5", "surface-bright": "#393939", "tertiary-container": "#00acab", "on-tertiary-container": "#003939", "surface-container": "#201f1f", "outline": "#59413c", "error-container": "#93000a", "on-secondary-fixed": "#1b1c1c", "primary": "#ff6b4a", "surface-dim": "#131313", "surface": "#121212", "surface-tint": "#ff6b4a", "background": "#121212", "inverse-on-surface": "#313030", "tertiary-fixed": "#76f6f4", "on-tertiary": "#003736", "outline-variant": "#3a3a3a", "surface-container-lowest": "#0e0e0e", "secondary-fixed": "#e4e2e1", "primary-container": "#ff6b4a", "tertiary": "#56d9d8", "on-secondary-fixed-variant": "#474746", "on-tertiary-fixed-variant": "#00504f", "primary-fixed-dim": "#ffb4a3", "primary-fixed": "#ffdad2", "on-error-container": "#ffdad6", "on-primary-container": "#661000", "secondary-container": "#474746", "on-secondary": "#303030", "on-tertiary-fixed": "#002020", "surface-container-high": "#2a2a2a", "surface-variant": "#353534", "on-primary-fixed-variant": "#8c1900" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "gutter": "1rem", "space-sm": "0.5rem", "margin": "1.25rem", "space-md": "1rem", "space-xl": "2rem", "space-lg": "1.25rem", "space-xs": "0.25rem" }, fontFamily: { "display": ["Plus Jakarta Sans"], "button": ["Plus Jakarta Sans"], "body": ["Plus Jakarta Sans"], "heading-sm": ["Plus Jakarta Sans"], "price": ["Plus Jakarta Sans"], "caption": ["Plus Jakarta Sans"], "heading-lg": ["Plus Jakarta Sans"] }, fontSize: { "display": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }], "button": ["16px", { "lineHeight": "20px", "fontWeight": "600" }], "body": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "heading-sm": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "price": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "caption": ["13px", { "lineHeight": "18px", "fontWeight": "400" }], "heading-lg": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head><body class="bg-[#121212] font-body text-[#F5F5F5] flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-[#181818] border-b border-[#3A3A3A] text-[#F5F5F5] pt-safe shadow-lg"><div class="h-16 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><div class="w-10 h-10 rounded-xl bg-[#FF6B4A] flex items-center justify-center shrink-0 shadow-md shadow-[#FF6B4A]/20"><span class="material-symbols-outlined text-white text-[22px]">local_dining</span></div><div class="flex flex-col min-w-0"><div class="flex items-center gap-space-xs"><span class="font-heading-sm text-heading-sm font-bold text-[#F5F5F5] tracking-tight truncate">AURA</span><span class="px-1.5 py-0.5 rounded-full bg-[#FF6B4A]/20 text-[#FF6B4A] font-caption text-[10px] uppercase font-bold tracking-wider">Manager</span></div><p class="font-caption text-caption text-[#A0A0A0] truncate">Management Portal | Lahore Flagship</p></div></div><div class="flex items-center gap-space-sm shrink-0"><div class="hidden sm:flex flex-col text-right"><span class="font-caption text-caption font-semibold text-[#F5F5F5] leading-tight">Chef Farhan</span><span class="font-caption text-[11px] text-[#A0A0A0] leading-none">Exec Chef &amp; GM</span></div><div class="w-8 h-8 rounded-full bg-[#FF6B4A] flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-white text-[18px]">person</span></div></div></div></header><main class="flex flex-col flex-1 relative w-full pt-16 pb-24 bg-[#121212] px-margin"><div class="flex flex-col w-full pb-8">
+<!-- Live Sync Bar & Queue Header -->
+<div class="flex flex-col gap-space-xs mt-space-md mb-space-sm">
+<div class="flex items-center justify-between">
+<div>
+<h1 class="font-heading-lg text-heading-lg text-[#F5F5F5] font-bold tracking-tight">Kitchen Orders Queue</h1>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF6B4A] opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-[#FF6B4A]"></span>
+</span>
+<span class="font-caption text-caption text-[#A0A0A0]">Live WebSocket • Synced 3s ago</span>
+</div>
+</div>
+<button aria-label="Refresh Queue" class="h-10 w-10 rounded-full bg-[#1E1E1E] border border-[#3A3A3A] hover:bg-[#2A2A2A] active:scale-95 transition flex items-center justify-center text-[#F5F5F5] shadow-sm" id="refreshBtn">
+<span class="material-symbols-outlined text-[20px] transition-transform duration-500" id="refreshIcon">sync</span>
+</button>
+</div>
+</div>
+<!-- Filter & Sort Bar -->
+<div class="flex items-center justify-between gap-space-sm py-2">
+<div class="flex items-center gap-space-xs bg-[#1E1E1E] border border-[#3A3A3A] px-3 py-2 rounded-xl shadow-sm">
+<span class="material-symbols-outlined text-[#A0A0A0] text-[18px]">sort</span>
+<span class="font-caption text-caption font-semibold text-[#A0A0A0]">Sort:</span>
+<span class="font-caption text-caption font-bold text-[#F5F5F5]">Urgency / Wait Time</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="h-9 px-3 rounded-xl bg-[#1E1E1E] border border-[#3A3A3A] hover:bg-[#2A2A2A] transition flex items-center gap-1.5 text-[#A0A0A0] shadow-sm">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+<span class="font-caption text-caption font-semibold text-[#F5F5F5]">Stations</span>
+</button>
+<div class="h-9 px-2.5 rounded-xl bg-[#FF6B4A]/15 border border-[#FF6B4A]/30 text-[#FF6B4A] flex items-center font-caption text-caption font-bold">
+        9 Active
+      </div>
+</div>
+</div>
+<!-- Segmented Status Tabs with Dynamic Visual Feedback -->
+<div class="flex items-center gap-2 overflow-x-auto py-2 no-scrollbar">
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#1E1E1E] border border-[#3A3A3A] text-[#A0A0A0] whitespace-nowrap shadow-sm hover:bg-[#2A2A2A] hover:text-[#F5F5F5] transition">
+<span class="h-2 w-2 rounded-full bg-[#F59E0B]"></span>
+<span class="font-caption text-caption font-semibold">Pending</span>
+<span class="px-1.5 py-0.2 rounded-full bg-[#F59E0B]/20 text-[#F59E0B] font-caption text-[11px] font-bold">3</span>
+</button>
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#3B82F6]/20 border border-[#3B82F6] text-white whitespace-nowrap shadow-md">
+<span class="h-2 w-2 rounded-full bg-[#3B82F6] animate-pulse"></span>
+<span class="font-caption text-caption font-bold">Preparing</span>
+<span class="px-1.5 py-0.2 rounded-full bg-[#3B82F6] text-white font-caption text-[11px] font-bold">6</span>
+</button>
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#1E1E1E] border border-[#3A3A3A] text-[#A0A0A0] whitespace-nowrap shadow-sm hover:bg-[#2A2A2A] hover:text-[#F5F5F5] transition">
+<span class="h-2 w-2 rounded-full bg-[#22C55E]"></span>
+<span class="font-caption text-caption font-semibold">Ready</span>
+<span class="px-1.5 py-0.2 rounded-full bg-[#22C55E]/20 text-[#22C55E] font-caption text-[11px] font-bold">4</span>
+</button>
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#1E1E1E] border border-[#3A3A3A] text-[#A0A0A0] whitespace-nowrap shadow-sm hover:bg-[#2A2A2A] hover:text-[#F5F5F5] transition">
+<span class="h-2 w-2 rounded-full bg-neutral-500"></span>
+<span class="font-caption text-caption font-semibold">Served</span>
+<span class="px-1.5 py-0.2 rounded-full bg-[#2A2A2A] text-[#A0A0A0] font-caption text-[11px] font-bold">28</span>
+</button>
+</div>
+<!-- Order Ticket Stack -->
+<div class="flex flex-col gap-4 mt-2">
+<!-- Card 1: Urgent Wagyu & Lobster Ticket -->
+<div class="rounded-[20px] bg-[#1E1E1E] border border-[#3A3A3A] shadow-lg shadow-black/40 overflow-hidden flex flex-col transition hover:border-[#FF6B4A]/50">
+<!-- Card Top Ribbon -->
+<div class="bg-[#262626] border-b border-[#3A3A3A] px-4 py-3 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-heading-sm text-heading-sm font-bold text-[#F5F5F5] tracking-tight">#AK-4830</span>
+<span class="px-2 py-0.5 rounded-full bg-blue-950/70 border border-blue-800 text-blue-300 font-caption text-[11px] font-bold tracking-wide">DINE-IN</span>
+</div>
+<div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-950/70 border border-amber-800 text-amber-200">
+<span class="material-symbols-outlined text-[15px] text-amber-400 animate-pulse">timer</span>
+<span class="font-caption text-caption font-bold">14m 20s</span>
+<span class="font-caption text-[10px] text-amber-300/70 font-medium">/ 22m</span>
+</div>
+</div>
+<div class="p-4 flex flex-col gap-3.5">
+<!-- Table & Attendant Specs -->
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<div class="w-9 h-9 rounded-xl bg-[#2A2A2A] border border-[#3A3A3A] flex items-center justify-center text-[#F5F5F5]">
+<span class="material-symbols-outlined text-[20px]">table_bar</span>
+</div>
+<div>
+<p class="font-body text-body font-semibold text-[#F5F5F5] leading-tight">Table A-01</p>
+<p class="font-caption text-[12px] text-[#A0A0A0]">Atrium Glasshouse Window • 2 Guests</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-caption text-[11px] uppercase tracking-wider text-[#A0A0A0]">Assigned Server</span>
+<p class="font-caption text-caption font-semibold text-[#F5F5F5]">Bilal K.</p>
+</div>
+</div>
+<!-- Visual Dish Showcase Preview -->
+<div class="grid grid-cols-2 gap-2 pt-1">
+<div class="relative rounded-xl overflow-hidden h-20 bg-[#2A2A2A] border border-[#3A3A3A]">
+<img class="w-full h-full object-cover" data-alt="Exquisite Wagyu ribeye steak with a gleaming dark truffle glaze served on an artisanal dark ceramic plate with micro-greens and culinary steam" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJluz23zkr3maBFfL6UX9wUTrSfngucZ7vZ6uF8wwef8v7USbqSHBpBMiGUEEtKZ7s2FiMEoCUKL4X4haU4THhmhi_CUWh2lNDRd1TUILL6QPkwSN9OtACh7voouCKII1ANvotzcNZkovJ8YqesRBUxjrcTNmU2yCgSsthRDV1mLlHB1dHRLJiQLlBUvxXCO2HNkFIVW60L8ZVHUa5XbSue0m1n6qh0ww20vBmeUe7tfp-QebfVqoB"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex items-end p-2">
+<span class="font-caption text-[11px] font-bold text-white truncate">Wagyu Ribeye</span>
+</div>
+</div>
+<div class="relative rounded-xl overflow-hidden h-20 bg-[#2A2A2A] border border-[#3A3A3A]">
+<img class="w-full h-full object-cover" data-alt="Velvety golden saffron lobster bisque poured gently into a fine dining bowl topped with crispy artisanal brioche tuile and micro herbs" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnrJt1PtoAwmk0z3hX5VAAzPjDOE-sbU7DxdACehYdvKnV-VsslYgja1P0jUNKLHsLwUHjVqoRjUGnCu1THB37p3Hy6uTt84MiPY5weaevicMtsQaqFLh6dLb2LDwKQDi6s2BncY5zaffaxsf2q7jNF7x2Sa1Cyw39003yhcD_J7T2OG91jSNGT3Dqbl87GioaIE_DkadmGE3V5Fy7tIdiWsmFsSR2bXdYLHbtXJqytJiuEhs-haYr"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex items-end p-2">
+<span class="font-caption text-[11px] font-bold text-white truncate">Lobster Bisque</span>
+</div>
+</div>
+</div>
+<!-- Dish Items List -->
+<div class="flex flex-col gap-2.5 pt-1">
+<div class="flex items-start justify-between pb-2 border-b border-[#2A2A2A]">
+<div class="flex items-start gap-2.5">
+<span class="w-5 h-5 rounded-md bg-[#2E2E2E] border border-[#3A3A3A] text-[#F5F5F5] font-caption text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">1x</span>
+<div>
+<p class="font-body text-body font-bold text-[#F5F5F5] leading-snug">Truffle Glazed Wagyu Ribeye</p>
+<p class="font-caption text-caption text-[#A0A0A0] font-medium">Grade A5 • Medium-Rare • Extra truffle jus</p>
+</div>
+</div>
+<span class="font-price text-price text-[#F5F5F5] whitespace-nowrap">Rs. 8,800</span>
+</div>
+<div class="flex items-start justify-between pb-1">
+<div class="flex items-start gap-2.5">
+<span class="w-5 h-5 rounded-md bg-[#2E2E2E] border border-[#3A3A3A] text-[#F5F5F5] font-caption text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">2x</span>
+<div>
+<p class="font-body text-body font-bold text-[#F5F5F5] leading-snug">Saffron Infused Lobster Bisque</p>
+<p class="font-caption text-caption text-[#A0A0A0] font-medium">Warm brioche tuile • Single bowl service</p>
+</div>
+</div>
+<span class="font-price text-price text-[#F5F5F5] whitespace-nowrap">Rs. 2,900</span>
+</div>
+</div>
+<!-- Kitchen Attention Callout -->
+<div class="p-3 rounded-xl bg-amber-950/40 border border-amber-800/60 flex items-start gap-2 text-amber-200">
+<span class="material-symbols-outlined text-amber-400 text-[20px] shrink-0 mt-0.5">stars</span>
+<div>
+<span class="font-caption text-[11px] font-bold uppercase tracking-wider text-amber-300 block">Chef Special Note</span>
+<p class="font-caption text-caption leading-relaxed font-semibold text-amber-100">Guest celebrating anniversary. Plating gold leaf on ribeye requested.</p>
+</div>
+</div>
+<!-- Expeditor Action Primary Button -->
+<button class="w-full h-[52px] rounded-[14px] bg-[#FF6B4A] hover:bg-[#ff7d5f] active:scale-[0.99] text-white font-button text-button shadow-lg shadow-[#FF6B4A]/25 flex items-center justify-center gap-2 transition cursor-pointer font-bold">
+<span class="material-symbols-outlined text-[20px]">room_service</span>
+<span>Mark Ready for Expeditor</span>
+</button>
+</div>
+</div>
+<!-- Card 2: Chef's Counter Booth Ticket -->
+<div class="rounded-[20px] bg-[#1E1E1E] border border-[#3A3A3A] shadow-lg shadow-black/40 overflow-hidden flex flex-col transition hover:border-[#FF6B4A]/50">
+<div class="bg-[#262626] border-b border-[#3A3A3A] px-4 py-3 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-heading-sm text-heading-sm font-bold text-[#F5F5F5] tracking-tight">#AK-4833</span>
+<span class="px-2 py-0.5 rounded-full bg-blue-950/70 border border-blue-800 text-blue-300 font-caption text-[11px] font-bold tracking-wide">DINE-IN</span>
+</div>
+<div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#2A2A2A] border border-[#3A3A3A] text-[#F5F5F5]">
+<span class="material-symbols-outlined text-[15px] text-[#A0A0A0]">timer</span>
+<span class="font-caption text-caption font-bold">8m 45s</span>
+<span class="font-caption text-[10px] text-[#A0A0A0] font-medium">/ 25m</span>
+</div>
+</div>
+<div class="p-4 flex flex-col gap-3.5">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<div class="w-9 h-9 rounded-xl bg-[#2A2A2A] border border-[#3A3A3A] flex items-center justify-center text-[#F5F5F5]">
+<span class="material-symbols-outlined text-[20px]">soup_kitchen</span>
+</div>
+<div>
+<p class="font-body text-body font-semibold text-[#F5F5F5] leading-tight">Table C-03</p>
+<p class="font-caption text-[12px] text-[#A0A0A0]">Chef's Counter Booth • 4 Guests</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-caption text-[11px] uppercase tracking-wider text-[#A0A0A0]">Assigned Server</span>
+<p class="font-caption text-caption font-semibold text-[#F5F5F5]">Mariam S.</p>
+</div>
+</div>
+<!-- Food preview banner -->
+<div class="relative rounded-xl overflow-hidden h-24 bg-[#2A2A2A] border border-[#3A3A3A]">
+<img class="w-full h-full object-cover" data-alt="Moroccan style slow-braised lamb shank tagine with glazed pomegranate seeds, toasted almonds, and fragrant wild herbs plated in a traditional ceramic vessel" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCk_awiwGZjMSipSss6WsEIIlEASROZYZBBgyDE7qJA4zde5yVEepgiV2i_FWenKVNxF0YnMq1jQDFWHq7Pp4T1cHQe4bBDXSy7mU6Dfgjt-RNJXRH8NZgEmx5HDAjv2a2VJrIfmW4jYcJqlgGFPCN0LMn7cKJE0XbXdd2G7PAji9UB8UmyTYPOmLWIYSCqycEI8a64ZMGNLHH-ziv64bm0WRlvZkpbKIjAcbwb6LrI_HQkI9XHYSQi"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex items-end justify-between p-2.5">
+<span class="font-caption text-caption font-bold text-white">Lamb Shank Tagine x2 In Preparation</span>
+<span class="px-2 py-0.5 rounded-full bg-blue-600 text-white font-caption text-[10px] font-bold">Main Station</span>
+</div>
+</div>
+<!-- Item list -->
+<div class="flex flex-col gap-2.5 pt-1">
+<div class="flex items-start justify-between pb-2 border-b border-[#2A2A2A]">
+<div class="flex items-start gap-2.5">
+<span class="w-5 h-5 rounded-md bg-[#2E2E2E] border border-[#3A3A3A] text-[#F5F5F5] font-caption text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">2x</span>
+<div>
+<p class="font-body text-body font-bold text-[#F5F5F5] leading-snug">Slow-Braised Lamb Shank Tagine</p>
+<p class="font-caption text-caption text-[#A0A0A0] font-medium">Pomegranate reduction • Couscous pearl pilaf</p>
+</div>
+</div>
+<span class="font-price text-price text-[#F5F5F5] whitespace-nowrap">Rs. 6,400</span>
+</div>
+<div class="flex items-start justify-between pb-1">
+<div class="flex items-start gap-2.5">
+<span class="w-5 h-5 rounded-md bg-[#2E2E2E] border border-[#3A3A3A] text-[#F5F5F5] font-caption text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">1x</span>
+<div>
+<p class="font-body text-body font-bold text-[#F5F5F5] leading-snug">Wild Atlantic Halibut en Papillote</p>
+<p class="font-caption text-caption text-[#A0A0A0] font-medium">Fennel pollen • Braised leeks</p>
+</div>
+</div>
+<span class="font-price text-price text-[#F5F5F5] whitespace-nowrap">Rs. 2,950</span>
+</div>
+</div>
+<!-- Allergy Alert Callout -->
+<div class="p-3 rounded-xl bg-red-950/40 border border-red-800/70 flex items-start gap-2 text-red-200">
+<span class="material-symbols-outlined text-red-400 text-[20px] shrink-0 mt-0.5">warning</span>
+<div>
+<span class="font-caption text-[11px] font-bold uppercase tracking-wider text-red-300 block">Allergy Critical</span>
+<p class="font-caption text-caption leading-relaxed font-semibold text-red-100">Shellfish allergy noted for Guest 2. Dedicated sauté pan required.</p>
+</div>
+</div>
+<button class="w-full h-[52px] rounded-[14px] bg-[#FF6B4A] hover:bg-[#ff7d5f] active:scale-[0.99] text-white font-button text-button shadow-lg shadow-[#FF6B4A]/25 flex items-center justify-center gap-2 transition cursor-pointer font-bold">
+<span class="material-symbols-outlined text-[20px]">room_service</span>
+<span>Mark Ready for Expeditor</span>
+</button>
+</div>
+</div>
+<!-- Card 3: Takeaway Artisan Boxed Order -->
+<div class="rounded-[20px] bg-[#1E1E1E] border border-[#3A3A3A] shadow-lg shadow-black/40 overflow-hidden flex flex-col transition hover:border-[#FF6B4A]/50">
+<div class="bg-[#262626] border-b border-[#3A3A3A] px-4 py-3 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-heading-sm text-heading-sm font-bold text-[#F5F5F5] tracking-tight">#AK-4835</span>
+<span class="px-2 py-0.5 rounded-full bg-amber-950/70 border border-amber-800 text-amber-300 font-caption text-[11px] font-bold tracking-wide">TAKEAWAY • ARTISAN BOX</span>
+</div>
+<div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#2A2A2A] border border-[#3A3A3A] text-[#F5F5F5]">
+<span class="material-symbols-outlined text-[15px] text-[#A0A0A0]">timer</span>
+<span class="font-caption text-caption font-bold">3m 10s</span>
+</div>
+</div>
+<div class="p-4 flex flex-col gap-3.5">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<div class="w-9 h-9 rounded-xl bg-[#2A2A2A] border border-[#3A3A3A] flex items-center justify-center text-[#F5F5F5]">
+<span class="material-symbols-outlined text-[20px]">shopping_bag</span>
+</div>
+<div>
+<p class="font-body text-body font-semibold text-[#F5F5F5] leading-tight">Farooq A.</p>
+<p class="font-caption text-[12px] text-[#A0A0A0]">Curbside Pickup Scheduled • 20:15</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-caption text-[11px] uppercase tracking-wider text-[#A0A0A0]">Packaging</span>
+<p class="font-caption text-caption font-semibold text-emerald-400">Thermal Seal Box</p>
+</div>
+</div>
+<!-- Dessert preview -->
+<div class="relative rounded-xl overflow-hidden h-20 bg-[#2A2A2A] border border-[#3A3A3A]">
+<img class="w-full h-full object-cover" data-alt="Decadent crisp layered saffron and pistachio mille-feuille with white cream rosettes dusted with fine matcha and crushed Iranian pistachios" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8a6jGvRryZFKBejWTEgn-PlkonSH6vspibJmW8lf6206xUO2Ko3vtP3mxK5ChAhCLyklXFJbUY2nC9z7xa4NAwddpLJa1Es9fOspOfW_OJ6WmaEavX6nXvsU3bOm7WrtniJWKK09YBVauFrtd9bfHfLx-OnhCl3owM4dchXVnRLDBzYvdaVtJH24e0jRZf9Ha8ELpZ4FXGv2GM2iJ6V7EmOB934Bh_p0uLThDJFxgHFe1FYQLzPDE"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex items-end p-2">
+<span class="font-caption text-[11px] font-bold text-white">Pastry Station: Desserts &amp; Beverages</span>
+</div>
+</div>
+<!-- Item list -->
+<div class="flex flex-col gap-2 pt-1">
+<div class="flex items-start justify-between pb-2 border-b border-[#2A2A2A]">
+<div class="flex items-start gap-2.5">
+<span class="w-5 h-5 rounded-md bg-[#2E2E2E] border border-[#3A3A3A] text-[#F5F5F5] font-caption text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">2x</span>
+<p class="font-body text-body font-medium text-[#F5F5F5] leading-snug">Saffron &amp; Pistachio Mille-Feuille</p>
+</div>
+<span class="font-price text-price text-[#F5F5F5] whitespace-nowrap">Rs. 1,800</span>
+</div>
+<div class="flex items-start justify-between">
+<div class="flex items-start gap-2.5">
+<span class="w-5 h-5 rounded-md bg-[#2E2E2E] border border-[#3A3A3A] text-[#F5F5F5] font-caption text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">1x</span>
+<p class="font-body text-body font-medium text-[#F5F5F5] leading-snug">Kyoto Ceremonial Matcha Latte (Iced Oat)</p>
+</div>
+<span class="font-price text-price text-[#F5F5F5] whitespace-nowrap">Rs. 850</span>
+</div>
+</div>
+<!-- Pending State Action Button -->
+<button class="w-full h-[52px] rounded-[14px] bg-[#FF6B4A] hover:bg-[#ff7d5f] active:scale-[0.99] text-white font-button text-button shadow-lg shadow-[#FF6B4A]/25 flex items-center justify-center gap-2 transition cursor-pointer font-bold">
+<span class="material-symbols-outlined text-[20px]">local_fire_department</span>
+<span>Start Preparing</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+    // Micro-interaction for sync refresh
+    const refreshBtn = document.getElementById('refreshBtn');
+    const refreshIcon = document.getElementById('refreshIcon');
+    if (refreshBtn && refreshIcon) {
+      refreshBtn.addEventListener('click', () => {
+        refreshIcon.classList.add('rotate-180');
+        setTimeout(() => {
+          refreshIcon.classList.remove('rotate-180');
+        }, 500);
+      });
+    }
+  </script>
+</div></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-[#181818]/95 backdrop-blur-xl border-t border-[#3A3A3A] shadow-2xl" data-active-classes="text-[#FF6B4A] font-semibold"><div class="flex items-center justify-between h-16 px-space-xs"><a class="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] min-w-[44px] text-[#A0A0A0] hover:text-[#F5F5F5] transition-colors relative" data-path="overview" href="#"><span class="material-symbols-outlined text-[24px]">dashboard</span><span class="font-caption text-[11px] mt-0.5">Overview</span></a><a aria-current="page" class="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] min-w-[44px] transition-colors relative text-[#FF6B4A] font-semibold" data-path="orders" href="#"><div class="relative flex items-center justify-center"><span class="material-symbols-outlined text-[24px]">receipt_long</span><span class="absolute -top-1 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-[#FF6B4A] text-white font-caption text-[10px] font-bold flex items-center justify-center leading-none">4</span></div><span class="font-caption text-[11px] mt-0.5">Orders</span></a><a class="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] min-w-[44px] text-[#A0A0A0] hover:text-[#F5F5F5] transition-colors relative" data-path="tables" href="#"><div class="relative flex items-center justify-center"><span class="material-symbols-outlined text-[24px]">table_restaurant</span><span class="absolute -top-1 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-[#56D9D8] text-[#003736] font-caption text-[10px] font-bold flex items-center justify-center leading-none">2</span></div><span class="font-caption text-[11px] mt-0.5">Tables</span></a><a class="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] min-w-[44px] text-[#A0A0A0] hover:text-[#F5F5F5] transition-colors relative" data-path="menu" href="#"><span class="material-symbols-outlined text-[24px]">menu_book</span><span class="font-caption text-[11px] mt-0.5">Menu</span></a><a class="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] min-w-[44px] text-[#A0A0A0] hover:text-[#F5F5F5] transition-colors relative" data-path="team" href="#"><span class="material-symbols-outlined text-[24px]">groups</span><span class="font-caption text-[11px] mt-0.5">Team</span></a></div></nav></body></html>

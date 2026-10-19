@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phone OTP - Light Mode</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f9fa;
+      -webkit-font-smoothing: antialiased;
+    }
+    .serif-brand {
+      font-family: 'Playfair Display', serif;
+    }
+  </style>
+</head>
+<body class="bg-[#f8f9fa] text-[#1e1e1e] min-h-[844px] w-[390px] mx-auto flex flex-col justify-between relative shadow-2xl overflow-hidden">
+
+  <!-- TOP APP BAR -->
+  <div class="pt-10 pb-3 px-5 flex items-center justify-between border-b border-gray-100 bg-white">
+    <button class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+    </button>
+    <div class="text-center">
+      <span class="text-xs font-semibold uppercase tracking-[0.18em] text-[#fc5834]">Authentication</span>
+      <h2 class="text-sm font-bold text-gray-900">Phone Verification</h2>
+    </div>
+    <div class="w-10 h-10"></div>
+  </div>
+
+  <!-- MAIN OTP CONTENT CONTAINER -->
+  <div class="flex-1 px-5 py-6 flex flex-col justify-between">
+    
+    <!-- AUTH CARD -->
+    <div class="bg-white rounded-[24px] p-6 shadow-xl shadow-black/5 border border-gray-100 flex flex-col items-center text-center">
+      
+      <!-- ICON BADGE (CARD WITH PHONE ICON) -->
+      <div class="w-16 h-16 rounded-2xl bg-[#ffede8] text-[#fc5834] flex items-center justify-center mb-5 shadow-sm">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+      </div>
+
+      <!-- HEADLINE & TEXT -->
+      <h3 class="text-xl font-bold text-gray-900 mb-2">
+        Enter the 4-digit code
+      </h3>
+      <p class="text-xs text-gray-500 leading-relaxed max-w-[270px] mb-1">
+        We have transmitted a secure verification passkey to your primary line:
+      </p>
+      
+      <!-- PHONE NUMBER WITH CHANGE NUMBER LINK -->
+      <div class="flex items-center gap-2 mb-6">
+        <span class="text-sm font-semibold text-gray-800">+92 300 8472910</span>
+        <span class="text-gray-300">•</span>
+        <a href="#" class="text-xs font-bold text-[#fc5834] hover:underline">
+          Change number
+        </a>
+      </div>
+
+      <!-- 4 SEPARATE CODE BOXES -->
+      <div class="flex items-center justify-center gap-3.5 mb-5 w-full">
+        <!-- Box 1 (Filled) -->
+        <div class="w-14 h-16 rounded-xl border-2 border-[#fc5834] bg-white flex items-center justify-center text-2xl font-bold text-gray-900 shadow-sm shadow-[#fc5834]/15">
+          5
+        </div>
+        <!-- Box 2 (Filled) -->
+        <div class="w-14 h-16 rounded-xl border-2 border-[#fc5834] bg-white flex items-center justify-center text-2xl font-bold text-gray-900 shadow-sm shadow-[#fc5834]/15">
+          8
+        </div>
+        <!-- Box 3 (Active / Focused cursor) -->
+        <div class="w-14 h-16 rounded-xl border-2 border-[#fc5834] bg-[#fffaf8] flex items-center justify-center text-2xl font-bold text-[#fc5834] relative shadow-sm">
+          <span class="w-0.5 h-7 bg-[#fc5834] animate-pulse"></span>
+        </div>
+        <!-- Box 4 (Empty) -->
+        <div class="w-14 h-16 rounded-xl border border-gray-200 bg-[#f9fafb] flex items-center justify-center text-2xl font-bold text-gray-300">
+          -
+        </div>
+      </div>
+
+      <!-- HINTS & TIMERS -->
+      <div class="w-full flex items-center justify-between text-xs px-2 mb-6">
+        <!-- Resend timer -->
+        <div class="flex items-center gap-1.5 text-gray-500 font-medium">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Resend in <strong class="text-gray-800 font-semibold">0:30</strong></span>
+        </div>
+
+        <!-- 2 attempts left hint -->
+        <div class="flex items-center gap-1 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full font-medium">
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>2 attempts left</span>
+        </div>
+      </div>
+
+      <!-- VERIFY BUTTON (LARGE PRIMARY) -->
+      <button class="w-full py-3.5 bg-[#fc5834] hover:bg-[#e04a27] text-white font-semibold text-base rounded-xl shadow-lg shadow-[#fc5834]/30 active:scale-[0.99] transition-all flex items-center justify-center gap-2">
+        <span>Verify &amp; Continue</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </button>
+
+      <!-- SECURITY NOTE -->
+      <div class="flex items-center gap-2 mt-4 text-[11px] text-gray-400">
+        <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        <span>Encrypted SMS Token • Two-Factor Verified</span>
+      </div>
+
+    </div>
+
+    <!-- DIAL PAD / KEYPAD SIMULATION FOR AUTHENTIC MOBILE LOOK -->
+    <div class="mt-4 pt-2 pb-1">
+      <div class="grid grid-cols-3 gap-y-3 gap-x-4 max-w-[300px] mx-auto text-center">
+        <div class="py-2.5 rounded-xl font-bold text-lg text-gray-800 hover:bg-gray-200/50 cursor-pointer">1</div>
+        <div class="py-2.5 rounded-xl font-bold text-lg text-gray-800 hover:bg-gray-200/50 cursor-pointer">2</div>
+        <div class="py-2.5 rounded-xl font-bold text-lg text-gray-800 hover:bg-gray-200/50 cursor-pointer">3</div>
+        <div class="py-2.5 rounded-xl font-bold text-lg text-gray-800 hover:bg-gray-200/50 cursor-pointer">4</div>
+        <div class="py-2.5 rounded-xl font-bold text-lg text-gray-800 hover:bg-gray-200/50 cursor-pointer">5</div>
+        <div class="py-2.5 rounded-xl font-bold text-lg text-gray-800 hover:bg-gray-200/50 cursor-pointer">6</div>
+        <div class="py-2.5 rounded-xl font-bold text-lg text-gray-800 hover:bg-gray-200/50 cursor-pointer">7</div>
+        <div class="py-2.5 rounded-xl font-bold text-lg text-gray-800 hover:bg-gray-200/50 cursor-pointer">8</div>
+        <div class="py-2.5 rounded-xl font-bold text-lg text-gray-800 hover:bg-gray-200/50 cursor-pointer">9</div>
+        <div></div>
+        <div class="py-2.5 rounded-xl font-bold text-lg text-gray-800 hover:bg-gray-200/50 cursor-pointer">0</div>
+        <div class="py-2.5 flex items-center justify-center text-gray-600 hover:bg-gray-200/50 rounded-xl cursor-pointer">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-7.172a2 2 0 00-1.414.586L3 12z" />
+          </svg>
+        </div>
+      </div>
+      <!-- Home bar indicator -->
+      <div class="w-32 h-1 bg-gray-300 rounded-full mx-auto mt-4"></div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Profile - Light Mode</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f9fa;
+      -webkit-font-smoothing: antialiased;
+    }
+    .serif-brand {
+      font-family: 'Playfair Display', serif;
+    }
+    .profile-gradient {
+      background: linear-gradient(135deg, #fc5834 0%, #e03816 60%, #b22301 100%);
+    }
+  </style>
+</head>
+<body class="bg-[#f8f9fa] text-[#1e1e1e] min-h-[844px] w-[390px] mx-auto flex flex-col justify-between relative shadow-2xl overflow-x-hidden">
+
+  <!-- TOP HEADER BAR -->
+  <div class="pt-10 pb-3 px-5 flex items-center justify-between border-b border-gray-100 bg-white">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-[#fc5834] text-white flex items-center justify-center font-serif font-bold text-sm">
+        A
+      </div>
+      <div>
+        <span class="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">Dining Account</span>
+        <h2 class="text-sm font-bold text-gray-900 leading-tight">Customer Profile</h2>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- SCROLLABLE BODY CONTENT -->
+  <div class="flex-1 px-5 py-4 overflow-y-auto space-y-4 pb-24">
+    
+    <!-- GRADIENT MEMBERSHIP-STYLE HEADER CARD -->
+    <div class="profile-gradient rounded-[24px] p-5 text-white shadow-xl shadow-[#fc5834]/25 relative overflow-hidden">
+      <!-- Ambient watermark pattern -->
+      <div class="absolute -right-6 -bottom-6 w-36 h-36 rounded-full bg-white/10 pointer-events-none"></div>
+
+      <div class="flex items-center gap-4 relative z-10">
+        <!-- Avatar with active halo -->
+        <div class="relative shrink-0">
+          <div class="w-16 h-16 rounded-full bg-white/20 border-2 border-white shadow-md flex items-center justify-center text-white font-bold text-xl backdrop-blur-sm">
+            ZM
+          </div>
+          <span class="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
+        </div>
+
+        <!-- Identity and badge -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-0.5">
+            <h3 class="text-lg font-bold text-white truncate">Zainab Malik</h3>
+            <!-- ROLE BADGE: "Customer" -->
+            <span class="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border border-white/30">
+              Customer
+            </span>
+          </div>
+          <p class="text-xs text-white/80 truncate mb-2">zainab.malik@aurahospitality.pk</p>
+          
+          <div class="flex items-center gap-2">
+            <span class="bg-black/20 text-white/95 text-[11px] font-semibold px-2.5 py-0.5 rounded-md flex items-center gap-1">
+              <svg class="w-3 h-3 text-amber-300 fill-amber-300" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              Connoisseur Tier 1
+            </span>
+            <span class="text-[11px] text-white/70">12 Visits</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIST ROWS CONTAINER -->
+    <div class="bg-white rounded-[20px] shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-100">
+      
+      <!-- ROW 1: PERSONAL INFORMATION -->
+      <a href="#" class="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+        <div class="flex items-center gap-3.5">
+          <div class="w-10 h-10 rounded-xl bg-gray-50 text-gray-700 flex items-center justify-center border border-gray-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7 7z" />
+            </svg>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-gray-900 leading-tight">Personal information</h4>
+            <p class="text-[11px] text-gray-500">Contact, address &amp; dietary notes</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </a>
+
+      <!-- ROW 2: MY ORDERS -->
+      <a href="#" class="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+        <div class="flex items-center gap-3.5">
+          <div class="w-10 h-10 rounded-xl bg-gray-50 text-gray-700 flex items-center justify-center border border-gray-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-gray-900 leading-tight">My orders</h4>
+            <p class="text-[11px] text-gray-500">Live kitchen receipts &amp; order history</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="bg-[#ffede8] text-[#fc5834] text-[11px] font-bold px-2 py-0.5 rounded-full">
+            2 active
+          </span>
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </a>
+
+      <!-- ROW 3: TABLE RESERVATIONS -->
+      <a href="#" class="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+        <div class="flex items-center gap-3.5">
+          <div class="w-10 h-10 rounded-xl bg-gray-50 text-gray-700 flex items-center justify-center border border-gray-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-gray-900 leading-tight">Table reservations</h4>
+            <p class="text-[11px] text-gray-500">Upcoming dining &amp; bookings</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+            Today 2:30 PM
+          </span>
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </a>
+
+      <!-- ROW 4: APPEARANCE (SWITCH FOR DARK MODE) -->
+      <div class="flex items-center justify-between p-4">
+        <div class="flex items-center gap-3.5">
+          <div class="w-10 h-10 rounded-xl bg-gray-50 text-gray-700 flex items-center justify-center border border-gray-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-gray-900 leading-tight">Appearance</h4>
+            <p class="text-[11px] text-gray-500">Ambient night mode theme</p>
+          </div>
+        </div>
+        <!-- TOGGLE SWITCH (OFF / LIGHT MODE DEFAULT) -->
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" value="" class="sr-only peer">
+          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#fc5834]"></div>
+        </label>
+      </div>
+
+      <!-- ROW 5: LOG OUT -->
+      <a href="#" class="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors group">
+        <div class="flex items-center gap-3.5">
+          <div class="w-10 h-10 rounded-xl bg-gray-50 text-gray-700 group-hover:text-red-600 flex items-center justify-center border border-gray-100 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-gray-900 group-hover:text-red-600 transition-colors leading-tight">Log out</h4>
+            <p class="text-[11px] text-gray-500">Sign out of this session</p>
+          </div>
+        </div>
+        <div>
+          <svg class="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- SMALL "DELETE ACCOUNT" TEXT LINK AT THE BOTTOM -->
+    <div class="text-center pt-2">
+      <a href="#" class="text-xs font-semibold text-red-500 hover:text-red-700 hover:underline">
+        Delete account
+      </a>
+      <p class="text-[10px] text-gray-400 mt-1">AURA Fine Dining Hospitality • Lahore Flagship</p>
+    </div>
+
+  </div>
+
+  <!-- PERSISTENT CUSTOMER 5-TAB BAR (PROFILE ACTIVE) -->
+  <div class="w-full bg-white border-t border-gray-200/90 py-2.5 px-4 flex items-center justify-between relative shadow-lg z-20">
+    <!-- Menu -->
+    <a href="#" class="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-800 transition-colors w-14">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+      </svg>
+      <span class="text-[10px] font-semibold">Menu</span>
+    </a>
+
+    <!-- Reserve -->
+    <a href="#" class="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-800 transition-colors w-14">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+      <span class="text-[10px] font-semibold">Reserve</span>
+    </a>
+
+    <!-- Center Floating Tray CTA -->
+    <div class="relative -top-5 flex flex-col items-center">
+      <div class="w-13 h-13 p-3.5 rounded-full bg-[#fc5834] text-white shadow-lg shadow-[#fc5834]/40 flex items-center justify-center relative cursor-pointer active:scale-95 transition-transform">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+        </svg>
+        <span class="absolute -top-1 -right-1 w-5 h-5 bg-black text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+          2
+        </span>
+      </div>
+      <span class="text-[10px] font-semibold text-gray-500 mt-1">Tray</span>
+    </div>
+
+    <!-- Track -->
+    <a href="#" class="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-800 transition-colors w-14">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span class="text-[10px] font-semibold">Track</span>
+    </a>
+
+    <!-- Profile (ACTIVE TAB) -->
+    <a href="#" class="flex flex-col items-center gap-1 text-[#fc5834] transition-colors w-14">
+      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path fill-rule="evenodd" d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" clip-rule="evenodd" />
+      </svg>
+      <span class="text-[10px] font-bold">Profile</span>
+    </a>
+  </div>
+
+</body>
+</html>

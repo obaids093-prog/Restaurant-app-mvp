@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splash - Light Mode</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #fc5834;
+      -webkit-font-smoothing: antialiased;
+    }
+    .serif-brand {
+      font-family: 'Playfair Display', serif;
+    }
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 0.35; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.08); }
+    }
+    .pulse-glow {
+      animation: pulse-slow 3s ease-in-out infinite;
+    }
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin-slow {
+      animation: spin-slow 2s linear infinite;
+    }
+  </style>
+</head>
+<body class="bg-[#fc5834] text-white flex flex-col items-center justify-between min-h-[844px] w-[390px] mx-auto relative overflow-hidden select-none">
+
+  <!-- Subtle Ambient Glow Rings in Background -->
+  <div class="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
+  <div class="absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-black/10 blur-3xl pointer-events-none"></div>
+
+  <!-- Top Status bar placeholder for realistic mobile viewport -->
+  <div class="w-full pt-4 px-7 flex items-center justify-between text-xs font-semibold tracking-wider text-white/90 z-10">
+    <span>9:41</span>
+    <div class="flex items-center gap-2">
+      <!-- Signal -->
+      <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9zm0 2c3.87 0 7 3.13 7 7 0 1.57-.52 3.01-1.39 4.19L12 19.34l-5.61-3.15C5.52 15.01 5 13.57 5 12c0-3.87 3.13-7 7-7z" opacity="0"/></svg>
+      <div class="flex gap-0.5 items-end h-3">
+        <span class="w-1 h-1.5 bg-white rounded-xs"></span>
+        <span class="w-1 h-2 bg-white rounded-xs"></span>
+        <span class="w-1 h-2.5 bg-white rounded-xs"></span>
+        <span class="w-1 h-3 bg-white rounded-xs"></span>
+      </div>
+      <!-- Battery -->
+      <div class="w-5 h-2.5 border border-white/90 rounded-sm p-0.5 flex items-center">
+        <div class="h-full w-full bg-white rounded-2xs"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center Branding Area -->
+  <div class="flex-1 flex flex-col items-center justify-center text-center px-8 z-10 -mt-8">
+    
+    <!-- Geometric Artisan Kitchen Monogram / Emblem -->
+    <div class="relative w-24 h-24 mb-7 flex items-center justify-center">
+      <div class="absolute inset-0 rounded-3xl bg-white/15 backdrop-blur-md border border-white/30 rotate-6 pulse-glow"></div>
+      <div class="relative w-20 h-20 rounded-2xl bg-white text-[#fc5834] flex items-center justify-center shadow-2xl shadow-black/20">
+        <!-- Botanical Cloche / Flame Emblem SVG -->
+        <svg class="w-11 h-11" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M24 6v4" />
+          <path d="M10 28c0-7.732 6.268-14 14-14s14 6.268 14 14H10z" stroke-width="2.5" />
+          <path d="M8 32h32" stroke-width="2.5" />
+          <path d="M12 36h24" stroke-width="2.5" />
+          <circle cx="24" cy="6" r="2" fill="currentColor" />
+          <path d="M21 21c1.5-1.5 2.5-1.5 3-3 .5 1.5 1.5 1.5 3 3" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- Centred AURA Wordmark -->
+    <h1 class="serif-brand text-5xl font-bold tracking-[0.22em] text-white uppercase mb-2 pl-2 drop-shadow-sm">
+      AURA
+    </h1>
+
+    <!-- Sub-brand Tagline -->
+    <p class="text-[13px] font-medium tracking-[0.16em] uppercase text-white/90 max-w-[260px] leading-relaxed">
+      Artisan Kitchen &amp; Modern Botanica
+    </p>
+
+    <div class="flex items-center gap-2 mt-5">
+      <span class="h-px w-6 bg-white/40"></span>
+      <span class="text-[11px] font-semibold tracking-widest text-white/70 uppercase">Lahore • Islamabad</span>
+      <span class="h-px w-6 bg-white/40"></span>
+    </div>
+  </div>
+
+  <!-- Bottom Indicator Section -->
+  <div class="w-full pb-10 px-8 flex flex-col items-center justify-center z-10">
+    <!-- Subtle Loading Indicator -->
+    <div class="flex items-center gap-3 bg-black/10 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/15">
+      <svg class="w-4 h-4 text-white animate-spin-slow" viewBox="0 0 24 24" fill="none">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+        <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span class="text-xs font-medium tracking-wide text-white/90">Preparing artisan experience...</span>
+    </div>
+
+    <p class="text-[10px] text-white/60 tracking-wider mt-4 font-normal">
+      v2.4.1 Fine Dining Edition • Licensed Hospitality
+    </p>
+
+    <!-- iOS Home Bar Indicator -->
+    <div class="w-32 h-1 bg-white/40 rounded-full mt-4"></div>
+  </div>
+
+</body>
+</html>

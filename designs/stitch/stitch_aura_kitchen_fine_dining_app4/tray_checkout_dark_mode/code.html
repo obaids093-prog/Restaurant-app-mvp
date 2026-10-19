@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><title>AURA Artisan Kitchen</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100%;margin:0;padding:0;background-color:#121212;}body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,20px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "background": "#121212", "surface": "#121212", "card": "#1E1E1E", "surface-border": "#3A3A3A", "primary": "#FF6B4A", "primary-container": "#e05333", "on-primary": "#ffffff", "on-surface": "#F5F5F5", "text-muted": "#A0A0A0", "stepper": "#282828", "tab-bar": "#181818", "tab-border": "#2A2A2A" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin": "1.25rem", "space-xs": "0.25rem", "space-sm": "0.5rem", "gutter": "1rem", "space-md": "1rem", "space-xl": "2rem", "space-lg": "1.25rem" }, "fontFamily": { "heading-sm": ["Plus Jakarta Sans"], "button": ["Plus Jakarta Sans"], "heading-lg": ["Plus Jakarta Sans"], "display": ["Plus Jakarta Sans"], "body": ["Plus Jakarta Sans"], "caption": ["Plus Jakarta Sans"], "price": ["Plus Jakarta Sans"] }, "fontSize": { "heading-sm": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "button": ["16px", { "lineHeight": "20px", "fontWeight": "600" }], "heading-lg": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "display": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }], "body": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "caption": ["13px", { "lineHeight": "18px", "fontWeight": "400" }], "price": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "700" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head><body class="bg-[#121212] font-body text-body text-[#F5F5F5] antialiased flex flex-col min-h-screen selection:bg-[#FF6B4A]/20"><header class="fixed top-0 w-full z-50 pt-safe bg-[#121212]/90 backdrop-blur-xl border-b border-[#3A3A3A]/60 shadow-[0_1px_12px_rgba(0,0,0,0.5)]"><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-sm"><img alt="AURA Artisan Kitchen Logo" class="h-8 w-auto object-contain brightness-95 contrast-125" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChzxCJX5UVkSbP-HIiZjrVyZEw8AP7jxSZL7mcu8ear-qaFrM9PX3aTSC6W3hYgEl1iJahgjg6HASIpkokNPfe5ipn7BINfHT0v6I_lPYky5fqXhQPGSvOhCUw_zulNVWv4_5Jz7Wf_RUbZeO0meZuvMBAm4VN45XLNp53oj4SYfwPbD4lX6nkBoYyrKu2a8F-Vz6s9Yr9bW8IOxXU9PYZNUb4i3UrNj8XXh_85KbzPEG6fpYkPtrJ"/><span class="font-heading-sm text-heading-sm tracking-tight text-[#F5F5F5]">AURA</span></div><div class="flex items-center gap-space-sm"><span class="hidden sm:inline font-caption text-caption text-[#A0A0A0] font-semibold uppercase tracking-wider">Tray Checkout</span><div class="w-11 h-11 flex items-center justify-center rounded-full bg-[#1E1E1E] border border-[#3A3A3A]"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuArMCKrwDsWb8r0qq9B1gnS7vDv6AkFLm5WuBsR8rieEBr7uCLtSMn95_nMac36xT7NGiSWY58_wLJrbzdvb_3FR1iqTPesYqNza5GNHERz7449f8F1pw39JfWOjEny7KP0JCmyaljdzb3iejlw1TCqedZVUQW4CjAtykkR7KbmmQEb-c5HrmcWCURR4u20wVDXvAyETSwS73r4vbhzQnCLODSQV0kPYpHCdFXA-bTY0PI0LbTkXAWP"/></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-28 bg-[#121212]"><div class="flex flex-col w-full pb-8">
+<!-- Sub-Header Status & Context Bar -->
+<section class="px-margin pt-4 pb-2 flex items-center justify-between">
+<div class="flex items-baseline gap-space-xs">
+<h1 class="font-heading-lg text-heading-lg text-[#F5F5F5] tracking-tight">My Tray</h1>
+<span class="font-caption text-caption text-[#A0A0A0] font-semibold" id="tray-item-counter">(3 items)</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1E1E1E] border border-[#3A3A3A] text-[#F5F5F5]">
+<span class="material-symbols-outlined text-[16px] text-[#FF6B4A]">table_restaurant</span>
+<span class="font-caption text-caption font-semibold tracking-tight">Dine-in (Table A-01)</span>
+</div>
+</section>
+<!-- Items Tray List -->
+<section class="px-margin flex flex-col gap-3 mt-2" id="tray-list-container">
+<!-- Item 1: Truffle Glazed Wagyu Ribeye -->
+<article class="bg-[#1E1E1E] border border-[#3A3A3A] rounded-[20px] p-4 shadow-lg flex flex-col gap-3">
+<div class="flex gap-3 items-start">
+<img class="w-20 h-20 rounded-xl object-cover shrink-0 border border-[#3A3A3A]" data-alt="Exquisite pan-seared wagyu ribeye glazed with dark truffle jus, sliced delicately on custom dark matte ceramic plate with herb garnish, warm ambient fine dining soft lighting, high contrast gastronomic photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuACtnmp5X6ikEHHJT_brc-YnOlohOk6R7zWRW9xR3uc4pRNmMqn2got-6n9bJgPO16Z3_cjqEPx3UCnDrvCgkwb80gOiHNb3InzPJ7LYRAC5NYLpXKwAmzfGmSxVM2rvbN8WYCY6X3tVfrt73SC1u_hB7Qmj-meGuBIaTPcQy8RmXwn2vnvmt4wCcQVaoImlEern_eLuZGV1jkHQ1zFIsk1rnEQgkt0V7hj1pjEwJKbWZYHUo3-_4gV"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-start justify-between gap-1">
+<h2 class="font-heading-sm text-heading-sm text-[#F5F5F5] leading-snug line-clamp-1">Truffle Glazed Wagyu Ribeye</h2>
+</div>
+<p class="font-price text-price text-[#FF6B4A] mt-0.5">Rs. 8,800</p>
+<div class="mt-2 flex items-center justify-between">
+<div class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#282828] text-[#A0A0A0] font-caption text-[12px] border border-[#3A3A3A]/40">
+<span class="material-symbols-outlined text-[14px]">edit_note</span>
+<span class="truncate max-w-[140px]">Medium-rare, extra shaved truffle</span>
+</div>
+<!-- Quantity Stepper -->
+<div class="inline-flex items-center bg-[#282828] border border-[#3A3A3A] rounded-lg p-0.5">
+<button aria-label="Decrease quantity" class="w-7 h-7 flex items-center justify-center rounded-md text-[#F5F5F5] hover:bg-[#3A3A3A] transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<span class="w-6 text-center font-heading-sm text-sm font-semibold text-[#F5F5F5]">1</span>
+<button aria-label="Increase quantity" class="w-7 h-7 flex items-center justify-center rounded-md text-[#F5F5F5] hover:bg-[#3A3A3A] transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</article>
+<!-- Item 2: Saffron Infused Lobster Bisque -->
+<article class="bg-[#1E1E1E] border border-[#3A3A3A] rounded-[20px] p-4 shadow-lg flex flex-col gap-3">
+<div class="flex gap-3 items-start">
+<img class="w-20 h-20 rounded-xl object-cover shrink-0 border border-[#3A3A3A]" data-alt="Velvety golden saffron lobster bisque poured gently in an artisanal shallow porcelain bowl, crowned with fresh tarragon oil drops and golden toasted brioche croutons, elegant Pakistani hospitality tabletop backdrop." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBz4f3WNP_lCyy-DiGmu1Sy0cAcb2sNWMv93pUOr9iwc5YtnTSctPVOFekxo4OX665NPZzyVmsdNwMUNT_fBxQBS2OCtZEpZBmwh0nJ4-zt6doOPulpuvxHV6IwszC914RkScNlcCZsd5T65iUgHu2J5zSrTUSnUpC8F5rOiHBAZ8M93yF1tqt54Osga3SkQTXCAQGphHmtK_EVpkCvj8ZZPDoBrvJBp_46TY29HJn1mW_mXogvBy8t"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-start justify-between gap-1">
+<h2 class="font-heading-sm text-heading-sm text-[#F5F5F5] leading-snug line-clamp-1">Saffron Infused Lobster Bisque</h2>
+</div>
+<p class="font-price text-price text-[#FF6B4A] mt-0.5">Rs. 1,450</p>
+<div class="mt-2 flex items-center justify-between">
+<div class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#282828] text-[#A0A0A0] font-caption text-[12px] border border-[#3A3A3A]/40">
+<span class="material-symbols-outlined text-[14px]">edit_note</span>
+<span class="truncate max-w-[140px]">Served warm with brioche</span>
+</div>
+<!-- Quantity Stepper -->
+<div class="inline-flex items-center bg-[#282828] border border-[#3A3A3A] rounded-lg p-0.5">
+<button aria-label="Decrease quantity" class="w-7 h-7 flex items-center justify-center rounded-md text-[#F5F5F5] hover:bg-[#3A3A3A] transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<span class="w-6 text-center font-heading-sm text-sm font-semibold text-[#F5F5F5]">2</span>
+<button aria-label="Increase quantity" class="w-7 h-7 flex items-center justify-center rounded-md text-[#F5F5F5] hover:bg-[#3A3A3A] transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</article>
+<!-- Item 3: Swipe-to-Delete demonstration row -->
+<div class="relative overflow-hidden rounded-[20px] shadow-lg border border-[#3A3A3A]">
+<!-- Underlying Delete Action Layer -->
+<div class="absolute inset-0 bg-[#ba1a1a] flex items-center justify-end pr-5">
+<div class="flex flex-col items-center justify-center text-white gap-0.5">
+<span class="material-symbols-outlined text-[24px]">delete</span>
+<span class="font-caption text-[11px] font-semibold tracking-wide uppercase">Remove</span>
+</div>
+</div>
+<!-- Foreground Displaced Card -->
+<article class="relative bg-[#1E1E1E] p-4 transition-transform translate-x-[-84px]">
+<div class="flex gap-3 items-start">
+<img class="w-20 h-20 rounded-xl object-cover shrink-0 border border-[#3A3A3A]" data-alt="Artisanal French pear tart with caramelized glaze and almond frangipane pastry crust, garnished with spun sugar and edible micro flowers on white marble, studio fine dining lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDd8IdP0GlOA-mbYQNaW085Ta4NDzAifnOGLwyZBQtNOOKFhHZCFV_N2SUCjFA-JsJjT-Trs9AV7fKkTmw1jRHpTf-b7t5rlnn-z0xGRASMNIokIcZQ50nCByIkI6w6aiAB3Hl5E-Mhicsb5qVhxCsR4CaJsjy0JIK5igyAWOvFVdmKcLFFDmXsSR50Xa3s7HGD6oYFRcOI8YYXTEi04UaqRv3dLp4QZW4gIH0BJNmlmb5HgZU00Boy"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-start justify-between gap-1">
+<h2 class="font-heading-sm text-heading-sm text-[#F5F5F5] leading-snug line-clamp-1">Caramelized Pear &amp; Frangipane Tart</h2>
+</div>
+<p class="font-price text-price text-[#FF6B4A] mt-0.5">Rs. 950</p>
+<div class="mt-2 flex items-center justify-between">
+<span class="font-caption text-[#A0A0A0] text-[12px] italic">Swipe active</span>
+<!-- Quantity Stepper -->
+<div class="inline-flex items-center bg-[#282828] border border-[#3A3A3A] rounded-lg p-0.5">
+<button aria-label="Decrease quantity" class="w-7 h-7 flex items-center justify-center rounded-md text-[#F5F5F5] hover:bg-[#3A3A3A] transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<span class="w-6 text-center font-heading-sm text-sm font-semibold text-[#F5F5F5]">1</span>
+<button aria-label="Increase quantity" class="w-7 h-7 flex items-center justify-center rounded-md text-[#F5F5F5] hover:bg-[#3A3A3A] transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</article>
+</div>
+</section>
+<!-- Promo Code Section -->
+<section class="mt-6 px-margin flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<span class="font-heading-sm text-heading-sm text-[#F5F5F5]">Chef's Privileges</span>
+<span class="font-caption text-caption text-[#A0A0A0]">3 Available</span>
+</div>
+<!-- Voucher Input -->
+<div class="flex items-center gap-2">
+<div class="flex-1 flex items-center bg-[#1E1E1E] border border-[#3A3A3A] rounded-xl px-3.5 h-12 shadow-sm">
+<span class="material-symbols-outlined text-[20px] text-[#A0A0A0] mr-2">confirmation_number</span>
+<input class="bg-transparent font-body text-body text-[#F5F5F5] w-full focus:outline-none placeholder:text-[#A0A0A0]/60 uppercase tracking-wide" id="voucher-input" placeholder="Enter voucher code" type="text" value="WELCOME10"/>
+</div>
+<button class="h-12 px-5 bg-[#FF6B4A] text-white rounded-xl font-button text-button shadow-[0_8px_24px_-4px_rgba(255,107,74,0.30)] active:bg-[#e05333] transition-all shrink-0 font-semibold" type="button">
+        Apply
+      </button>
+</div>
+<!-- Voucher Quick Select Carousel -->
+<div class="flex gap-2.5 overflow-x-auto no-scrollbar py-1 -mx-margin px-margin">
+<!-- Card 1: WELCOME10 (Active) -->
+<button class="shrink-0 bg-[#FF6B4A]/15 border border-[#FF6B4A] rounded-xl p-3 flex flex-col items-start gap-1 text-left w-48 shadow-sm" type="button">
+<div class="flex items-center justify-between w-full">
+<span class="font-heading-sm text-sm font-bold tracking-wider text-[#FF6B4A]">WELCOME10</span>
+<span class="material-symbols-outlined text-[18px] text-[#FF6B4A]">check_circle</span>
+</div>
+<p class="font-caption text-[12px] text-[#F5F5F5] font-semibold">10% off welcome</p>
+<span class="font-caption text-[11px] text-[#A0A0A0]">Auto-applied</span>
+</button>
+<!-- Card 2: FEAST20 -->
+<button class="shrink-0 bg-[#1E1E1E] border border-[#3A3A3A] rounded-xl p-3 flex flex-col items-start gap-1 text-left w-48 shadow-sm hover:border-[#FF6B4A]/60 transition-colors" type="button">
+<div class="flex items-center justify-between w-full">
+<span class="font-heading-sm text-sm font-bold tracking-wider text-[#F5F5F5]">FEAST20</span>
+<span class="material-symbols-outlined text-[18px] text-[#A0A0A0]">add_circle</span>
+</div>
+<p class="font-caption text-[12px] text-[#F5F5F5] font-semibold">20% off mains</p>
+<span class="font-caption text-[11px] text-[#A0A0A0]">Orders over Rs. 5,000</span>
+</button>
+<!-- Card 3: AURA30 -->
+<button class="shrink-0 bg-[#1E1E1E] border border-[#3A3A3A] rounded-xl p-3 flex flex-col items-start gap-1 text-left w-48 shadow-sm hover:border-[#FF6B4A]/60 transition-colors" type="button">
+<div class="flex items-center justify-between w-full">
+<span class="font-heading-sm text-sm font-bold tracking-wider text-[#F5F5F5]">AURA30</span>
+<span class="material-symbols-outlined text-[18px] text-[#A0A0A0]">add_circle</span>
+</div>
+<p class="font-caption text-[12px] text-[#F5F5F5] font-semibold">Rs. 300 off table</p>
+<span class="font-caption text-[11px] text-[#A0A0A0]">Dine-in exclusive</span>
+</button>
+</div>
+</section>
+<!-- Receipt-Style Order Summary Card -->
+<section class="mt-6 px-margin">
+<div class="bg-[#1E1E1E] border border-[#3A3A3A] rounded-[20px] p-5 shadow-lg flex flex-col gap-3 relative overflow-hidden">
+<div class="flex items-center justify-between pb-1">
+<div class="flex items-center gap-1.5 text-[#F5F5F5]">
+<span class="material-symbols-outlined text-[20px] text-[#FF6B4A]">receipt_long</span>
+<h3 class="font-heading-sm text-heading-sm">Order Summary</h3>
+</div>
+<span class="font-caption text-[11px] font-semibold text-[#A0A0A0] uppercase tracking-widest">Bill breakdown</span>
+</div>
+<div class="flex flex-col gap-2 pt-1 font-body text-body text-[#A0A0A0]">
+<div class="flex justify-between items-center text-sm">
+<span>Subtotal</span>
+<span class="font-semibold text-[#F5F5F5]">Rs. 11,200</span>
+</div>
+<div class="flex justify-between items-center text-sm text-[#FF6B4A]">
+<div class="flex items-center gap-1">
+<span>Discount (WELCOME10)</span>
+<span class="material-symbols-outlined text-[16px]">verified</span>
+</div>
+<span class="font-semibold">-Rs. 1,120</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span>Service Charge (5%)</span>
+<span class="font-semibold text-[#F5F5F5]">Rs. 504</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span>Sales Tax (15%)</span>
+<span class="font-semibold text-[#F5F5F5]">Rs. 1,512</span>
+</div>
+</div>
+<!-- Receipt Divider Ribbon -->
+<div class="w-full h-px bg-[#3A3A3A] my-1"></div>
+<!-- Receipt Total -->
+<div class="flex justify-between items-center pt-1">
+<div>
+<span class="font-heading-lg text-heading-lg text-[#F5F5F5] font-bold">Total Amount</span>
+<p class="font-caption text-[11px] text-[#A0A0A0]">Inclusive of all applied duties</p>
+</div>
+<span class="font-display text-display text-[#F5F5F5] tracking-tight font-bold">Rs. 12,096</span>
+</div>
+</div>
+</section>
+<!-- Checkout Sticky Action Bar -->
+<div class="sticky bottom-16 left-0 right-0 z-40 px-margin mt-6 pt-3 pb-3 bg-[#121212]/90 backdrop-blur-md">
+<button class="w-full h-[52px] bg-[#FF6B4A] text-white rounded-[14px] font-button text-button shadow-[0_8px_24px_-4px_rgba(255,107,74,0.35)] flex items-center justify-between px-5 active:bg-[#e05333] transition-transform active:scale-[0.99] font-semibold" type="button">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[22px]">room_service</span>
+<span>Proceed to Checkout</span>
+</span>
+<span class="font-price text-price text-white">Rs. 12,096</span>
+</button>
+</div>
+<!-- Interactive Sandbox: Empty Tray Switcher Feature (Delight state preview) -->
+<section class="mt-4 px-margin text-center">
+<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1E1E1E] border border-[#3A3A3A] text-[#A0A0A0]">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+<span class="font-caption text-caption">Empty Tray preview available</span>
+<button class="font-caption text-caption text-[#FF6B4A] font-semibold underline underline-offset-2 ml-1 cursor-pointer hover:text-white" id="toggle-empty-state-btn" type="button">
+        Preview Empty
+      </button>
+</div>
+</section>
+<!-- Hidden Empty Tray Modal/View Container -->
+<div class="hidden mt-6 px-margin flex-col items-center justify-center text-center p-8 bg-[#1E1E1E] border border-[#3A3A3A] rounded-[20px] shadow-sm" id="empty-tray-view">
+<div class="w-16 h-16 rounded-full bg-[#FF6B4A]/15 text-[#FF6B4A] flex items-center justify-center mb-4 border border-[#FF6B4A]/30">
+<span class="material-symbols-outlined text-[32px]">soup_kitchen</span>
+</div>
+<h2 class="font-heading-sm text-heading-sm text-[#F5F5F5]">Your Culinary Tray is Waiting</h2>
+<p class="font-body text-body text-[#A0A0A0] mt-1.5 max-w-xs">
+      Explore the artisan kitchen repertoire to curate your bespoke dining experience.
+    </p>
+<button class="mt-5 h-[44px] px-6 rounded-[14px] bg-[#FF6B4A] text-white font-button text-sm shadow-sm active:bg-[#e05333] font-semibold" id="restore-tray-btn" type="button">
+      Return to Dishes
+    </button>
+</div>
+</div>
+<script>
+  // Interactive micro-interactions: Preview Empty Tray state toggler
+  const emptyToggle = document.getElementById('toggle-empty-state-btn');
+  const restoreBtn = document.getElementById('restore-tray-btn');
+  const emptyView = document.getElementById('empty-tray-view');
+  const listContainer = document.getElementById('tray-list-container');
+  const counterLabel = document.getElementById('tray-item-counter');
+
+  function showEmpty() {
+    emptyView.classList.remove('hidden');
+    emptyView.classList.add('flex');
+    listContainer.classList.add('hidden');
+    counterLabel.textContent = '(0 items)';
+    emptyToggle.textContent = 'Hide Empty';
+  }
+
+  function restoreItems() {
+    emptyView.classList.add('hidden');
+    emptyView.classList.remove('flex');
+    listContainer.classList.remove('hidden');
+    counterLabel.textContent = '(3 items)';
+    emptyToggle.textContent = 'Preview Empty';
+  }
+
+  emptyToggle.addEventListener('click', () => {
+    if (emptyView.classList.contains('hidden')) {
+      showEmpty();
+    } else {
+      restoreItems();
+    }
+  });
+
+  restoreBtn.addEventListener('click', restoreItems);
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-[#181818]/95 backdrop-blur-xl border-t border-[#2A2A2A] shadow-[0_-8px_24px_rgba(0,0,0,0.6)]" data-active-classes="text-[#FF6B4A] font-semibold"><div class="relative flex items-center justify-around h-16 px-space-xs"><a class="flex-1 min-w-[56px] min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[#A0A0A0] hover:text-[#F5F5F5] transition-colors" data-path="artisan-menu" href="#"><span class="material-symbols-outlined text-[24px]">restaurant_menu</span><span class="font-caption text-[11px] leading-tight">Menu</span></a><a class="flex-1 min-w-[56px] min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[#A0A0A0] hover:text-[#F5F5F5] transition-colors" data-path="table-reservation" href="#"><span class="material-symbols-outlined text-[24px]">table_restaurant</span><span class="font-caption text-[11px] leading-tight">Reserve</span></a><div class="flex-1 flex items-center justify-center"><a aria-current="page" class="relative -top-5 flex items-center justify-center w-14 h-14 rounded-full bg-[#FF6B4A] text-white shadow-[0_8px_24px_-4px_rgba(255,107,74,0.45)] border-4 border-[#121212] active:scale-95 transition-transform" data-path="tray-checkout" href="#"><span class="material-symbols-outlined text-[24px] text-white">shopping_bag</span><span class="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 rounded-full bg-white text-[#FF6B4A] font-caption text-[11px] font-bold shadow-sm">2</span></a></div><a class="flex-1 min-w-[56px] min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[#A0A0A0] hover:text-[#F5F5F5] transition-colors" data-path="order-tracking" href="#"><span class="material-symbols-outlined text-[24px]">timer</span><span class="font-caption text-[11px] leading-tight">Track</span></a><a class="flex-1 min-w-[56px] min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[#A0A0A0] hover:text-[#F5F5F5] transition-colors" data-path="guest-profile" href="#"><span class="material-symbols-outlined text-[24px]">person</span><span class="font-caption text-[11px] leading-tight">Profile</span></a></div></nav></body></html>
