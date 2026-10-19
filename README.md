@@ -1,250 +1,285 @@
-# AURA Restaurant Application
+# AURA — Modern Restaurant Management & Dining Platform
 
-### Student Submission Details
-* **Name:** Syed Obaid Ali
-* **Roll No:** 9321
-* **Subject:** Mobile Application Development (CS-375)
-* **Assignment:** Assignment 2 (A2 - Fall 2026)
-* **Teacher:** Dr. Sadaf Tanvir
+<p align="center">
+  <img src="assets/icon.png" width="96" height="96" alt="AURA Logo" style="border-radius: 20px;" />
+</p>
 
----
+<p align="center">
+  <strong>A production-ready, white-label mobile dining and kitchen operations platform.</strong><br>
+  Built with React Native (Expo), Express.js, and MongoDB Atlas.
+</p>
 
-A full-stack mobile restaurant application built with **React Native / Expo** and an **Express.js + MongoDB** REST API backend. Key features include JWT-based authentication with role-based access control (Customer and Manager), 6-digit phone OTP login, digital menu browsing with manager image upload, multi-branch outlet management (Lahore & Islamabad), table reservation booking with smart lifecycle states, order tracking with automated status updates, and dark/light theme support.
-
----
-
-## 1. Submission Deliverables (A2 Folder)
-
-The `docs/academic/A2/` directory contains all required non-code deliverables:
-* **`docs/academic/A2/SRS_v2.pdf`**: Comprehensive Software Requirements Specification (v2.0) including:
-  * Updated Scope & 10+ Technical Definitions
-  * Database Schema Design Tables for 5 MongoDB Collections (`users`, `menuitems`, `tables`, `reservations`, `orders`)
-  * Complete REST API Endpoints Specification (23 endpoints)
-  * UML Sequence Diagram (`App` ➔ `Express Server` ➔ `MongoDB`)
-  * UML Deployment Diagram (Physical architecture, protocols, ports)
-* **`docs/academic/A2/restaurant-api.postman_collection.json`**: Postman Collection covering all 23 endpoints across Auth, Menu, Tables, Reservations, Orders, and Health checks. Includes auto-token capture on login.
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20Web-blue?style=flat-square" alt="Platform" />
+  <img src="https://img.shields.io/badge/Expo-SDK%2054+-000020?style=flat-square&logo=expo" alt="Expo SDK" />
+  <img src="https://img.shields.io/badge/React%20Native-0.74+-61DAFB?style=flat-square&logo=react" alt="React Native" />
+  <img src="https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js" alt="Node.js" />
+  <img src="https://img.shields.io/badge/Express.js-4.19+-000000?style=flat-square&logo=express" alt="Express" />
+  <img src="https://img.shields.io/badge/MongoDB-Atlas%20M0-47A248?style=flat-square&logo=mongodb" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/Architecture-Clean%20Layered-orange?style=flat-square" alt="Architecture" />
+  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License" />
+</p>
 
 ---
 
-## 2. Technical Documentation & White-Label Guides
+## 🌟 Executive Overview
 
-Comprehensive guides located in the [`docs/`](docs/) directory:
-* **[`docs/SETUP.md`](docs/SETUP.md)** — Complete developer & production setup, seed credentials, network configuration for physical devices, and troubleshooting.
-* **[`docs/WHITE_LABEL.md`](docs/WHITE_LABEL.md)** — Rebranding manual for agencies & clients (centralized `brand.js`, theme tokens, currencies, tax rates, assets).
-* **[`docs/ASSETS_LICENSES.md`](docs/ASSETS_LICENSES.md)** — Commercial licensing audit for Poppins font (OFL), Ionicons (MIT), Unsplash imagery, and all npm packages.
-* **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** — Full technical architecture, Context state management, navigation hierarchy, REST endpoints, and security model.
+**AURA** is a high-performance, full-stack restaurant platform engineered for seamless customer dining and efficient kitchen operations. Designed around modern UX standards, strict role-based access control (RBAC), and an extensible white-label architecture, AURA enables multi-branch restaurant chains to deploy mobile dining, real-time kitchen tracking, and table reservations from a single unified codebase.
+
+The entire platform is architected to operate on **perpetually free cloud infrastructure** (MongoDB Atlas Free Tier, Render/Railway, GitHub Pages/EAS Free), ensuring zero mandatory subscription overhead for staging and pilot deployments.
 
 ---
 
-## 3. Quick Installation & Execution Guide
+## 🚀 Key Platform Features
 
-### A. Backend Server Setup (Node.js + Express + MongoDB)
-```bash
-# 1. Navigate to the server folder
-cd server
+### 📱 Customer Mobile Experience
+* **Interactive Menu & Category Navigation**: Instant catalog browsing with category pills, debounced search, dietary indicators, and real-time item availability.
+* **Atomic Cart State Machine**: Pure `useReducer` engine handling multi-item carts, promo voucher redemptions (`WELCOME10`, `FEAST20`, `AURA30`), quantity adjustments, special cooking notes, and automatic price sync.
+* **Live Kitchen Queue Tracking**: Real-time order progress timeline (`Pending` ➔ `Preparing` ➔ `Ready` ➔ `Served`) with elapsed timers, dynamic polling, and a 10-minute cancellation safety window.
+* **Table Reservation Engine**: Time-slot selection, party size validation, automated double-booking collision prevention (`409 Conflict`), and past-visit history tracking.
+* **Adaptive Dark & Light Themes**: System-aware, tokenized color palettes powered by custom theme providers with zero hardcoded UI values.
+* **Guest Browsing & Rapid Onboarding**: Full unauthenticated menu exploration with seamless conversion to registration during checkout.
 
-# 2. Install backend dependencies
-npm install
+### 👨‍🍳 Manager & Kitchen Operations
+* **Live Kitchen Pipeline Display**: Dedicated order queue with monotonic state progression (`Start Cooking`, `Mark Ready`, `Mark Served`).
+* **Multi-Branch Outlet Filtering**: Single dashboard to filter orders, tables, and reservations across branch locations (e.g., Lahore, Islamabad).
+* **Menu Catalog Management**: Full CRUD operations for menu items, price updates, Chef's Special badges, and stock availability toggles.
+* **Integrated Photo Upload Pipeline**:
+  * **Aspect Ratio Normalization**: Auto-cropped to 4:3 landscape ratio using `expo-image-picker`.
+  * **Client Compression**: High-res camera photos (10–25 MB) automatically compressed to ~150–300 KB for rapid network transit.
+  * **Secure Multipart Upload**: Streamed to backend via `multer`, validated by MIME type, and hashed with unique cryptographic filenames.
+* **Staff Access Management**: Administrative interface to issue, deactivate, and manage manager credentials without direct database intervention.
 
-# 3. Create .env configuration file (copy from .env.example)
-# On Windows PowerShell:
-Copy-Item .env.example .env
+### 🛡️ Enterprise Security & Auth Architecture
+* **Dual-Channel Authentication**: Email/Password authentication and simulated cryptographic 6-digit phone OTP verification.
+* **Strict Role-Based Access Control (RBAC)**: Enforced at both API route middleware (`protect`, `managerOnly`) and mobile UI navigator levels.
+* **Password Hashing**: Salted and hashed passwords with `bcrypt` (10 rounds).
+* **JWT Access Tokens**: Cryptographically signed access tokens with configurable expiration (1-day default).
 
-# 4. Configure server/.env:
-# PORT=5000
-# MONGO_URI=mongodb://127.0.0.1:27017/restaurant_app
-# JWT_SECRET=change_me_to_a_long_random_string
-# JWT_EXPIRES_IN=1d
-# CORS_ORIGINS=http://localhost:19006,http://localhost:8081
+---
 
-# 5. Seed initial database (creates hashed manager/customer accounts, 16 menu items, 8 tables)
-npm run seed
+## 🏗️ System Architecture
 
-# 6. Start development server with nodemon
-npm run dev
-# Server will run at http://localhost:5000
-# Verify via browser: http://localhost:5000/api/health
+```mermaid
+graph TD
+    subgraph Client ["Client Layer (React Native / Expo)"]
+        UI[Screens & Components]
+        Contexts[Context Layer: Auth, Cart, Menu, Orders, Branch, Theme]
+        ClientAPI[API Client: src/api/client.js]
+        UI --> Contexts
+        Contexts --> ClientAPI
+    end
+
+    subgraph Server ["Backend Layer (Node.js & Express)"]
+        Routes[API Routes: server/routes/*]
+        Middleware[Middleware: protect, managerOnly, multer, validateEnv]
+        Controllers[Controllers: server/controllers/*]
+        Routes --> Middleware
+        Middleware --> Controllers
+    end
+
+    subgraph Data ["Data Layer (MongoDB Atlas)"]
+        Models[Mongoose Schemas & Indexes: server/models/*]
+        DB[(MongoDB Database)]
+        Controllers --> Models
+        Models --> DB
+    end
+
+    ClientAPI -->|HTTPS / REST API| Routes
 ```
 
-### B. Mobile App Setup (React Native / Expo)
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technology | Key Libraries & Packages |
+| :--- | :--- | :--- |
+| **Mobile Frontend** | React Native, Expo SDK | `expo-router`, `expo-image-picker`, `lucide-react-native`, `@react-native-async-storage/async-storage` |
+| **Backend API** | Node.js, Express.js | `express`, `cors`, `helmet`, `dotenv`, `multer` |
+| **Database & ODM** | MongoDB, Mongoose | MongoDB Atlas M0, Mongoose Schemas & Compound Indexes |
+| **Authentication** | JWT & Cryptographic OTP | `jsonwebtoken`, `bcryptjs`, Node.js native `crypto` |
+| **Code Quality** | ESLint, Prettier, TypeScript | Flat config `eslint.config.js`, `.prettierrc`, `.editorconfig` |
+
+---
+
+## ⚡ Quickstart Guide
+
+### Prerequisites
+* [Node.js](https://nodejs.org/) (v18.0.0 or higher recommended)
+* [npm](https://www.npmjs.com/) (v9.0.0 or higher)
+* [Expo Go](https://expo.dev/go) app installed on your physical mobile device (optional, for device testing)
+
+---
+
+### 1. Backend Server Setup
+
 ```bash
-# 1. From root directory, install mobile dependencies
+# 1. Navigate to the server directory
+cd server
+
+# 2. Install dependencies
 npm install
 
-# 2. Configure BASE_URL in src/api/client.js:
-# Open src/api/client.js and set BASE_URL based on your environment:
-# - Android Emulator:       http://10.0.2.2:5000
-# - iOS Simulator:          http://localhost:5000
-# - Physical Phone (Expo):  http://<YOUR_COMPUTER_IP>:5000 (e.g., http://192.168.100.17:5000)
+# 3. Create .env file from template
+cp .env.example .env
+# (On Windows PowerShell: Copy-Item .env.example .env)
+
+# 4. Open server/.env and verify your configuration:
+# PORT=5000
+# MONGO_URI=mongodb://127.0.0.1:27017/restaurant_app (or your MongoDB Atlas connection string)
+# JWT_SECRET=your_super_secret_jwt_key
+# CORS_ORIGINS=http://localhost:19006,http://localhost:8081
+
+# 5. Populate initial database with demo menu, tables, and seeded accounts
+npm run seed
+
+# 6. Start the development API server
+npm run dev
+```
+
+* Backend will be live at: `http://localhost:5000`
+* Health check verification: `http://localhost:5000/api/health`
+
+---
+
+### 2. Mobile Client Setup
+
+```bash
+# 1. From the project root directory, install dependencies
+npm install
+
+# 2. Configure network connection (if testing on physical device):
+# Open src/api/client.js and set BASE_URL to your machine's local IP address:
+# http://<YOUR_COMPUTER_IP>:5000 (e.g., http://192.168.1.100:5000)
 
 # 3. Start Expo development server
 npx expo start
 ```
-* **Press `w`**: Opens directly in your desktop browser.
-* **Scan QR Code**: Scan via camera (iOS) or **Expo Go** app (Android) connected to the same Wi-Fi.
-* **Press `a`**: Launches on Android Emulator.
-* **Press `i`**: Launches on iOS Simulator.
+
+* **Desktop Browser**: Press `w` in terminal to launch in web view.
+* **Android Emulator**: Press `a` in terminal.
+* **iOS Simulator**: Press `i` in terminal (macOS only).
+* **Physical Device**: Scan the terminal QR code using **Expo Go** (Android) or **Camera** (iOS) on the same Wi-Fi network.
 
 ---
 
-## 3. Seeded Accounts & Login Credentials
+## 🔑 Pre-Seeded Evaluation Accounts
 
-All accounts listed below are **demo accounts provided strictly for testing and academic evaluation**. All passwords in `server/seed.js` are securely hashed using `bcrypt` (10 salt rounds):
+For testing and rapid evaluation, the seed script generates the following pre-configured credentials:
 
-| Role | Full Name | Email Address | Password | Permissions & Capabilities |
-|---|---|---|---|---|
-| **Executive Manager** | Chef Farhan Siddiqui | `farhan.chef@aurabistro.pk` | `Admin1234` | Kitchen order queue progression (`Pending` ➔ `Preparing` ➔ `Ready` ➔ `Served`), Table booking approval/decline, Menu CRUD (Add/Edit items, toggling Chef's Special), Staff account creation via Team tab. |
-| **Dining Guest** | Zainab Malik | `zainab.malik@aurabistro.pk` | `Password123` | JWT login/register, live menu browsing, cart reducer, promo vouchers, live order placement, kitchen tracking with 10s polling, table reservations. |
-| **Dining Guest (Second)** | Hamza Abbasi | `hamza.abbasi@aurabistro.pk` | `Password1` | Customer dining account for multi-patron testing. |
+| Account Type | Full Name | Email Address | Password | Privileges |
+| :--- | :--- | :--- | :--- | :--- |
+| **Executive Manager** | Chef Farhan Siddiqui | `farhan.chef@aurabistro.pk` | `Admin1234` | Full kitchen order progression, table booking approval/decline, menu catalog CRUD, staff account generation. |
+| **Dining Guest** | Zainab Malik | `zainab.malik@aurabistro.pk` | `Password123` | Cart operations, promo redemption, order placement, live kitchen tracking, table reservations. |
+| **Dining Guest (2)** | Hamza Abbasi | `hamza.abbasi@aurabistro.pk` | `Password1` | Multi-patron customer account for concurrent order testing. |
 
-> **Note on Registration Security:** Public user registration and mobile signup (`POST /api/auth/register` and OTP verification) **always create customer accounts only** (`role: 'customer'`). Client-provided role inputs are strictly ignored. Administrative manager accounts cannot be self-registered; they must be created by an authenticated manager via `POST /api/auth/staff` or seeded through `npm run seed`.
-> 
-> *(Unified login detects role automatically upon authentication. Passwords are never pre-filled).*
+> **Security Note**: Public user registration (`POST /api/auth/register`) strictly assigns the `customer` role. Administrative manager accounts can only be issued by an authenticated manager or initialized via `npm run seed`.
 
 ---
 
-## 4. API Endpoints Reference Table
+## 📡 REST API Reference
 
-Total: **26 endpoints** implemented in `server/routes/`:
+The backend provides **26 REST endpoints** adhering to standard HTTP status codes:
 
-| # | HTTP Method | Endpoint | Access / Auth | Request Body | Response Format & Description |
-|---|---|---|---|---|---|
-| 1 | `GET` | `/api/health` | Public | None | `200 OK`: `{ status: 'ok', time }` — Server health check. |
-| 2 | `POST` | `/api/auth/register` | Public | `{ name, email, password, phone? }` | `201 Created`: `{ token, user }` — Public registration. Always creates role `customer` (client-provided `role` is ignored). |
-| 3 | `POST` | `/api/auth/login` | Public | `{ email, password }` | `200 OK`: `{ token, user }` — Validates credentials, returns JWT token (expires in 1 day). Returns `401 Unauthorized` ("Account disabled") if user is inactive. |
-| 4 | `GET` | `/api/auth/me` | Protected (`Bearer Token`) | None | `200 OK`: `{ user }` — Returns authenticated user details (without password). |
-| 5 | `PUT` | `/api/auth/profile` | Protected (`Bearer Token`) | `{ name?, phone?, dob?, avatar? }` | `200 OK`: `{ message, user }` — Updates current user profile. |
-| 6 | `DELETE` | `/api/auth/profile` | Protected (`Bearer Token`) | None | `200 OK`: `{ success: true, message }` — Permanently removes user account from database. |
-| 7 | `GET` | `/api/auth/staff` | Manager Only (`protect, managerOnly`) | None | `200 OK`: `User[]` — Lists all manager accounts (`name, email, role, isActive`) without passwords. |
-| 8 | `POST` | `/api/auth/staff` | Manager Only (`protect, managerOnly`) | `{ name, email, password }` | `201 Created`: `{ user }` — Creates a new manager account with hashed password (password omitted in response). |
-| 9 | `PATCH` | `/api/auth/staff/:id` | Manager Only (`protect, managerOnly`) | `{ isActive?, role? }` | `200 OK`: `{ user }` — Updates staff status (deactivate/reactivate) or demotes to customer. Guarded against self-action and disabling the last manager. |
-| 10 | `POST` | `/api/auth/phone/send-otp` | Public | `{ phone }` | `200 OK`: `{ success, message, phone }` — Generates a 6-digit cryptographic OTP for a Pakistani mobile number with a 30s resend cooldown. Code is printed exclusively to the server console as a simulated SMS. |
-| 11 | `POST` | `/api/auth/phone/verify-otp` | Public | `{ phone, otp, name? }` | `200 OK` or `201 Created`: `{ token, user, isNewUser }` — Verifies 6-digit OTP and logs in or creates a customer account. Invalidated after 3 incorrect attempts. |
-| 12 | `GET` | `/api/menu` | Public | None (Query: `?category=&search=`) | `200 OK`: `MenuItem[]` — Lists menu items with optional category filtering and search. |
-| 13 | `POST` | `/api/menu` | Manager Only (`protect, managerOnly`) | `{ name, description, price, category, image, isSpecial?, isAvailable?, prepTime?, rating?, tag? }` | `201 Created`: `MenuItem` — Adds a new gourmet dish to catalog. |
-| 14 | `GET` | `/api/menu/:id` | Public | None (`:id` param) | `200 OK`: `MenuItem` — Retrieves single item by MongoDB ObjectId (validates ObjectId format). |
-| 15 | `PUT` | `/api/menu/:id` | Manager Only (`protect, managerOnly`) | `{ name?, price?, isAvailable?, isSpecial?, description?, category?, prepTime?, rating?, tag? }` | `200 OK`: `MenuItem` — Updates dish details, price, availability, or specials. |
-| 16 | `DELETE` | `/api/menu/:id` | Manager Only (`protect, managerOnly`) | None (`:id` param) | `200 OK`: `{ message, id }` — Permanently deletes a menu item. |
-| 17 | `GET` | `/api/tables` | Public | None | `200 OK`: `Table[]` — Lists all restaurant dining tables with seating capacity and zone. |
-| 18 | `POST` | `/api/reservations` | Protected (`Bearer Token`) | `{ tableId, date, time, guests, specialRequests?, customerName?, phone? }` | `201 Created`: `Reservation` — Creates table reservation. Validates capacity and returns `409 Conflict` if double-booked. |
-| 19 | `GET` | `/api/reservations` | Manager Only (`protect, managerOnly`) | None | `200 OK`: `Reservation[]` — Retrieves all reservations across all users and tables. |
-| 20 | `GET` | `/api/reservations/my` | Protected (`Bearer Token`) | None | `200 OK`: `Reservation[]` — Retrieves reservations belonging to the authenticated customer. |
-| 21 | `PATCH` | `/api/reservations/:id` | Protected (`Bearer Token`) | `{ status }` (`Confirmed`, `Declined`, `Cancelled`) | `200 OK`: `Reservation` — Manager can set `Confirmed` or `Declined` on any booking; customer can set only `Cancelled` on their own booking. |
-| 22 | `POST` | `/api/orders` | Protected (`Bearer Token`) | `{ items: [{ menuItem, name, price, quantity, specialInstructions? }], orderType?, tableNumber?, notes?, branchId?, branchName?, branchCity? }` | `201 Created`: `Order` — Places new order into kitchen queue (`Pending`). Server validates menu items and calculates totals. |
-| 23 | `GET` | `/api/orders` | Manager Only (`protect, managerOnly`) | None | `200 OK`: `Order[]` — Retrieves all restaurant orders in the kitchen pipeline. |
-| 24 | `GET` | `/api/orders/my` | Protected (`Bearer Token`) | None | `200 OK`: `Order[]` — Retrieves order history for the authenticated customer. |
-| 25 | `PATCH` | `/api/orders/:id/status` | Protected (`Bearer Token`) | `{ status }` (`Pending`, `Preparing`, `Ready`, `Served`, `Cancelled`) | `200 OK`: `Order` — Manager advances status forward monotonically; customer can set only `Cancelled` on their own `Pending` order within a 10-minute cancellation window. |
-| 26 | `POST` | `/api/upload` | Manager Only (`protect, managerOnly`) | `multipart/form-data` with `image` file | `201 Created`: `{ message, imageUrl, filename, size, mimetype }` — Uploads and stores manager dish photos in `server/uploads/` with 5MB max size and MIME type validation (`jpeg, png, webp`). |
+<details>
+<summary><strong>View Detailed API Endpoints Matrix (26 Endpoints)</strong></summary>
 
-**Phone OTP Authentication (Extra Feature):** The server provides Pakistani mobile phone number OTP login as an additional feature beyond the assignment requirements. `POST /api/auth/phone/send-otp` generates a 6-digit cryptographic numeric code using `crypto.randomInt(100000, 1000000)`, stores it in an in-memory `Map` (not in the database), and prints the code to the server console as a simulated SMS gateway (not returned in the response body). The OTP is valid for 5 minutes with a 30-second resend cooldown per phone number. `POST /api/auth/phone/verify-otp` validates the code (invalidated after 3 incorrect attempts) and either logs in an existing user or creates a new customer account automatically, returning a JWT token.
+| Method | Endpoint | Access Level | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/health` | Public | System uptime, timestamp, and health verification |
+| `POST` | `/api/auth/register` | Public | Register new customer account (`role: customer`) |
+| `POST` | `/api/auth/login` | Public | Authenticate user and issue 24-hour JWT token |
+| `GET` | `/api/auth/me` | Authenticated | Retrieve authenticated user profile |
+| `PUT` | `/api/auth/profile` | Authenticated | Update user profile details |
+| `DELETE` | `/api/auth/profile` | Authenticated | Permanently delete account |
+| `GET` | `/api/auth/staff` | Manager Only | List staff accounts with activation statuses |
+| `POST` | `/api/auth/staff` | Manager Only | Create new staff/manager account |
+| `PATCH` | `/api/auth/staff/:id`| Manager Only | Update staff status or toggle active flag |
+| `POST` | `/api/auth/phone/send-otp` | Public | Generate 6-digit cryptographic OTP (30s cooldown) |
+| `POST` | `/api/auth/phone/verify-otp` | Public | Verify OTP and authenticate/register customer |
+| `GET` | `/api/menu` | Public | Retrieve menu catalog with category and text search |
+| `POST` | `/api/menu` | Manager Only | Create new gourmet dish entry |
+| `GET` | `/api/menu/:id` | Public | Retrieve single dish details by ObjectId |
+| `PUT` | `/api/menu/:id` | Manager Only | Update dish details, pricing, or availability |
+| `DELETE` | `/api/menu/:id` | Manager Only | Remove dish from catalog |
+| `GET` | `/api/tables` | Public | List tables with seating capacities and zones |
+| `POST` | `/api/reservations` | Authenticated | Book a table with conflict collision detection |
+| `GET` | `/api/reservations` | Manager Only | Retrieve all restaurant reservations |
+| `GET` | `/api/reservations/my` | Authenticated | Retrieve active user's reservation history |
+| `PATCH` | `/api/reservations/:id` | Authenticated | Update reservation state (`Confirmed`, `Declined`, `Cancelled`) |
+| `POST` | `/api/orders` | Authenticated | Place new dining order into kitchen queue |
+| `GET` | `/api/orders` | Manager Only | Retrieve all kitchen orders across branches |
+| `GET` | `/api/orders/my` | Authenticated | Retrieve active user's order history |
+| `PATCH` | `/api/orders/:id/status`| Authenticated | Monotonic status progression or customer cancellation |
+| `POST` | `/api/upload` | Manager Only | Multipart image upload for dish photography (4:3) |
 
-**Real-World Dish Image Pipeline (KFC / FoodPanda / McDonald's Model):**
-When a manager adds or edits a menu item, the app does not require typing raw URLs. Managers can select an image directly from their phone/PC storage:
-1. **Standardized Aspect Ratio (4:3):** `expo-image-picker` automatically crops to 4:3 landscape ratio so dish cards render uniformly across all grid and list screens without distortion.
-2. **Auto-Compression (70% Quality):** Camera photos (10–25 MB) are automatically compressed client-side before upload, reducing payloads to ~150–300 KB for near-instant upload speeds.
-3. **Multipart Server Upload:** Uploaded to `POST /api/upload` via `FormData` protected with manager authentication, validated by `multer`, and stored with unique cryptographic hashes in `server/uploads/`.
-4. **Live Thumbnail Preview & Fallback:** Shows immediate thumbnail preview with clear/trash option. Presets and web URL inputs remain available as alternative options.
+</details>
 
 ---
 
-## 5. Hook Usage Matrix by Screen
+## 📂 Repository Structure
 
-| Screen | React Core Hooks | Custom Project Hooks | Purpose & Responsibility |
-|---|---|---|---|
-| **LoginScreen** | `useState`, `useEffect`, `useRef`, `useCallback` | `useAuth`, `useTheme`, `useForm`, `useSafeAreaInsets` | Unified authentication for login, customer registration, and 6-digit cryptographic phone OTP (printed to server console). Includes real-world "Browse Menu as Guest" CTA and remembered email. |
-| **MenuScreen** | `useState`, `useEffect`, `useRef`, `useMemo`, `useCallback` | `useApi`, `useTheme`, `useAuth`, `useCart`, `useMenu`, `useBranch`, `useSafeAreaInsets` | Live menu fetch using `useApi('/api/menu')`, category filter chips, debounced search, `React.memo` item cards, and dynamic branch switcher badge. |
-| **CartScreen** | `useState`, `useMemo` | `useCart`, `useTheme` | Pure reducer dispatching (`ADD_ITEM`, `REMOVE_ITEM`, `INCREMENT`, `DECREMENT`, `SET_ORDER_TYPE`, `UPDATE_NOTE`, `APPLY_PROMO`, `REMOVE_PROMO`, `CLEAR_CART`, `SYNC_PRICES`), quantity steppers, per-item notes, promo codes (`WELCOME10`, `FEAST20`, `AURA30`), memoized totals. |
-| **OrderSummaryScreen** | `useState`, `useMemo` | `useCart`, `useOrders`, `useAuth`, `useTheme`, `useBranch` | Order financial verification (subtotal, taxes, tip), branch outlet routing, dispatches live `POST /api/orders` to backend. |
-| **OrderTrackingScreen** | `useState`, `useEffect`, `useRef`, `useCallback`, `useMemo` | `useOrders`, `useAuth`, `useTheme` | Kitchen progression timeline (`Pending` ➔ `Preparing` ➔ `Ready` ➔ `Served`), elapsed timer, cancel countdown (10-minute window), active polling every 10 seconds via `GET /api/orders/my` (stopped when no active order). |
-| **ReservationScreen** | `useState`, `useMemo`, `useEffect` | `useReservation`, `useAuth`, `useTheme`, `useBranch`, `useSafeAreaInsets` | Live table selection via `/api/tables`, booking dispatch to `/api/reservations`, `BranchChip` location switching, `409 Conflict` collision handling. Smart reservation lifecycle: past/completed bookings auto-display "Dining Completed • Visited" badge with "Reserve Again" CTA; cancel button only visible for future active bookings. Filter tabs (All, Upcoming, Past, Cancelled) with live count badges. |
-| **ManagerDashboardScreen** | `useState`, `useCallback` | `useApi`, `useAuth`, `useTheme`, `useOrders`, `useMenu` | Multi-branch order & reservation filtering via outlet pills (`All Outlets`, `📍 Lahore`, `📍 Islamabad`) with prominent branch city badges on cards, live order progression (`Start Cooking`, `Mark Ready`, `Mark Served`), menu catalog CRUD with dish image upload (Photo URL input + Quick Photo Presets: Steak, Pasta, Burger, Dessert, Mocktail, Salad from Unsplash), "App View" button for customer-perspective preview, staff management via Team tab. |
-| **ProfileScreen** | `useState`, `useEffect` | `useAuth`, `useTheme`, `useOrders`, `useReservation` | User profile details inspection, guest state card with Sign In CTA, dark/light theme toggle, role badge, safeStorage session management, JWT logout. |
-
-> **Architecture Note:**  
-> Context API is used for auth, theme, cart, orders, and multi-branch management (`BranchContext`) to avoid prop drilling across screens. The cart uses `useReducer` with a pure reducer because it has many related transitions (add, remove, quantity, notes, promo, clear), ensuring predictable and atomic state updates. Meanwhile, simple local form fields use `useState`.
-
----
-
-## 6. Security & Environment Variable Policy
-
-* **`.env` Exclusion**: In accordance with enterprise security practices, the real `.env` file containing secrets, database credentials, and JWT signing keys is **strictly ignored** by `.gitignore` and has never been pushed to Git.
-* **`.env.example` Keys**: A safe template file is provided at `server/.env.example` with standard placeholders only:
-  * `PORT=5000`
-  * `MONGO_URI=your_mongodb_atlas_connection_string_here`
-  * `JWT_SECRET=your_super_secret_key_here`
-  * `JWT_EXPIRES_IN=1d`
-  * `CORS_ORIGINS=http://localhost:19006,http://localhost:8081`
-* **Password Hashing**: Passwords are never stored in plaintext. They are salted and hashed with `bcrypt` (10 rounds).
-* **JWT Expiration**: Access tokens are signed using a server-side secret with a 24-hour expiration (`1d`).
-
----
-
-## 7. Demonstration Video & Screenshots
-
-* **Assignment 1 Video**: [Watch A1 Demo Video on GitHub](https://github.com/obaids093-prog/Restaurant-app-mvp/blob/main/docs/academic/A1/demo_video.mp4)
-* **Assignment 2 Demo Video (max 4 minutes)**: [Watch A2 Demo Video](docs/academic/A2/demo-video2.mp4)
-* **UML & Diagrams**: Included in high resolution inside `docs/academic/A2/SRS_v2.pdf` and `docs/academic/A1/UML/Untitled Diagram-Page-1.drawio.png`.
-
-### Screenshots & Test Evidence
-
-#### Available Image Files in `docs/academic/A2/screenshots/`:
-* `200statusok.png`
-* `customerloginok.png`
-* `deletetestdish 200-ok.png`
-* `manager200-ok.png`
-* `managerloginok.png`
-* `menu 201-created.png`
-* `menu-negative-price-400.png`
-* `menu-success.png`
-* `menu400bad request.png`
-* `menuitemcollection1.png`
-* `menuitemcollection2.png`
-* `menupostcutomertokenok.png`
-* `menupostok.png`
-* `newprice-customer.jpeg`
-* `phone-health.jpeg`
-* `price-manager.png`
-
-#### Test Execution & Verification Evidence:
-* **Health Route on Laptop (`/api/health` - 200 OK)**: ![Health Laptop](docs/academic/A2/screenshots/200statusok.png)
-* **Health Route on Mobile Device (`/api/health`)**: ![Health Phone](docs/academic/A2/screenshots/phone-health.jpeg)
-* **Menu POST with No Token (401 Unauthorized)**: ![Menu POST No Token](docs/academic/A2/screenshots/menupostok.png)
-* **Menu POST with Customer Token (403 Forbidden)**: ![Menu POST Customer Token](docs/academic/A2/screenshots/menupostcutomertokenok.png)
-* **Menu POST with Manager Token (201 Created)**: ![Menu POST Manager Token](docs/academic/A2/screenshots/menu%20201-created.png)
-* **Successful Request (200 OK)**: ![Successful Request](docs/academic/A2/screenshots/menu-success.png)
-* **Menu POST with Negative Price (400 Bad Request)**: ![Negative Price](docs/academic/A2/screenshots/menu-negative-price-400.png)
-* **Menu GET with Invalid ID (400 Bad Request)**: ![Invalid ID 400](docs/academic/A2/screenshots/menu-invalid-id-400.png)
-* **MongoDB Atlas `menuitems` Collection**: ![MongoDB menuitems Collection](docs/academic/A2/screenshots/menuitemcollection1.png)
-* **Price Change on Manager Device**: ![Price Change Manager](docs/academic/A2/screenshots/price-manager.png)
-* **New Price on Customer Device (Real-Time Sync)**: ![New Price Customer](docs/academic/A2/screenshots/newprice-customer.jpeg)
-
-* **Existing Repository Assets**:
-  * `assets/icon.png` (App Launcher Icon)
-  * `assets/splash-icon.png` (Splash Screen Icon)
-  * `assets/favicon.png` (Web Favicon)
-  * `docs/academic/A1/UML/Untitled Diagram-Page-1.drawio.png` (System Architecture & UML Diagram)
+```text
+├── assets/                    # Application icons, splash screens, and branding
+├── designs/                   # UI design systems, mockups, and screen specs
+├── docs/                      # Architectural and operational documentation
+│   ├── ARCHITECTURE.md        # Technical architecture, layers, and context audit
+│   ├── DATABASE.md            # Schema designs, collections, fields, and indexes
+│   ├── FREE_STACK.md          # 100% free cloud deployment blueprint
+│   ├── WHITE_LABEL.md         # White-label customization and rebranding manual
+│   ├── SETUP.md               # Developer configuration and deployment guide
+│   ├── ASSETS_LICENSES.md     # Third-party licensing and font audit
+│   └── PROJECT_LOG.md         # Chronological changelog and development records
+├── server/                    # Node.js + Express backend
+│   ├── config/                # Database connection & environment validation
+│   ├── controllers/           # API request handlers and business logic
+│   ├── middleware/            # Auth, RBAC, error handling, and upload filters
+│   ├── models/                # Mongoose schemas (User, MenuItem, Table, Order, etc.)
+│   ├── routes/                # REST endpoint routers
+│   ├── uploads/               # Local media storage directory
+│   ├── seed.js                # Database initialization script
+│   └── server.js              # Server entry point
+├── src/                       # React Native mobile application
+│   ├── api/                   # Centralized API client and network handlers
+│   ├── components/            # Reusable UI components
+│   ├── config/                # Brand manifest and white-label tokens
+│   ├── context/               # React Context providers (Auth, Cart, Orders, Theme, Branch)
+│   ├── hooks/                 # Custom reusable hooks
+│   ├── reducers/              # Pure state machines (Cart reducer)
+│   ├── screens/               # Screen modules (Menu, Cart, Orders, Reservations, Profile)
+│   └── theme/                 # Design tokens (colors, typography, spacing, shadows)
+├── eslint.config.js           # ESLint flat configuration
+├── app.json                   # Expo application manifest
+└── package.json               # Frontend dependencies and run scripts
+```
 
 ---
 
-## 8. Formal Test Case Verification Table
+## 📚 Technical Documentation Directory
 
-| Test ID | Module | Description | Pre-condition | Steps | Expected | Actual | Status |
-|---|---|---|---|---|---|---|---|
-| **TC-AUTH-01** | Auth | Successful customer authentication | User exists in DB with valid password | 1. Enter `zainab.malik@aurabistro.pk`<br>2. Enter `Password123`<br>3. Tap "Sign In to AURA" | HTTP 200 returned, JWT token stored, user context loaded, redirect to Menu | User authenticated, token persisted in safeStorage, navigates to Menu | Pass |
-| **TC-AUTH-02** | Auth | Rejection of invalid credentials | Registered user email | 1. Enter `zainab.malik@aurabistro.pk`<br>2. Enter wrong password<br>3. Tap "Sign In to AURA" | HTTP 401 Unauthorized with "Invalid email or password" error | Inline error banner displays "Invalid email or password"; state remains unauthenticated | Pass |
-| **TC-AUTH-03** | Auth | Rejection of duplicate email registration | Email already exists in DB | 1. Tap "Sign up"<br>2. Fill name, existing email & valid password<br>3. Tap "Create Customer Account" | HTTP 409 Conflict with "An account with this email already exists" | Inline error banner displays "An account with this email already exists" | Pass |
-| **TC-ROLE-01** | Role Switching | Manager role access to kitchen queue & controls | Logged in as manager (`farhan.chef@aurabistro.pk`) | 1. Log in with manager account<br>2. Check navigation tabs | Manager Dashboard opens with Orders, Tables, Menu Stock, and Team tabs | Manager Dashboard accessible with active queue, booking approval, and staff creation | Pass |
-| **TC-ROLE-02** | Role Switching | Customer role forbidden from manager operations | Logged in as customer (`zainab.malik@aurabistro.pk`) | 1. Log in as customer<br>2. Check UI and invoke manager endpoints (e.g. POST `/api/auth/staff`) | Manager dashboard hidden in client; direct API calls to manager routes return HTTP 403 Forbidden | Manager tab hidden in client; unauthorized endpoints return HTTP 403 ("Access denied: Manager role required") | Pass |
-| **TC-CART-01** | Cart Reducer | Add menu item and calculate subtotal | Menu items loaded, cart empty | 1. Tap "+" on Saffron Infused Lobster Bisque (Rs. 1,450)<br>2. Open Cart screen | Reducer handles `ADD_ITEM`, subtotal updates to Rs. 1,450, count is 1 | Cart renders 1x item at Rs. 1,450; subtotal is Rs. 1,450 | Pass |
-| **TC-CART-02** | Cart Reducer | Apply valid promo voucher code | Active items in cart | 1. Enter voucher "WELCOME10"<br>2. Tap "Apply" | Reducer handles `APPLY_PROMO`, applies 10% discount to subtotal | 10% discount line item calculated and deducted from total | Pass |
-| **TC-CART-03** | Cart Reducer | Decrement item quantity to zero removes item | Cart contains 1 item (qty: 1) | 1. Tap "-" button on item | Reducer handles `DECREMENT`, item removed from list | Item removed; empty cart placeholder shown | Pass |
-| **TC-RES-01** | Reservations | Book dining table for available slot | User authenticated, table free | 1. Pick date, party size 2, slot 19:00<br>2. Tap "Review Booking"<br>3. Confirm in modal | POST `/api/reservations` creates booking with status "Pending" | Reservation created, booking ID issued, appears in My Bookings | Pass |
-| **TC-RES-02** | Reservations | Collision prevention for already booked slot | Table already reserved for slot | 1. Submit duplicate booking for same table, date & slot | Backend rejects with HTTP 409 Conflict: "This table is already booked for the selected date and time slot." | HTTP 409 Conflict returned; UI presents collision message | Pass |
-| **TC-RES-03** | Reservations | Customer cancels own reservation | Active booking exists in My Bookings | 1. Open My Bookings tab<br>2. Tap "Cancel Reservation"<br>3. Confirm prompt | PATCH `/api/reservations/:id` updates status to "Cancelled" | Status badge updates to "Cancelled"; table slot released | Pass |
-| **TC-RES-04** | Reservations | Past/completed reservations hide cancel button | Booking date has passed or status is Completed | 1. Open My Bookings tab<br>2. View past reservation card | Cancel button hidden; "Dining Completed • Visited" badge displayed with "Reserve Again" CTA | Past booking shows green checkmark badge with "Reserve Again" button; no cancel option visible | Pass |
-| **TC-RES-05** | Reservations | Reservation filter tabs with counts | Multiple bookings in various states | 1. Open My Bookings tab<br>2. Switch between All, Upcoming, Past, Cancelled tabs | Each tab filters bookings by state and shows accurate count badges | Tabs correctly filter; counts match actual booking states | Pass |
-| **TC-ORD-01** | Orders | Place dining order from cart | Items present in cart | 1. Proceed to Order Summary<br>2. Tap "Dispatch Order to Kitchen" | POST `/api/orders` creates order with status "Pending"; cart cleared via `CLEAR_CART` | Order record saved, cart emptied, routed to Order Tracking | Pass |
-| **TC-ORD-02** | Orders | Customer cancels own pending order | Order status is "Pending" within 10-minute cancellation window | 1. Open Order Tracking screen<br>2. Tap "Cancel Order"<br>3. Confirm cancellation | PATCH `/api/orders/:id/status` sets status to "Cancelled" | Status transitions to "Cancelled", polling stops, UI reflects cancellation | Pass |
-| **TC-ORD-03** | Orders | Manager advances kitchen order status | Order in "Pending" status | 1. Open Manager Dashboard<br>2. Tap "Start Cooking" on order | PATCH `/api/orders/:id/status` updates status to "Preparing" | Order updates to "Preparing" in manager queue and customer tracker | Pass |
-| **TC-ORD-04** | Orders | Multi-branch order filtering | Orders placed from Lahore and Islamabad branches | 1. Open Manager Dashboard → Orders tab<br>2. Tap "📍 Lahore" filter pill<br>3. Tap "📍 Islamabad" filter pill | Only orders from selected branch are displayed; branch city badge visible on each order card | Branch filter correctly shows/hides orders; city badge displayed prominently | Pass |
-| **TC-MENU-01** | Menu CRUD | Manager adds dish with image preset | Manager logged in on Add Dish modal | 1. Open Menu Stock tab<br>2. Tap "+ Add New Dish"<br>3. Fill details, tap "🍔 Burger" preset<br>4. Save | New dish created with Unsplash burger image URL via POST `/api/menu` | Dish appears in catalog with correct image; preset URL populated in Photo URL field | Pass |
+For deep-dive documentation on specific subsystems, consult the guides in the [`docs/`](docs/) directory:
+
+* 📐 **[Architecture Blueprint](docs/ARCHITECTURE.md)** — Architectural layers, React Context state flow, and security rules.
+* 🗄️ **[Database Specification](docs/DATABASE.md)** — MongoDB collections, field constraints, schema rules, and indexing strategy.
+* ☁️ **[Free-Stack Service Directory](docs/FREE_STACK.md)** — Free-tier cloud hosting, database, CI/CD, and push notification guides.
+* 🎨 **[White-Label Customization Guide](docs/WHITE_LABEL.md)** — Brand tokens, currency localization, multi-outlet configuration.
+* 🛠️ **[Local Setup & Environment Guide](docs/SETUP.md)** — Physical device networking, port forwarding, and troubleshooting.
+* 📜 **[Asset Licenses & Attributions](docs/ASSETS_LICENSES.md)** — Font, icon, photography, and open-source license compliance.
+* 📑 **[Engineering Changelog](docs/PROJECT_LOG.md)** — Complete chronological log of milestones and technical implementations.
+
+---
+
+## 🧪 Quality Assurance & Validation
+
+The codebase undergoes systematic static analysis and runtime verification:
+
+* **Static Analysis**: Verified with ESLint and Prettier across all app and server modules.
+* **Server Syntax Verification**: Every server module passes automated syntax checking (`node --check server/**/*.js`).
+* **Android Production Bundle**: Verified with Expo Android compilation (`expo export --platform android`) producing 0 bundle errors.
+* **Deterministic Seeds**: Idempotent database initialization ensures uniform staging across testing environments.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE) — free for personal, educational, and commercial customization.

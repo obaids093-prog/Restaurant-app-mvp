@@ -1,5 +1,30 @@
 # Project Log
 
+## [2026-10-19] - README Overhaul: Senior Developer & Open-Source Showcase
+
+- **Date**: 2026-10-19
+- **Title**: README Overhaul: Senior Developer & Open-Source Showcase
+- **WHAT changed**:
+  - Completely rewrote root `README.md` to remove all academic assignment markers (student roll numbers, course names, teacher references, assignment deliverable rubrics).
+  - Designed a high-impact, professional hero banner with modern tech badges (React Native, Expo SDK, Node.js, Express, MongoDB Atlas, MIT License).
+  - Structured key product features across Customer Mobile Experience, Manager & Kitchen Operations, and Enterprise Security / Auth Architecture.
+  - Added interactive system architecture Mermaid diagram mapping Client Contexts, Express Middleware & Controllers, and MongoDB Mongoose layer.
+  - Formatted a clean Quickstart Guide for both backend and mobile client setups, with a collapsible 26-endpoint REST API reference table.
+  - Added links to deep-dive technical documentation (`ARCHITECTURE.md`, `DATABASE.md`, `FREE_STACK.md`, `WHITE_LABEL.md`, `SETUP.md`).
+- **WHY (the problem or goal)**:
+  - Transform repository presentation on GitHub into a top-tier, production-ready enterprise open-source showcase suitable for industry portfolios, clients, and technical recruiters.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Replaced academic course headings with production-grade engineering documentation standards.
+  - Kept essential developer evaluation credentials and testing guidelines in clean, structured tables.
+- **HOW TO TEST**:
+  - Preview `README.md` in markdown viewer or on GitHub.
+- **RISKS or follow-ups**:
+  - None. Clean documentation change.
+- **Commit hashes**:
+  - `866b924` (docs: overhaul README into senior-level enterprise showcase)
+
+---
+
 ## [2026-10-19] - Phase 1 Item 8: Final Check & Validation Verification
 
 - **Date**: 2026-10-19
