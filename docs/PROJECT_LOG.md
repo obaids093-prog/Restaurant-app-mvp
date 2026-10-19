@@ -1,5 +1,29 @@
 # Project Log
 
+## [2026-10-19] - Phase 1 Item 7: Free Stack Architecture Plan
+
+- **Date**: 2026-10-19
+- **Title**: Phase 1 Item 7: Free Stack Architecture Plan
+- **WHAT changed**:
+  - Created `docs/FREE_STACK.md` covering all 9 required capabilities: Database (MongoDB Atlas M0), API Hosting (Render.com), App Builds & Updates (Expo EAS free tier), Push Notifications (Expo Push Service), Image Storage (Cloudinary free tier), Email (Resend free tier), CI (GitHub Actions), Error Tracking (Sentry Developer), and Maps (OpenStreetMap & Leaflet/Nominatim).
+  - Detailed prerequisites, setup steps, and explicit "verify current limits" annotations for each provider.
+  - Documented paid realities (SMS gateways, payment gateways, custom domains, App Store/Play Console fees) alongside production-ready free fallbacks (Email OTP / WhatsApp concierge links, cash / pay-at-table / manual bank transfer slip upload, platform subdomains with automated SSL, direct Android APK releases & Expo PWA).
+  - Outlined a prioritised roadmap spanning Phase 2 through Phase 8 (Security & Tests, Free Hosting, Reviews & Vouchers, Analytics & Telemetry, Push Notifications, Delivery, Multi-Restaurant Support).
+  - Updated `docs/REPO_MAP.md` tree hierarchy to include `docs/FREE_STACK.md`.
+- **WHY (the problem or goal)**:
+  - Provide a practical, zero-subscription deployment blueprint ensuring the restaurant application can run, build, and scale in production without mandatory credit cards or paid services.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Evaluated developer-friendly cloud services with perpetual free tiers.
+  - Mapped realistic commercial operational hurdles to zero-cost workarounds.
+- **HOW TO TEST**:
+  - Review `docs/FREE_STACK.md` for architectural completeness and verify all service links.
+- **RISKS or follow-ups**:
+  - Keep track of provider policy updates by checking pricing pages before major production deployments.
+- **Commit hashes**:
+  - `6b546bb` (docs: create FREE_STACK.md service directory and evolution roadmap (Item 7))
+
+---
+
 ## [2026-10-19] - Phase 1 Item 6: Developer Tooling (ESLint, Prettier, EditorConfig)
 
 - **Date**: 2026-10-19

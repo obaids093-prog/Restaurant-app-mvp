@@ -20,6 +20,7 @@ mad assignment/
 │   ├── AI_RULES.md               # Standing instructions for AI and human contributors
 │   ├── ARCHITECTURE.md           # System architecture spec (updated this branch)
 │   ├── DATABASE.md               # Database collections, schemas, indexes & seed hygiene
+│   ├── FREE_STACK.md             # Free cloud hosting, service directory & roadmap
 │   ├── PROJECT_LOG.md            # Living project history and change log
 │   ├── REPO_MAP.md               # This file
 │   ├── SETUP.md                  # Developer setup guide
