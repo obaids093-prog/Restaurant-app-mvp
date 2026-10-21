@@ -13,9 +13,9 @@
 import { Platform } from 'react-native';
 import safeStorage from '../utils/safeStorage';
 
-// Laptop's active local network IP on Wi-Fi adapter (192.168.100.17)
-// Using localhost on Web for instant browser testing, and LAN IP on native devices (iOS/Android)
-export const BASE_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'http://192.168.100.17:5000';
+// Public tunnel URL accessible from ANY phone worldwide on Wi-Fi or Mobile Data
+// Using localhost on Web for instant browser testing, and public HTTPS URL on native devices (iOS/Android)
+export const BASE_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'https://flat-donuts-jog.loca.lt';
 
 export const TOKEN_KEY = '@restaurant_app_auth_token';
 
@@ -83,6 +83,7 @@ export const apiClient = async (endpoint, options = {}) => {
   const headers = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    'Bypass-Tunnel-Reminder': 'true',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
     Pragma: 'no-cache',
     Expires: '0',
