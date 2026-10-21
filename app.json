@@ -11,6 +11,7 @@
     },
     "android": {
       "package": "com.aura.restaurant",
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#121212",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -23,6 +24,11 @@
     },
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e964f9f8-9bc6-4c46-93a8-25d1bffac4c9"
+      }
+    }
   }
 }

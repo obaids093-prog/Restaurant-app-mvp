@@ -13,9 +13,9 @@
 import { Platform } from 'react-native';
 import safeStorage from '../utils/safeStorage';
 
-// Laptop's active local network IP on Wi-Fi adapter (192.168.100.6)
+// Laptop's active local network IP on Wi-Fi adapter (192.168.100.17)
 // Using localhost on Web for instant browser testing, and LAN IP on native devices (iOS/Android)
-export const BASE_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'http://192.168.100.2:5000';
+export const BASE_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'http://192.168.100.17:5000';
 
 export const TOKEN_KEY = '@restaurant_app_auth_token';
 
