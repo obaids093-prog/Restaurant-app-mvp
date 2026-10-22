@@ -92,6 +92,7 @@ export default function OnboardingSlide({
           style={[
             StyleSheet.absoluteFill,
             {
+              backgroundColor: '#1A0E0B',
               transform: [{ translateX: imageTranslateX }],
             },
           ]}

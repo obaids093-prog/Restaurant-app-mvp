@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getOptimizedImageUrl } from '../../utils/imageUrl';
 import { styles } from './menuStyles';
@@ -68,7 +68,19 @@ export default function TopRatedRow({
               shadows.cardLight,
             ]}
           >
-            <View style={styles.topRatedImageContainer}>
+            <View style={[styles.topRatedImageContainer, { backgroundColor: '#1C1A19' }]}>
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  { alignItems: 'center', justifyContent: 'center' },
+                ]}
+              >
+                <Ionicons
+                  name="flame-outline"
+                  size={32}
+                  color="rgba(255,255,255,0.18)"
+                />
+              </View>
               <Image
                 source={{ uri: getOptimizedImageUrl(dish.image) }}
                 style={styles.topRatedImage}

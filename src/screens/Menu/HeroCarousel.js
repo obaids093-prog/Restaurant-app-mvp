@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../../utils/SafeLinearGradient';
 import brand from '../../config/brand';
@@ -42,19 +42,37 @@ export default function HeroCarousel({
               styles.heroCardSlide,
               {
                 width: width - 32,
-                backgroundColor: colors.card,
+                backgroundColor: '#1E1E22',
                 borderColor: colors.subtleBorder,
               },
               shadows.cardLight,
             ]}
           >
+            {/* Ambient culinary placeholder if network is slow/loading */}
+            <View
+              style={[
+                StyleSheet.absoluteFillObject,
+                {
+                  backgroundColor: '#1C1A19',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+              ]}
+            >
+              <Ionicons
+                name="restaurant-outline"
+                size={68}
+                color="rgba(255,255,255,0.12)"
+              />
+            </View>
+
             <Image
               source={{ uri: getOptimizedImageUrl(pick.image) }}
               style={styles.heroImage}
               resizeMode="cover"
             />
             <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.85)']}
+              colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.85)']}
               style={styles.heroImageGradient}
             />
 

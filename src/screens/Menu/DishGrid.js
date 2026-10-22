@@ -149,7 +149,24 @@ export default function DishGrid({
             ]}
           >
             {/* Modal Image Header */}
-            <View style={styles.modalImageWrapper}>
+            <View style={[styles.modalImageWrapper, { backgroundColor: '#1C1A19' }]}>
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons
+                  name="restaurant-outline"
+                  size={52}
+                  color="rgba(255,255,255,0.18)"
+                />
+              </View>
               <Image
                 source={{
                   uri: getOptimizedImageUrl(
