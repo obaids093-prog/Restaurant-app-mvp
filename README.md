@@ -169,9 +169,9 @@ For testing and rapid evaluation, the seed script generates the following pre-co
 
 | Account Type | Full Name | Email Address | Password | Privileges |
 | :--- | :--- | :--- | :--- | :--- |
-| **Executive Manager** | Chef Farhan Siddiqui | `farhan.chef@aurabistro.pk` | `Admin1234` | Full kitchen order progression, table booking approval/decline, menu catalog CRUD, staff account generation. |
-| **Dining Guest** | Zainab Malik | `zainab.malik@aurabistro.pk` | `Password123` | Cart operations, promo redemption, order placement, live kitchen tracking, table reservations. |
-| **Dining Guest (2)** | Hamza Abbasi | `hamza.abbasi@aurabistro.pk` | `Password1` | Multi-patron customer account for concurrent order testing. |
+| **Executive Manager** | Chef Farhan Siddiqui | `farhan.chef@gmail.com` | `Admin1234` | Full kitchen order progression, table booking approval/decline, menu catalog CRUD, staff account generation. |
+| **Dining Guest** | Zainab Malik | `zainab.malik@gmail.com` | `Password123` | Cart operations, promo redemption, order placement, live kitchen tracking, table reservations. |
+| **Dining Guest (2)** | Hamza Abbasi | `hamza.abbasi@gmail.com` | `Password1` | Multi-patron customer account for concurrent order testing. |
 
 > **Security Note**: Public user registration (`POST /api/auth/register`) strictly assigns the `customer` role. Administrative manager accounts can only be issued by an authenticated manager or initialized via `npm run seed`.
 

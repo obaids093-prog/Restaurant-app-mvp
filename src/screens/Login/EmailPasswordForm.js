@@ -55,7 +55,7 @@ export default function EmailPasswordForm({
         label="Email Address"
         value={values.email}
         onChangeText={(val) => handleChange('email', val)}
-        placeholder="name@example.com"
+        placeholder="yourname@gmail.com"
         error={errors.email}
         icon={<Ionicons name="mail-outline" size={18} color={colors.primary} />}
         keyboardType="email-address"

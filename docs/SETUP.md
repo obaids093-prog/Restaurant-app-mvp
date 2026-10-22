@@ -99,8 +99,8 @@ npm run seed
 npm run seed -- --reset
 ```
 This seeds:
-- **1 Executive Manager Account**: `farhan.chef@aurabistro.pk` (Password: `Admin1234`)
-- **2 Customer Accounts**: `zainab.malik@aurabistro.pk` (`Password123`), `hamza.abbasi@aurabistro.pk` (`Password1`)
+- **1 Executive Manager Account**: `farhan.chef@gmail.com` (Password: `Admin1234`)
+- **2 Customer Accounts**: `zainab.malik@gmail.com` (`Password123`), `hamza.abbasi@gmail.com` (`Password1`)
 - **16 Curated Dishes**: Starters, Mains, Desserts, and Artisan Beverages.
 - **8 Dining Tables**: Covering Glasshouse, Courtyard, and Chef's Counter areas.
 - **1 Sample Reservation & 1 Sample Order**.

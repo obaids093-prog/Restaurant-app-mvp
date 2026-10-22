@@ -44,7 +44,7 @@ const Order = require('./models/Order');
 const getInitialUsers = (customerPasswordHash, managerPasswordHash, secondUserPasswordHash) => [
   {
     name: 'Zainab Malik',
-    email: 'zainab.malik@aurabistro.pk',
+    email: 'zainab.malik@gmail.com',
     password: customerPasswordHash,
     role: 'customer',
     phone: '0302-8877665',
@@ -54,7 +54,7 @@ const getInitialUsers = (customerPasswordHash, managerPasswordHash, secondUserPa
   },
   {
     name: 'Chef Farhan Siddiqui',
-    email: 'farhan.chef@aurabistro.pk',
+    email: 'farhan.chef@gmail.com',
     password: managerPasswordHash,
     role: 'manager',
     phone: '0321-5544332',
@@ -64,7 +64,7 @@ const getInitialUsers = (customerPasswordHash, managerPasswordHash, secondUserPa
   },
   {
     name: 'Hamza Abbasi',
-    email: 'hamza.abbasi@aurabistro.pk',
+    email: 'hamza.abbasi@gmail.com',
     password: secondUserPasswordHash,
     role: 'customer',
     phone: '0333-4455667',

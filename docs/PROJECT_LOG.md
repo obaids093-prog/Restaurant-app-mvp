@@ -1,5 +1,30 @@
 # Project Log
 
+## [2026-10-22] - Feat: Professional Gmail Standardization & Profile Placeholder Email Elimination
+
+- **Date**: 2026-10-22
+- **Title**: Feat: Professional Gmail Standardization & Profile Placeholder Email Elimination
+- **WHAT changed**:
+  - In `src/screens/ProfileScreen.js`: Implemented `isPlaceholderEmail()` helper to detect auto-generated dummy email strings from phone OTP signup; replaced ugly dummy email strings on the profile card with a clean `+ Add your Gmail` button.
+  - In `src/screens/ProfileScreen.js`: Updated edit modal to prefill empty string for placeholder emails and set input placeholder to `yourname@gmail.com`.
+  - In `src/screens/Login/EmailPasswordForm.js`: Updated email placeholder from `name@example.com` to `yourname@gmail.com`.
+  - In `src/screens/Manager/TeamTab.js`: Updated staff email placeholder from `asad@aurabistro.pk` to `asad@gmail.com`.
+  - In `server/seed.js`: Migrated seeded demo accounts from `@aurabistro.pk` to clean `@gmail.com` accounts.
+  - In `README.md` & `docs/SETUP.md`: Synchronized documentation tables for demo evaluation accounts to `@gmail.com`.
+- **WHY (the problem or goal)**:
+  - Deliver real-world consumer app standards by eliminating dummy academic/internal domain references (`aurabistro.pk`) and providing seamless Gmail integration for both email and phone-verified users.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Checked for internal placeholder strings (`@customer.aura.pk`, `@aurabistro.pk`, phone number emails) without breaking MongoDB unique constraints.
+- **HOW TO TEST**:
+  - Sign in or view profile; verify that phone-verified accounts show `+ Add your Gmail` pill rather than dummy domain strings.
+  - Tap `+ Add your Gmail` to verify modal pre-populates clean input and allows saving real Gmail address.
+- **RISKS or follow-ups**:
+  - None. Backward compatible with existing users.
+- **Commit hashes**:
+  - `d59332a` (feat(auth): standardize on real Gmail and eliminate dummy placeholder emails in profile)
+
+---
+
 ## [2026-10-22] - Config: Switch Mobile API Client to Live 24/7 Render Backend
 
 - **Date**: 2026-10-22

@@ -83,9 +83,22 @@ export default function ProfileScreen({ navigation }) {
     );
   };
 
+  // Helper to detect auto-generated dummy email from phone OTP signup
+  const isPlaceholderEmail = (email) => {
+    if (!email || typeof email !== 'string') return true;
+    const lower = email.toLowerCase().trim();
+    return (
+      lower.includes('@customer.aura.pk') ||
+      lower.includes('@aurabistro.pk') ||
+      lower.includes('aurahospitality') ||
+      lower.includes('aura.internal') ||
+      /^\+?\d{9,15}@/.test(lower)
+    );
+  };
+
   const openEditModal = () => {
     setEditName(user?.name || '');
-    setEditEmail(user?.email || '');
+    setEditEmail(isPlaceholderEmail(user?.email) ? '' : (user?.email || ''));
     const phoneParsed = normalizePkPhone(user?.phone || '');
     setEditPhone(phoneParsed.isValid ? phoneParsed.raw : (user?.phone || ''));
     setEditAmbience(user?.defaultAmbience || 'atrium');
@@ -102,21 +115,24 @@ export default function ProfileScreen({ navigation }) {
       setEditError('Please enter your full name.');
       return;
     }
-    if (!trimmedEmail || !trimmedEmail.includes('@')) {
-      setEditError('Please enter a valid email address.');
+    if (trimmedEmail && (!trimmedEmail.includes('@') || !trimmedEmail.includes('.'))) {
+      setEditError('Please enter a valid email address (e.g. yourname@gmail.com).');
       return;
     }
 
     try {
       setIsSaving(true);
       setEditError('');
-      await updateProfile({
+      const payload = {
         name: trimmedName,
-        email: trimmedEmail,
         phone: editPhone.trim(),
         defaultAmbience: editAmbience,
         specialOccasion: editOccasion.trim(),
-      });
+      };
+      if (trimmedEmail) {
+        payload.email = trimmedEmail.toLowerCase();
+      }
+      await updateProfile(payload);
 
       setIsEditModalVisible(false);
       const msg = 'Personal information saved successfully!';
@@ -327,9 +343,20 @@ export default function ProfileScreen({ navigation }) {
                   </View>
                 </View>
 
-                <Text style={styles.memberEmailText} numberOfLines={1}>
-                  {user.email}
-                </Text>
+                {isPlaceholderEmail(user.email) ? (
+                  <TouchableOpacity
+                    onPress={openEditModal}
+                    activeOpacity={0.8}
+                    style={styles.addEmailPill}
+                  >
+                    <Ionicons name="mail-outline" size={11} color="#FFFFFF" />
+                    <Text style={styles.addEmailPillText}>+ Add your Gmail</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.memberEmailText} numberOfLines={1}>
+                    {user.email}
+                  </Text>
+                )}
 
                 {/* Verified Phone Chip */}
                 {user.phone ? (
@@ -671,10 +698,10 @@ export default function ProfileScreen({ navigation }) {
               />
 
               <Input
-                label="Email Address"
+                label="Gmail / Email Address"
                 value={editEmail}
                 onChangeText={setEditEmail}
-                placeholder="e.g. zainab.malik@aurahospitality.pk"
+                placeholder="yourname@gmail.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 icon={<Ionicons name="mail-outline" size={18} color={colors.mutedText} />}
@@ -910,6 +937,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.85)',
     marginTop: 2,
+  },
+  addEmailPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  addEmailPillText: {
+    fontSize: 11,
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   memberMetaRow: {
     flexDirection: 'row',
