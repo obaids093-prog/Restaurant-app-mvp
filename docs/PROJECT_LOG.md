@@ -1,5 +1,24 @@
 # Project Log
 
+## [2026-10-22] - Config: Switch Mobile API Client to Live 24/7 Render Backend
+
+- **Date**: 2026-10-22
+- **Title**: Config: Switch Mobile API Client to Live 24/7 Render Backend
+- **WHAT changed**:
+  - In `src/api/client.js`: Updated `BASE_URL` from temporary localtunnel endpoint to live Render cloud service `https://aura-app-49n0.onrender.com`.
+- **WHY (the problem or goal)**:
+  - Enable APK to connect 24/7 to the live production MongoDB backend from any device/network when shared with instructor, without requiring developer's computer or localtunnel to stay running.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Deployed Express/MongoDB backend to Render free tier with health checks enabled (`/api/health`). Verified live status and HTTP 200 response.
+- **HOW TO TEST**:
+  - Verified `https://aura-app-49n0.onrender.com/api/health` returns `{"status":"ok"}`.
+- **RISKS or follow-ups**:
+  - Render free tier instances spin down after inactivity; initial request may take ~30-50s cold start.
+- **Commit hashes**:
+  - `013f9d0` (feat(api): connect mobile app to live 24/7 Render cloud backend)
+
+---
+
 ## [2026-10-22] - Fix: Resolve db.js Linter Warnings and Security Hotspots
 
 - **Date**: 2026-10-22

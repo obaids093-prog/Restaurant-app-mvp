@@ -13,9 +13,9 @@
 import { Platform } from 'react-native';
 import safeStorage from '../utils/safeStorage';
 
-// Public tunnel URL accessible from ANY phone worldwide on Wi-Fi or Mobile Data
-// Using localhost on Web for instant browser testing, and public HTTPS URL on native devices (iOS/Android)
-export const BASE_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'https://flat-donuts-jog.loca.lt';
+// Live Render Cloud URL accessible from ANY phone worldwide 24/7 on Wi-Fi or Mobile Data
+// Using localhost on Web for instant browser testing, and Render HTTPS URL on native devices (iOS/Android)
+export const BASE_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'https://aura-app-49n0.onrender.com';
 
 export const TOKEN_KEY = '@restaurant_app_auth_token';
 
