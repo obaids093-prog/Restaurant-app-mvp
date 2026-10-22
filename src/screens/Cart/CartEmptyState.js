@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { brand } from '../../config/brand';
+import { getOptimizedImageUrl } from '../../utils/imageUrl';
 import EmptyClocheIllustration from './EmptyClocheIllustration';
 import { styles } from './cartStyles';
 
@@ -120,7 +121,7 @@ export default function CartEmptyState({
                 ]}
               >
                 {dish.image ? (
-                  <Image source={{ uri: dish.image }} style={styles.recommendImage} />
+                  <Image source={{ uri: getOptimizedImageUrl(dish.image) }} style={styles.recommendImage} />
                 ) : (
                   <View style={[styles.recommendImageFallback, { backgroundColor: colors.surfaceSubtle }]}>
                     <Ionicons name="restaurant-outline" size={28} color={colors.primary} />

@@ -11,6 +11,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getOptimizedImageUrl } from '../../utils/imageUrl';
 import { styles } from './menuStyles';
 
 export default function DishGrid({
@@ -151,9 +152,10 @@ export default function DishGrid({
             <View style={styles.modalImageWrapper}>
               <Image
                 source={{
-                  uri:
+                  uri: getOptimizedImageUrl(
                     exploredItem?.image ||
-                    'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&fm=jpg&fit=crop&q=80'
+                  ),
                 }}
                 style={styles.modalImage}
                 resizeMode="cover"

@@ -63,7 +63,7 @@ export const brand = {
       heroTagline:
         'Pick your preferred date, time, and table with instant confirmation.',
       image:
-        'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1000&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1000&fm=jpg&fit=crop&q=80',
       title: 'Book a Table',
       sheetTitle: 'Reserve a Table in Seconds',
       sheetDescription:
@@ -97,7 +97,7 @@ export const brand = {
       heroTagline:
         'Explore handcrafted gourmet dishes, steaks, pasta, and fresh drinks.',
       image:
-        'https://images.unsplash.com/photo-1544025162-d76694265947?w=1000&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1544025162-d76694265947?w=1000&fm=jpg&fit=crop&q=80',
       title: 'Order Food',
       sheetTitle: 'Explore Our Handcrafted Menu',
       sheetDescription:
@@ -131,7 +131,7 @@ export const brand = {
       heroTagline:
         'Watch your order move smoothly from the kitchen to your dining table.',
       image:
-        'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000&fm=jpg&fit=crop&q=80',
       title: 'Live Tracking',
       sheetTitle: 'Track Your Food Step by Step',
       sheetDescription:

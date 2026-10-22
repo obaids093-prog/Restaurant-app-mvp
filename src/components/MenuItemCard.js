@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/SafeLinearGradient';
+import { getOptimizedImageUrl, getCategoryIcon } from '../utils/imageUrl';
 
 /**
  * Question 8: MenuItemCard wrapped in React.memo
@@ -29,6 +30,8 @@ const MenuItemCard = React.memo(function MenuItemCard({
   const isAvailable = item.isAvailable;
   const bounceAnim = useRef(new Animated.Value(1)).current;
   const heartAnim = useRef(new Animated.Value(1)).current;
+  const [imgError, setImgError] = useState(false);
+  const optimizedUri = getOptimizedImageUrl(item.image);
 
   // Add-to-tray bounce animation (200ms)
   const handleAddPress = () => {
@@ -99,11 +102,26 @@ const MenuItemCard = React.memo(function MenuItemCard({
           },
         ]}
       >
-        <Image
-          source={{ uri: item.image }}
-          style={styles.foodImage}
-          resizeMode="cover"
-        />
+        {imgError || !optimizedUri ? (
+          <View style={[styles.fallbackContainer, { backgroundColor: colors.surfaceSubtle }]}>
+            <Ionicons
+              name={getCategoryIcon(item.category)}
+              size={32}
+              color={colors.primary}
+              style={{ opacity: 0.85 }}
+            />
+            <Text style={[styles.fallbackText, { color: colors.mutedText, fontFamily: fonts ? fonts.medium : undefined }]}>
+              {item.category || 'Gourmet'}
+            </Text>
+          </View>
+        ) : (
+          <Image
+            source={{ uri: optimizedUri }}
+            style={styles.foodImage}
+            resizeMode="cover"
+            onError={() => setImgError(true)}
+          />
+        )}
 
         {/* Daily Special / Chef Tasting Badge */}
         {item.isSpecial && (
@@ -278,6 +296,18 @@ const styles = StyleSheet.create({
   foodImage: {
     width: '100%',
     height: '100%',
+  },
+  fallbackContainer: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  fallbackText: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   specialBadge: {
     position: 'absolute',

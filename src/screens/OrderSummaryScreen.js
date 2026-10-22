@@ -22,6 +22,7 @@ import { useMenu } from '../context/MenuContext';
 import { useBranch } from '../context/BranchContext';
 import { BranchChip } from '../components/ui';
 import { brand } from '../config/brand';
+import { getOptimizedImageUrl } from '../utils/imageUrl';
 
 // Named rate constants for transparent breakdown
 const SERVICE_CHARGE_RATE = 0.05;
@@ -399,7 +400,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
                 ]}
               >
                 {item.image ? (
-                  <Image source={{ uri: item.image }} style={styles.dishThumb} />
+                  <Image source={{ uri: getOptimizedImageUrl(item.image) }} style={styles.dishThumb} />
                 ) : (
                   <View style={[styles.dishThumbFallback, { backgroundColor: colors.surfaceSubtle }]}>
                     <Ionicons name="restaurant-outline" size={20} color={colors.primary} />

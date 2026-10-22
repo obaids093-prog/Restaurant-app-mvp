@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { getOptimizedImageUrl } from '../../utils/imageUrl';
 import { styles, SANCTUARY_ZONES } from './reservationStyles';
 
 export default function ZonePicker({
@@ -39,7 +40,7 @@ export default function ZonePicker({
                 isSelected && shadows.soft,
               ]}
             >
-              <Image source={{ uri: zone.image }} style={[styles.zoneImage, { borderRadius: radius.button }]} />
+              <Image source={{ uri: getOptimizedImageUrl(zone.image) }} style={[styles.zoneImage, { borderRadius: radius.button }]} />
               <View style={styles.zoneContent}>
                 <View style={styles.zoneTagRow}>
                   <Text style={[typography.caption, { color: colors.primary, fontWeight: '700', fontSize: 11 }]}>

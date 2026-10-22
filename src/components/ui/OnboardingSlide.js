@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeLinearGradient } from '../../utils/SafeLinearGradient';
+import { getOptimizedImageUrl } from '../../utils/imageUrl';
 
 const { width, height } = Dimensions.get('window');
 
@@ -96,7 +97,7 @@ export default function OnboardingSlide({
           ]}
         >
           <Image
-            source={{ uri: item.image }}
+            source={{ uri: getOptimizedImageUrl(item.image) }}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
           />

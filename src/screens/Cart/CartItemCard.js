@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { brand } from '../../config/brand';
+import { getOptimizedImageUrl } from '../../utils/imageUrl';
 import { styles } from './cartStyles';
 
 export default function CartItemCard({
@@ -24,7 +25,7 @@ export default function CartItemCard({
     >
       <View style={styles.cartCardHeader}>
         {item.image ? (
-          <Image source={{ uri: item.image }} style={styles.itemThumb} />
+          <Image source={{ uri: getOptimizedImageUrl(item.image) }} style={styles.itemThumb} />
         ) : (
           <View style={[styles.itemThumbFallback, { backgroundColor: colors.surfaceSubtle }]}>
             <Ionicons name="restaurant" size={24} color={colors.primary} />

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getOptimizedImageUrl } from '../../utils/imageUrl';
 import { styles } from './menuStyles';
 
 export default function TopRatedRow({
@@ -69,7 +70,7 @@ export default function TopRatedRow({
           >
             <View style={styles.topRatedImageContainer}>
               <Image
-                source={{ uri: dish.image }}
+                source={{ uri: getOptimizedImageUrl(dish.image) }}
                 style={styles.topRatedImage}
                 resizeMode="cover"
               />

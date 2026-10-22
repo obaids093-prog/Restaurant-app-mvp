@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../../utils/SafeLinearGradient';
 import { useTheme } from '../../context/ThemeContext';
+import { getOptimizedImageUrl } from '../../utils/imageUrl';
 import { FilterTabs, EmptyState } from '../../components/ui';
 import {
   styles,
@@ -182,7 +183,7 @@ function HistoryBookingCard({
       ]}
     >
       <View style={[styles.bookingBanner, { borderRadius: radius.button }]}>
-        <Image source={{ uri: zonePhoto }} style={styles.bookingBannerImage} />
+        <Image source={{ uri: getOptimizedImageUrl(zonePhoto) }} style={styles.bookingBannerImage} />
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.7)']}
           style={styles.bookingBannerGradient}

@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { brand } from '../config/brand';
+import { getOptimizedImageUrl } from '../utils/imageUrl';
 import { LinearGradient } from '../utils/SafeLinearGradient';
 
 export default function OrderPlacedScreen({ route, navigation }) {
@@ -295,7 +296,7 @@ export default function OrderPlacedScreen({ route, navigation }) {
                     ]}
                   >
                     {item.image ? (
-                      <Image source={{ uri: item.image }} style={styles.itemImage} />
+                      <Image source={{ uri: getOptimizedImageUrl(item.image) }} style={styles.itemImage} />
                     ) : (
                       <View style={[styles.itemImageFallback, { backgroundColor: colors.surfaceSubtle }]}>
                         <Ionicons name="restaurant-outline" size={18} color={colors.primary} />

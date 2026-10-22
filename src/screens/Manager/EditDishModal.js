@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../components/ui';
+import { getOptimizedImageUrl } from '../../utils/imageUrl';
 import { styles } from './managerStyles';
 
 export default function EditDishModal({
@@ -149,7 +150,7 @@ export default function EditDishModal({
                 }}
               >
                 <Image
-                  source={{ uri: editDishImage }}
+                  source={{ uri: getOptimizedImageUrl(editDishImage) }}
                   style={{ width: 56, height: 42, borderRadius: radius.card / 2, backgroundColor: colors.surface }}
                   resizeMode="cover"
                 />

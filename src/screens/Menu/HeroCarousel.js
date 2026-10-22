@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../../utils/SafeLinearGradient';
 import brand from '../../config/brand';
+import { getOptimizedImageUrl } from '../../utils/imageUrl';
 import { styles, width } from './menuStyles';
 
 export default function HeroCarousel({
@@ -48,7 +49,7 @@ export default function HeroCarousel({
             ]}
           >
             <Image
-              source={{ uri: pick.image }}
+              source={{ uri: getOptimizedImageUrl(pick.image) }}
               style={styles.heroImage}
               resizeMode="cover"
             />
