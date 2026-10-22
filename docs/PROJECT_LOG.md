@@ -1,5 +1,25 @@
 # Project Log
 
+## [2026-10-22] - Build: Configure EAS Updates and App Version Runtime Policy
+
+- **Date**: 2026-10-22
+- **Title**: Build: Configure EAS Updates and App Version Runtime Policy
+- **WHAT changed**:
+  - In `app.json`: Added `runtimeVersion` with `appVersion` policy and EAS `updates` URL.
+  - In `package.json` & `package-lock.json`: Added compatible `expo-updates` dependency for over-the-air updates.
+- **WHY (the problem or goal)**:
+  - Enable seamless OTA (over-the-air) updates and complete cloud build configuration for EAS Android distribution.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Standard Expo SDK 57 EAS updates schema.
+- **HOW TO TEST**:
+  - Successfully built standalone APK via `npx eas-cli build --platform android --profile preview`.
+- **RISKS or follow-ups**:
+  - None. Production-ready build artifacts.
+- **Commit hashes**:
+  - `9595ddd` (build: configure eas updates and runtime version policy)
+
+---
+
 ## [2026-10-22] - Feat: Professional Gmail Standardization & Profile Placeholder Email Elimination
 
 - **Date**: 2026-10-22
