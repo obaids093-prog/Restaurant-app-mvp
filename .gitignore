@@ -48,6 +48,8 @@ server/.env.*
 
 # HTTP test files
 *.http
+server/create_test_accounts.js
+server/migrate_emails.js
 api-tests.http
 .claude/api-tests.http
 
