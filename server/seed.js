@@ -166,7 +166,7 @@ const initialMenuItems = [
     description: 'Piedmontese filled pasta pillows stuffed with braised leeks and ricotta, glazed in cultured brown butter, sage, and shaved summer truffles.',
     price: 1850,
     category: 'Mains',
-    image: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281691?w=600&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&fm=jpg&q=80&fit=crop',
     isSpecial: true,
     isAvailable: true,
     prepTime: '18 min',

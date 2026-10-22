@@ -51,6 +51,8 @@ server/.env.*
 server/create_test_accounts.js
 server/migrate_emails.js
 server/check_dishes.js
+server/update_agnolotti.js
+server/test_img.js
 api-tests.http
 .claude/api-tests.http
 
