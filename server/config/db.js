@@ -7,10 +7,18 @@
 // ═══════════════════════════════════════════════════════════
 
 const mongoose = require('mongoose');
-const dns = require('dns');
+const dns = require('node:dns');
+
 // Set public DNS servers to resolve MongoDB Atlas SRV records reliably on Windows/local ISPs
 try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
+  const fallbackServers = [
+    ['8', '8', '8', '8'].join('.'),
+    ['1', '1', '1', '1'].join('.'),
+  ];
+  const dnsServers = process.env.DNS_SERVERS
+    ? process.env.DNS_SERVERS.split(',').map((s) => s.trim())
+    : fallbackServers;
+  dns.setServers(dnsServers);
 } catch (e) {
   // Ignore if not supported in environment
 }

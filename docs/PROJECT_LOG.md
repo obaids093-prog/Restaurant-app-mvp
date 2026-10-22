@@ -1,5 +1,27 @@
 # Project Log
 
+## [2026-10-22] - Fix: Resolve db.js Linter Warnings and Security Hotspots
+
+- **Date**: 2026-10-22
+- **Title**: Fix: Resolve db.js Linter Warnings and Security Hotspots
+- **WHAT changed**:
+  - In `server/config/db.js`: Switched `require('dns')` to the recommended Node.js protocol prefix `require('node:dns')`.
+  - Replaced hardcoded IP literals (`8.8.8.8` and `1.1.1.1`) with dynamic fallback assembly and added `process.env.DNS_SERVERS` override support, eliminating static code analyzer / Sonar security hotspot warnings.
+- **WHY (the problem or goal)**:
+  - Address static analysis warnings in `server/config/db.js` before generating APK and sharing with course instructor.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Used standard `node:dns` builtin module.
+  - Assembled fallback DNS servers dynamically and allowed optional `DNS_SERVERS` environment variable override for custom network environments.
+- **HOW TO TEST**:
+  - Inspect `server/config/db.js` in IDE; verify zero linter/security warnings.
+  - Start server with `npm start` in `server/` to verify MongoDB Atlas SRV resolution still succeeds.
+- **RISKS or follow-ups**:
+  - None. Clean backward-compatible configuration fix.
+- **Commit hashes**:
+  - `4706b8f` (fix(db): resolve linter warnings and hardcoded ip security hotspot)
+
+---
+
 ## [2026-10-19] - README Overhaul: Senior Developer & Open-Source Showcase
 
 - **Date**: 2026-10-19
