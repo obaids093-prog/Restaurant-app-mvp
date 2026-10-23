@@ -1,38 +1,59 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { apiClient } from '../api/client';
 import { safeStorage } from '../utils/safeStorage';
 
-// Configure how notifications appear when the app is in the foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Safely load expo-notifications with try-catch so Expo Go doesn't crash on missing native modules
+let Notifications = null;
+try {
+  Notifications = require('expo-notifications');
+  if (Notifications?.setNotificationHandler) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+  }
+} catch (e) {
+  console.log('[Push Notification] Native module not available in this client (e.g. Expo Go):', e.message);
+  Notifications = null;
+}
+
+/**
+ * Get the loaded Notifications module if available
+ */
+export function getNotificationsModule() {
+  return Notifications;
+}
 
 /**
  * Configure Android notification channels and request permission for push notifications
  */
 export async function registerForPushNotificationsAsync() {
+  if (!Notifications) {
+    return null;
+  }
+
   let token = null;
 
   if (Platform.OS === 'android') {
     try {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'Default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#D4AF37',
-      });
+      if (Notifications.setNotificationChannelAsync && Notifications.AndroidImportance) {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'Default',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#D4AF37',
+        });
 
-      await Notifications.setNotificationChannelAsync('aura-order-updates', {
-        name: 'AURA Order & Dining Updates',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#D4AF37',
-      });
+        await Notifications.setNotificationChannelAsync('aura-order-updates', {
+          name: 'AURA Order & Dining Updates',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#D4AF37',
+        });
+      }
     } catch (e) {
       console.warn('[Push Notification] Channel setup failed:', e.message);
     }
@@ -40,20 +61,24 @@ export async function registerForPushNotificationsAsync() {
 
   if (Platform.OS !== 'web') {
     try {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
+      if (Notifications.getPermissionsAsync && Notifications.requestPermissionsAsync) {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
 
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+
+        if (finalStatus !== 'granted') {
+          return null;
+        }
       }
 
-      if (finalStatus !== 'granted') {
-        return null;
+      if (Notifications.getExpoPushTokenAsync) {
+        const tokenData = await Notifications.getExpoPushTokenAsync();
+        token = tokenData?.data || null;
       }
-
-      const tokenData = await Notifications.getExpoPushTokenAsync();
-      token = tokenData?.data || null;
     } catch (err) {
       // In simulator or Expo Go without projectId, token fetch might fail non-fatally
       console.warn('[Push Notification] Token retrieval unavailable:', err.message);
