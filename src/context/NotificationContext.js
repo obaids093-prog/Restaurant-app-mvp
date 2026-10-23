@@ -6,7 +6,7 @@ import {
   registerForPushNotificationsAsync,
   syncPushTokenWithBackend,
 } from '../services/pushNotificationService';
-import { navigationRef } from '../navigation/AppNavigator';
+import { navigationRef } from '../navigation/navigationRef';
 
 const NotificationContext = createContext(null);
 
