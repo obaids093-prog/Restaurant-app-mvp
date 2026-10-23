@@ -34,7 +34,7 @@
 - **RISKS or follow-ups**:
   - None. Backward-compatible with existing menu dishes and unrated items.
 - **Commit hashes**:
-  - Pending commit.
+  - `aefd64c` (feat(reviews): implement verified dish reviews, ratings aggregation, and manager responses)
 
 ---
 
