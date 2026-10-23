@@ -33,7 +33,7 @@
 - **RISKS or follow-ups**:
   - None. Both legacy promo codes and database vouchers are supported seamlessly.
 - **Commit hashes**:
-  - `TBD`
+  - `c6fa071` (feat(vouchers): implement server-validated coupon and voucher engine with manager controls)
 
 ---
 
