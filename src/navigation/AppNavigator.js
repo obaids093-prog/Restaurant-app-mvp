@@ -18,8 +18,8 @@ import ProfileScreen from '../screens/ProfileScreen';
 import ManagerDashboardScreen from '../screens/ManagerDashboardScreen';
 import OrderPlacedScreen from '../screens/OrderPlacedScreen';
 import NotificationScreen from '../screens/NotificationScreen';
-
-export const navigationRef = createNavigationContainerRef();
+import { navigationRef } from './navigationRef';
+export { navigationRef };
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
