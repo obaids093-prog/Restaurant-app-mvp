@@ -1,5 +1,39 @@
 # Project Log
 
+## [2026-10-23] - Feat: Design Refresh V2 - Screen 6: Table Reservation (My Bookings & Reservations)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Design Refresh V2 - Screen 6: Table Reservation (My Bookings & Reservations)
+- **WHAT changed**:
+  - In `src/screens/Reservation/myBookingsStyles.js`: Created dedicated stylesheet implementing Screen 6 design tokens (segmented filter tabs, elevated booking cards, status badges, details bento boxes, perk card, and retry banner).
+  - In `src/screens/Reservation/MyBookingsCard.js`: Built modular booking card component featuring:
+    - Status badges (`Confirmed` with green pulsing dot, `Completed`, `Cancelled`, `No-Show`).
+    - Booking reference (`#TBL-XXXXX`).
+    - Venue ambience thumbnail, date formatted (Today/Tomorrow/Date), time with service label (Lunch/Dinner), party size, and seating area.
+    - Special requests tag with magic sparkles icon.
+    - Venue address and interactive "Get Directions" link with arrow.
+    - Contextual action buttons: `Modify` and error-tinted `Cancel Table` for upcoming reservations; `Rebook Table` for past/cancelled.
+    - "Complimentary Welcome Sip" hospitality perk card for upcoming dining bookings.
+  - In `src/screens/Reservation/MyBookingsList.js`: Upgraded list screen with:
+    - 3-filter segmented tab bar (`Upcoming`, `Past / Done`, `Cancelled`) with live count badges.
+    - Total count badge (`X total`).
+    - Dismissible network refresh error banner with one-tap retry button.
+    - Polished empty state with "Reserve an Artisan Table" rebook CTA.
+- **WHY (the problem or goal)**:
+  - Deliver Screen 6 of Design Refresh V2 based on Stitch HTML/screenshot sources of truth for both light and dark modes, completing the reservation flow with high-fidelity history and booking management.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Decomposed into modular styles and card component (`myBookingsStyles.js` ~220 lines, `MyBookingsCard.js` ~240 lines, `MyBookingsList.js` ~230 lines) all strictly <400 lines.
+- **HOW TO TEST**:
+  - In Reservation screen, switch to "My Bookings" tab.
+  - Verify segmented tabs: "Upcoming", "Past / Done", "Cancelled" with counts.
+  - Test tapping "Cancel Table" -> confirmation alert -> updates status.
+  - Test "Get Directions" -> opens Maps app.
+  - Switch tabs to verify filtering and empty state when a filter has 0 bookings.
+- **Commit hashes**:
+  - `69e4e15` (feat(reservation): refresh Screen 6 My Bookings to design-refresh-v2 specs)
+
+---
+
 ## [2026-10-23] - Feat: Design Refresh V2 - Screen 5: Table Reservation (Booking Confirmed Success)
 
 - **Date**: 2026-10-23
