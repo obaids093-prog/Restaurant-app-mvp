@@ -19,6 +19,9 @@ erDiagram
     User ||--o{ Reservation : books
     Table ||--o{ Reservation : hosts
     MenuItem ||--o{ OrderItem : contains
+    User ||--o{ Review : writes
+    MenuItem ||--o{ Review : receives
+    Order ||--o{ Review : references
 
     User {
         ObjectId _id PK
@@ -58,7 +61,22 @@ erDiagram
         boolean isAvailable
         string prepTime
         number rating
+        number ratingAverage
+        number ratingCount
         string tag
+        Date createdAt
+        Date updatedAt
+    }
+
+    Review {
+        ObjectId _id PK
+        ObjectId user FK
+        ObjectId menuItem FK
+        ObjectId order FK
+        number rating
+        string comment
+        string managerReply
+        Date managerReplyAt
         Date createdAt
         Date updatedAt
     }
@@ -146,7 +164,9 @@ Catalog of culinary offerings, pricing, categorization, and kitchen preparation 
 | `isSpecial` | `Boolean` | No | `false` | Boolean flag | Featured/Chef signature item flag |
 | `isAvailable` | `Boolean` | No | `true` | Boolean flag | Real-time 86'd / inventory toggle |
 | `prepTime` | `String` | No | `'15 min'` | `trim: true` | Estimated prep duration |
-| `rating` | `Number` | No | `4.8` | `min: 0`, `max: 5` | Customer review score rating |
+| `rating` | `Number` | No | `0` | `min: 0`, `max: 5` | Backward-compatible display rating |
+| `ratingAverage` | `Number` | No | `0` | `min: 0`, `max: 5` | Recalculated dynamic average rating |
+| `ratingCount` | `Number` | No | `0` | `min: 0` | Total verified reviews count |
 | `tag` | `String` | No | `''` | `trim: true` | Culinary label (e.g., `'A5 Miyazaki'`, `'Wild Caught'`) |
 | `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
 | `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
@@ -248,6 +268,29 @@ Customer food and beverage orders, checkout bill breakdowns, and kitchen fulfill
 **Indexes**:
 - User History Index: `{ user: 1, createdAt: -1 }` — High-speed retrieval of customer order receipts sorted chronologically.
 - Kitchen Status Index: `{ status: 1 }` — High-speed live order queue filtering for manager/kitchen displays.
+
+---
+
+### 2.6 Collection: `reviews` (Model: `Review` in `server/models/Review.js`)
+
+Patron reviews, 1-to-5 star ratings, and management responses for menu items ordered in served restaurant orders.
+
+| Field | Type | Required | Default | Enum / Constraints | Relations / Validation |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `_id` | `ObjectId` | Auto | Auto | MongoDB ObjectId | Primary Key |
+| `user` | `ObjectId` | Yes | — | References `User` model | FK: `ref: 'User'` |
+| `menuItem` | `ObjectId` | Yes | — | References `MenuItem` model | FK: `ref: 'MenuItem'` |
+| `order` | `ObjectId` | Yes | — | References `Order` model | FK: `ref: 'Order'` |
+| `rating` | `Number` | Yes | — | `min: 1`, `max: 5`, integer | Score from 1 (Poor) to 5 (Outstanding) |
+| `comment` | `String` | No | `''` | `trim: true`, `maxlength: 300` | Optional tasting notes / review text |
+| `managerReply` | `String` | No | `''` | `trim: true`, `maxlength: 300` | Official chef/manager response |
+| `managerReplyAt`| `Date` | No | `null` | Date | Timestamp of manager response |
+| `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+| `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+
+**Indexes**:
+- Unique Review per Order Item: `{ user: 1, order: 1, menuItem: 1 }` (`unique: true`) — Enforces one review per dish per served order.
+- Dish Reviews Sorting: `{ menuItem: 1, createdAt: -1 }` — High-speed paginated retrieval of reviews for a dish.
 
 ---
 

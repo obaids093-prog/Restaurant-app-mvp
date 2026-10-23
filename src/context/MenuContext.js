@@ -34,6 +34,8 @@ const areMenuItemsEqual = (listA, listB) => {
       Boolean(a.isSpecial) !== Boolean(b.isSpecial) ||
       a.prepTime !== b.prepTime ||
       Number(a.rating) !== Number(b.rating) ||
+      Number(a.ratingAverage || 0) !== Number(b.ratingAverage || 0) ||
+      Number(a.ratingCount || 0) !== Number(b.ratingCount || 0) ||
       a.tag !== b.tag
     ) {
       return false;

@@ -1,5 +1,43 @@
 # Project Log
 
+## [2026-10-23] - Feat: Verified Patron Dish Reviews & Executive Ratings Architecture (Batch 1)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Verified Patron Dish Reviews & Executive Ratings Architecture (Batch 1)
+- **WHAT changed**:
+  - In `server/models/MenuItem.js`: Added `ratingAverage` and `ratingCount` fields with default values.
+  - In `server/models/Review.js`: Created `Review` schema enforcing one review per dish per served order (`{ user, order, menuItem }` compound unique index), rating validation (1–5 integer), 300-char comment length, manager reply fields, and optimized compound index `{ menuItem, createdAt: -1 }`.
+  - In `server/services/reviewService.js`: Implemented atomic rating recalculation (`syncDishRating`), order verification (must be `Served` and belong to patron), paginated reviews retrieval, user review retrieval, 24-hour update window, manager reply posting, and review deletion.
+  - In `server/controllers/reviewController.js`: Implemented thin controllers for `createReview`, `getMenuItemReviews`, `getAllReviews`, `getMyReviews`, `updateReview`, `replyReview`, and `deleteReview`.
+  - In `server/routes/reviewRoutes.js` & `server/routes/menuRoutes.js`: Exposed `/api/reviews` endpoints and `/api/menu/:id/reviews`.
+  - In `server/server.js`: Mounted review router and exported `app` for testing.
+  - In `src/hooks/useDishReviews.js`: Created custom hook for paginated dish review browsing with reload/fetchMore support.
+  - In `src/hooks/useSubmitReview.js`: Created custom hook managing review submission lifecycle and status.
+  - In `src/hooks/useManagerReviews.js`: Created custom hook managing manager review queue and executive reply actions.
+  - In `src/components/DishReviewsSection.js` & `src/components/dishReviewsSectionStyles.js`: Added verified patron review feed and score breakdown inside Menu dish exploration modal.
+  - In `src/components/RateOrderModal.js` & `src/components/rateOrderModalStyles.js`: Created modular rating modal with dish selector, 1-to-5 star picker, and optional feedback notes.
+  - In `src/screens/OrderTracking/OrderTrackingScreen.js` & `src/screens/OrderTracking/PastOrderCard.js`: Added "Rate Dishes" button on served orders triggering the rating modal.
+  - In `src/screens/Menu/DishGrid.js`, `TopRatedRow.js`, `src/components/MenuItemCard.js`, and `src/context/MenuContext.js`: Updated dish cards and grid to display dynamic average ratings and "New" badge for unrated items.
+  - In `src/screens/Manager/ManagerDashboardScreen.js`, `ReviewsTab.js`, `ReviewReplyModal.js`, and `reviewsTabStyles.js`: Added executive Reviews tab in Manager Dashboard.
+  - In `docs/DATABASE.md` & `docs/ARCHITECTURE.md`: Documented new Review model, updated MenuItem attributes, and REST endpoints.
+- **WHY (the problem or goal)**:
+  - Enable an authentic, verified dining feedback loop where only patrons who have ordered and received a dish can submit ratings and tasting notes, while giving managers a direct channel to respond to customer experiences.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Enforced verification at the database level by requiring an associated `Order` in `Served` status and ensuring the dish was part of that order.
+  - Computed ratings atomically via MongoDB aggregation to avoid drift.
+  - Structured frontend components strictly adhering to Layer Rules (Contexts/Hooks only, zero direct `apiClient` calls in UI) and file length limits (< 400 lines).
+- **HOW TO TEST**:
+  - Open Order Tracking -> locate a "Served" order -> tap "Rate Dishes".
+  - Select dish -> pick 1–5 stars -> write feedback -> submit.
+  - Check Menu screen -> verify dish average rating updates and shows in modal.
+  - Open Manager Dashboard -> switch to "Reviews" tab -> verify review appears -> post an executive reply.
+- **RISKS or follow-ups**:
+  - None. Backward-compatible with existing menu dishes and unrated items.
+- **Commit hashes**:
+  - Pending commit.
+
+---
+
 ## [2026-10-22] - Build: Configure EAS Updates and App Version Runtime Policy
 
 - **Date**: 2026-10-22

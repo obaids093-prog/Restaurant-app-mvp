@@ -197,8 +197,8 @@ const MenuItemCard = React.memo(function MenuItemCard({
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Rating Floating Pill */}
-        {item.rating && (
+        {/* Rating Floating Pill: Real average or New badge */}
+        {Number(item.ratingCount) > 0 && Number(item.ratingAverage) > 0 ? (
           <View
             style={[
               styles.ratingPill,
@@ -215,7 +215,26 @@ const MenuItemCard = React.memo(function MenuItemCard({
                 { color: colors.textPrimary, fontFamily: fonts ? fonts.bold : undefined },
               ]}
             >
-              {item.rating}
+              {Number(item.ratingAverage).toFixed(1)}
+            </Text>
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.ratingPill,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.subtleBorder,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.ratingText,
+                { color: colors.primary, fontFamily: fonts ? fonts.bold : undefined, fontSize: 10 },
+              ]}
+            >
+              New
             </Text>
           </View>
         )}

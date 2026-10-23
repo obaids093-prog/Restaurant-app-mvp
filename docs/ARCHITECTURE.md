@@ -64,7 +64,7 @@ All screens exceeding ~600 lines have been decomposed into focused sub-module fo
 | :--- | :--- | :--- |
 | **Menu** | `src/screens/Menu/` | `menuStyles.js`, `HeroCarousel`, `CategoryRow`, `OrderAgainRow`, `DealsSection`, `TopRatedRow`, `FilterSheet`, `DishGrid`, `MenuScreen`, `index.js` |
 | **Reservation** | `src/screens/Reservation/` | `reservationStyles.js`, `DateRow`, `PartyStepper`, `ZonePicker`, `SlotGrid`, `BookingForm`, `BookTabContent`, `ConfirmSheet`, `SuccessSheet`, `MyBookingsList`, `ReservationScreen`, `index.js` |
-| **Manager** | `src/screens/Manager/` | `managerStyles.js`, `OrderItemCard`, `ReservationCard`, `MenuItemCard`, `OverviewTab`, `OrdersTab`, `ReservationsTab`, `MenuStockTab`, `TeamTab`, `AddDishModal`, `EditDishModal`, `ManagerDashboardScreen`, `index.js` |
+| **Manager** | `src/screens/Manager/` | `managerStyles.js`, `OrderItemCard`, `ReservationCard`, `MenuItemCard`, `OverviewTab`, `OrdersTab`, `ReservationsTab`, `MenuStockTab`, `TeamTab`, `ReviewsTab`, `ReviewReplyModal`, `reviewsTabStyles.js`, `AddDishModal`, `EditDishModal`, `ManagerDashboardScreen`, `index.js` |
 | **Login** | `src/screens/Login/` | `loginStyles.js`, `BrandCanopy`, `EmailPasswordForm`, `PhoneOtpStep`, `NameEntryStep`, `GuestBrowseFooter`, `LoginScreen`, `index.js` |
 | **Cart** | `src/screens/Cart/` | `cartStyles.js`, `EmptyClocheIllustration`, `CartEmptyState`, `CartItemCard`, `VoucherSection`, `BillSummary`, `FloatingCartFooter`, `CartScreen`, `index.js` |
 | **OrderTracking** | `src/screens/OrderTracking/` | `trackingStyles.js`, `trackingHelpers.js`, `ActiveOrderHero`, `PastOrderCard`, `TrackingEmptyState`, `OrderTrackingScreen`, `index.js` |
@@ -127,6 +127,13 @@ The backend is built with Express.js using a modular controller-route-model arch
 | | `GET` | `/api/orders` | Manager/Staff | Fetches all active kitchen orders (filterable by branch). |
 | | `PATCH` | `/api/orders/:id/status` | Manager/Staff | Updates status (Pending ➔ Preparing ➔ Ready ➔ Served). |
 | | `PATCH` | `/api/orders/:id/cancel` | Authenticated | Cancels order while in Pending state. |
+| **Reviews** | `GET` | `/api/menu/:id/reviews` | Public | Paginated verified reviews and rating stats for a dish. |
+| | `POST` | `/api/reviews` | Authenticated | Submits rating and tasting notes for dish from a served order. |
+| | `GET` | `/api/reviews` | Manager | Paginated patron reviews across all dishes. |
+| | `GET` | `/api/reviews/my` | Authenticated | Current user's submitted dish reviews. |
+| | `PATCH` | `/api/reviews/:id` | Authenticated | Updates review rating/comment (owner only, within 24h). |
+| | `PATCH` | `/api/reviews/:id/reply` | Manager | Official executive chef / manager reply to review. |
+| | `DELETE` | `/api/reviews/:id` | Authenticated/Manager | Deletes review and recalculates dish rating aggregates. |
 
 ---
 

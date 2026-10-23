@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getOptimizedImageUrl } from '../../utils/imageUrl';
+import DishReviewsSection from '../../components/DishReviewsSection';
 import { styles } from './menuStyles';
 
 export default function DishGrid({
@@ -270,7 +271,7 @@ export default function DishGrid({
                   </Text>
                 </View>
 
-                {exploredItem?.rating && (
+                {Number(exploredItem?.ratingCount) > 0 && Number(exploredItem?.ratingAverage) > 0 ? (
                   <View
                     style={[
                       styles.modalMetaChip,
@@ -287,11 +288,36 @@ export default function DishGrid({
                         { color: colors.textPrimary, fontFamily: fonts.medium },
                       ]}
                     >
-                      {exploredItem.rating} Rating
+                      {Number(exploredItem.ratingAverage).toFixed(1)} Rating
+                    </Text>
+                  </View>
+                ) : (
+                  <View
+                    style={[
+                      styles.modalMetaChip,
+                      {
+                        backgroundColor: colors.surfaceSubtle,
+                        borderColor: colors.subtleBorder,
+                      },
+                    ]}
+                  >
+                    <Ionicons name="sparkles" size={12} color={colors.primary} />
+                    <Text
+                      style={[
+                        styles.modalMetaChipText,
+                        { color: colors.primary, fontFamily: fonts.medium },
+                      ]}
+                    >
+                      New Dish
                     </Text>
                   </View>
                 )}
               </View>
+
+              {/* Verified Patron Reviews & Star Breakdown */}
+              {exploredItem && (
+                <DishReviewsSection menuItemId={exploredItem._id || exploredItem.id} />
+              )}
             </ScrollView>
 
             {/* Modal Actions Footer */}
