@@ -14,12 +14,12 @@ import { useBranch } from '../../context/BranchContext';
 import { SegmentedControl, BranchChip } from '../../components/ui';
 
 import { styles, showModalAlert } from './reservationStyles';
-import BookTabContent from './BookTabContent';
 import MyBookingsList from './MyBookingsList';
 import ConfirmBookingModal from './ConfirmSheet';
 import ReservationConfirmedModal from './SuccessSheet';
 import Step1WhenGuests from './Step1WhenGuests';
 import Step2PickTime from './Step2PickTime';
+import Step3YourDetails from './Step3YourDetails';
 
 export default function ReservationScreen() {
   const { user } = useAuth();
@@ -43,7 +43,7 @@ export default function ReservationScreen() {
     specialRequests,
     setSpecialRequests,
     reservationsList,
-    tablesList,
+    tablesList: _tablesList,
     validationErrors,
     isSlotAvailable,
     validateReservation,
@@ -51,7 +51,7 @@ export default function ReservationScreen() {
     cancelReservation,
     isLoading,
     error,
-    loadTables,
+    loadTables: _loadTables,
     refetchReservations,
   } = useReservation(user);
 
@@ -108,18 +108,13 @@ export default function ReservationScreen() {
     return dates;
   }, []);
 
-  // Handle Review action
-  const handleOpenReview = useCallback(() => {
-    if (validateReservation()) {
-      setShowConfirmModal(true);
-    } else {
-      showModalAlert('Please Check Required Fields', 'Review the highlighted options to complete your table reservation.');
-    }
-  }, [validateReservation]);
-
   // Handle Confirm Submission
   const handleConfirmBooking = useCallback(async () => {
     if (isSubmitting) return;
+    if (!validateReservation()) {
+      showModalAlert('Please Check Required Fields', 'Review the highlighted contact details to complete your table reservation.');
+      return;
+    }
     setIsSubmitting(true);
     try {
       const res = await createReservation({
@@ -134,7 +129,7 @@ export default function ReservationScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isSubmitting, createReservation, activeBranch]);
+  }, [isSubmitting, createReservation, activeBranch, validateReservation]);
 
   // Handle Cancel action with platform-safe confirmation
   const handleCancelPress = useCallback(
@@ -201,56 +196,23 @@ export default function ReservationScreen() {
             onNext={() => setBookingStep(3)}
           />
         ) : (
-          <>
-            <View
-              style={[
-                styles.headerContainer,
-                {
-                  borderBottomColor: colors.cardBorder,
-                  paddingTop: insets.top > 0 ? insets.top + 8 : 12,
-                },
-              ]}
-            >
-              <View style={styles.headerTopRow}>
-                <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={[typography.headingLg, { color: colors.textPrimary, fontWeight: '800' }]}>
-                    Reserve an Artisan Table
-                  </Text>
-                  <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                    Step 3: Confirm Details & Special Requests
-                  </Text>
-                </View>
-                <BranchChip />
-              </View>
-            </View>
-            <BookTabContent
-              isLoading={isLoading}
-              tablesList={tablesList}
-              error={error}
-              loadTables={loadTables}
-              upcomingDates={upcomingDates}
-              selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate}
-              validationErrors={validationErrors}
-              partySize={partySize}
-              setPartySize={setPartySize}
-              selectedTimeSlot={selectedTimeSlot}
-              setSelectedTimeSlot={setSelectedTimeSlot}
-              isSlotAvailable={isSlotAvailable}
-              selectedZone={selectedZone}
-              setSelectedZone={setSelectedZone}
-              specialRequests={specialRequests}
-              setSpecialRequests={setSpecialRequests}
-              selectedTable={selectedTable}
-              contactName={contactName}
-              setContactName={setContactName}
-              contactPhone={contactPhone}
-              setContactPhone={setContactPhone}
-              handleOpenReview={handleOpenReview}
-              scrollContentStyle={scrollContentStyle}
-              onBack={() => setBookingStep(2)}
-            />
-          </>
+          <Step3YourDetails
+            selectedDate={selectedDate}
+            upcomingDates={upcomingDates}
+            partySize={partySize}
+            selectedZone={selectedZone}
+            selectedTimeSlot={selectedTimeSlot}
+            contactName={contactName}
+            setContactName={setContactName}
+            contactPhone={contactPhone}
+            setContactPhone={setContactPhone}
+            specialRequests={specialRequests}
+            setSpecialRequests={setSpecialRequests}
+            validationErrors={validationErrors}
+            isSubmitting={isSubmitting}
+            onBack={() => setBookingStep(2)}
+            onSubmit={handleConfirmBooking}
+          />
         )
       ) : (
         <>

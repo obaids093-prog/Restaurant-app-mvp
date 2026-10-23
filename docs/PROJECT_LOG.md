@@ -1,5 +1,46 @@
 # Project Log
 
+## [2026-10-23] - Feat: Design Refresh V2 - Screen 4: Table Reservation Step 3 (Your Details & Review)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Design Refresh V2 - Screen 4: Table Reservation Step 3 (Your Details & Review)
+- **WHAT changed**:
+  - In `src/screens/Reservation/step3Styles.js`: Created dedicated stylesheet implementing Step 3 design tokens (Coral `#FC5834` light, `#FF6B4A` dark, rounded 16px/20px cards, input fields with focus states, chip groups, and sticky dock).
+  - In `src/screens/Reservation/PrimaryContactCard.js`: Built modular contact information card featuring:
+    - Pre-filled customer name, phone number, and email.
+    - Strict Pakistan (+92) phone number formatting with Pakistan flag icon `🇵🇰` and non-editable `+92` prefix.
+    - Seating preference selection pills (`Standard`, `Window Table`, `Quiet Corner`, `Outdoor Terrace`).
+    - Input validation feedback and seamless field navigation.
+  - In `src/screens/Reservation/SpecialRequestsCard.js`: Built modular dietary & special requests card featuring:
+    - Quick-select chip options (`Birthday 🎂`, `Anniversary 💍`, `Quiet table 🤫`, `High chair 👶`, `Window view 🪟`, `Outdoor 🌿`).
+    - Multi-line freeform notes input (150-char max counter).
+    - Friendly microcopy clarifying special requests are subject to table availability.
+  - In `src/screens/Reservation/Step3YourDetails.js`: Assembled Step 3 screen featuring:
+    - Top navigation with back action to Step 2 and 3-segment progress indicator (Step 1 & 2 complete, Step 3 active).
+    - Summary review card (`Today, Oct 24 • 2 Guests • Indoor • 07:30 PM`) with direct "Edit" touchable returning to Step 1.
+    - Room preview card with branch ambience photo, live Prime Table badge, and instant confirmation guarantee.
+    - Cancellation policy notice ("Free cancellation up to 2 hours before dining time").
+    - Sticky bottom primary CTA ("Confirm Reservation") with security lock icon, disabled state when contact fields are invalid, and loading indicator.
+  - In `src/screens/Reservation/ReservationScreen.js`: Wired `Step3YourDetails` into `bookingStep === 3` with seamless navigation to Step 2 and submission handling.
+- **WHY (the problem or goal)**:
+  - Upgrade Table Reservation Step 3 to design-refresh-v2 specifications based on Stitch HTML/screenshot sources of truth, streamlining contact verification, special occasion tagging, and reservation confirmation with zero friction.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Extracted modular sub-components (`PrimaryContactCard`, `SpecialRequestsCard`, `step3Styles`, `Step3YourDetails`) keeping each file strictly <400 lines (115-240 lines).
+  - Preserved existing reservation state, token auth, and backend API contract with `reservationService`.
+- **HOW TO TEST**:
+  - In Reservation Step 2, select a time slot and tap "Next: Your details" -> transitions to Step 3.
+  - Verify 3-segment progress bar shows all segments filled and "Step 3 of 3" pill badge.
+  - Verify Summary Review card displays correct date, guest count, seating area, and chosen time slot.
+  - Test contact form: pre-fills logged-in user data; verify Pakistan phone prefix (+92).
+  - Tap dietary / occasion chips -> tags toggle on/off and append into special requests.
+  - Tap "Confirm Reservation" -> calls reservation API, submits booking, and advances to confirmation.
+- **RISKS or follow-ups**:
+  - None. ESLint passed with 0 errors (78 pre-existing warnings) and all 53 backend tests passed.
+- **Commit hashes**:
+  - `PENDING`
+
+---
+
 ## [2026-10-23] - Feat: Design Refresh V2 - Screen 3: Table Reservation Step 2 (Pick Time)
 
 - **Date**: 2026-10-23
