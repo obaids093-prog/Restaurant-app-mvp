@@ -8,7 +8,7 @@ import { navigationRef } from '../navigation/navigationRef';
 
 export function NotificationBannerToast() {
   const insets = useSafeAreaInsets();
-  const { colors, typography, isDark } = useTheme();
+  const { colors, typography, fonts, isDark } = useTheme();
   const { activeBannerNotification, dismissBannerNotification } = useNotificationContext();
 
   const translateY = useRef(new Animated.Value(-120)).current;
@@ -96,7 +96,7 @@ export function NotificationBannerToast() {
           <Text
             style={[
               styles.title,
-              { color: colors.textPrimary, fontFamily: typography.fontFamily.semiBold },
+              { color: colors.textPrimary, fontFamily: fonts?.semiBold || undefined },
             ]}
             numberOfLines={1}
           >
@@ -105,7 +105,7 @@ export function NotificationBannerToast() {
           <Text
             style={[
               styles.body,
-              { color: colors.textSecondary, fontFamily: typography.fontFamily.regular },
+              { color: colors.textSecondary, fontFamily: fonts?.regular || undefined },
             ]}
             numberOfLines={2}
           >
