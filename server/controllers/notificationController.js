@@ -64,3 +64,37 @@ exports.markAllRead = async (req, res) => {
     });
   }
 };
+
+// @desc    Register user's Expo push token
+// @route   POST /api/notifications/push-token
+// @access  Private (Authenticated)
+exports.registerPushToken = async (req, res) => {
+  try {
+    const { token } = req.body;
+    const pushNotificationService = require('../services/pushNotificationService');
+    const result = await pushNotificationService.registerPushToken(req.user._id, token);
+    res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    res.status(err.status || 500).json({
+      success: false,
+      message: err.message || 'Error registering push token',
+    });
+  }
+};
+
+// @desc    Unregister user's Expo push token
+// @route   DELETE /api/notifications/push-token
+// @access  Private (Authenticated)
+exports.unregisterPushToken = async (req, res) => {
+  try {
+    const { token } = req.body;
+    const pushNotificationService = require('../services/pushNotificationService');
+    const result = await pushNotificationService.unregisterPushToken(req.user._id, token);
+    res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    res.status(err.status || 500).json({
+      success: false,
+      message: err.message || 'Error unregistering push token',
+    });
+  }
+};

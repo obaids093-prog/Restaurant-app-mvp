@@ -1,5 +1,36 @@
 # Project Log
 
+## [2026-10-23] - Feat: Features Batch 2 - Feature 1: Expo Push Notifications & Order Lifecycle Alerts
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Features Batch 2 - Feature 1: Expo Push Notifications & Order Lifecycle Alerts
+- **WHAT changed**:
+  - In `server/models/User.js`: Added `pushTokens: { type: [String], default: [] }` field for storing registered device push tokens.
+  - In `server/services/pushNotificationService.js`: Implemented server service for token validation (`isExpoPushToken`), registration (`$addToSet`), unregistration (`$pull`), and remote push dispatch to Expo's free push gateway (`https://exp.host/--/api/v2/push/send`) with automatic dead-token pruning (`DeviceNotRegistered`).
+  - In `server/controllers/notificationController.js` and `server/routes/notificationRoutes.js`: Exposed `POST /api/notifications/push-token` and `DELETE /api/notifications/push-token` endpoints.
+  - In `server/services/notificationService.js`: Hooked non-blocking Expo push dispatching into `notifyOrderStatus`, `notifyReviewReply`, and `notifyLoyaltyPoints`.
+  - In `server/tests/notifications.test.js`: Added 5 integration tests covering validation, registration, deduplication, unregistration, and push dispatch (63/63 passing tests across full server suite).
+  - In `package.json`: Installed SDK 57 compatible `expo-notifications@~57.0.24`.
+  - In `src/services/pushNotificationService.js`: Created client-side service configuring Android notification channels (`default`, `aura-order-updates`), permission requests, token acquisition, and backend sync/unregistration.
+  - In `src/context/NotificationContext.js`: Automated push token registration on user login, foreground push listeners with instant data refresh, and notification tap response handling.
+  - In `src/context/AuthContext.js`: Added push token unregistration call on user logout.
+  - In `src/components/NotificationBannerToast.js`: Created in-app floating banner toast dropping down on foreground notifications with tap-to-navigate action.
+  - In `App.js`: Mounted `NotificationBannerToast` globally across all screens.
+- **WHY (the problem or goal)**:
+  - Deliver real-time push alerts to dining customers on mobile devices when their order status advances (`Preparing` -> `Ready` -> `Served`), when managers reply to reviews, or when loyalty points are awarded, without requiring paid APNs/FCM setup.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Leveraged Expo Push Service HTTP API (100% free, zero native keys needed), combined with an animated React Native in-app floating banner for instant foreground feedback.
+  - Formatted relative timestamps outside component render to maintain strict React Compiler purity.
+- **HOW TO TEST**:
+  - Sign in as customer -> verify `POST /api/notifications/push-token` syncs token in server console.
+  - When manager advances an order status -> verify push notification triggers and in-app floating banner drops down.
+  - Tap banner -> navigates to `TrackTab`.
+  - Sign out -> verify token is unregistered.
+- **Commit hashes**:
+  - `f6cf386` (feat(notifications): implement expo push notifications, token registration, and order lifecycle alerts)
+
+---
+
 ## [2026-10-23] - Feat: Features Batch 1 - Feature 3: Manager Analytics Dashboard & Aggregations
 
 - **Date**: 2026-10-23

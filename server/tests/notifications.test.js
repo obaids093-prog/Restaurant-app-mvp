@@ -314,4 +314,68 @@ describe('Feature 4: In-App Notification System', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.notifications.every((n) => n.isRead === false)).toBe(true);
   });
+
+  it('11. POST /api/notifications/push-token rejects missing or malformed token', async () => {
+    const res1 = await request(app)
+      .post('/api/notifications/push-token')
+      .set('Authorization', `Bearer ${patronToken}`)
+      .send({});
+    expect(res1.status).toBe(400);
+
+    const res2 = await request(app)
+      .post('/api/notifications/push-token')
+      .set('Authorization', `Bearer ${patronToken}`)
+      .send({ token: 'invalid_token_format' });
+    expect(res2.status).toBe(400);
+  });
+
+  it('12. POST /api/notifications/push-token registers valid ExponentPushToken to user', async () => {
+    const validToken = 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]';
+    const res = await request(app)
+      .post('/api/notifications/push-token')
+      .set('Authorization', `Bearer ${patronToken}`)
+      .send({ token: validToken });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.token).toBe(validToken);
+
+    const updatedUser = await User.findById(patronUser._id);
+    expect(updatedUser.pushTokens).toContain(validToken);
+  });
+
+  it('13. POST /api/notifications/push-token deduplicates token using $addToSet', async () => {
+    const validToken = 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]';
+    await request(app)
+      .post('/api/notifications/push-token')
+      .set('Authorization', `Bearer ${patronToken}`)
+      .send({ token: validToken });
+
+    const updatedUser = await User.findById(patronUser._id);
+    const count = updatedUser.pushTokens.filter((t) => t === validToken).length;
+    expect(count).toBe(1);
+  });
+
+  it('14. DELETE /api/notifications/push-token unregisters token from user', async () => {
+    const validToken = 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]';
+    const res = await request(app)
+      .delete('/api/notifications/push-token')
+      .set('Authorization', `Bearer ${patronToken}`)
+      .send({ token: validToken });
+
+    expect(res.status).toBe(200);
+
+    const updatedUser = await User.findById(patronUser._id);
+    expect(updatedUser.pushTokens).not.toContain(validToken);
+  });
+
+  it('15. pushNotificationService.sendPushToUser gracefully handles dispatches', async () => {
+    const pushNotificationService = require('../services/pushNotificationService');
+    const result = await pushNotificationService.sendPushToUser(patronUser._id, {
+      title: 'Test Push',
+      body: 'Testing non-blocking delivery',
+      data: { orderId: 'test123' },
+    });
+    // With 0 valid tokens registered at this point, sent should be 0 and no error thrown
+    expect(result.sent).toBe(0);
+  });
 });

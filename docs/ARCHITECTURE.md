@@ -147,6 +147,8 @@ The backend is built with Express.js using a modular controller-route-model arch
 | | `GET` | `/api/notifications/unread-count` | Authenticated | High-speed unread badge count for header polling. |
 | | `PATCH` | `/api/notifications/read-all` | Authenticated | Marks all unread user notifications as read. |
 | | `PATCH` | `/api/notifications/:id/read` | Authenticated | Marks single user notification as read. |
+| | `POST` | `/api/notifications/push-token` | Authenticated | Registers an active Expo device push token (`$addToSet`). |
+| | `DELETE` | `/api/notifications/push-token` | Authenticated | Unregisters device push token on user logout (`$pull`). |
 | **Analytics** | `GET` | `/api/analytics/summary` | Manager | Aggregated business KPIs, sales volume, AOV, PKT hourly rush buckets, top dishes, branch breakdown, and repeat customer rate. |
 
 ---

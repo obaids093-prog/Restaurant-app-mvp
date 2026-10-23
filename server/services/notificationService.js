@@ -145,7 +145,7 @@ async function notifyOrderStatus(order) {
       break;
   }
 
-  return await createNotification({
+  const notif = await createNotification({
     user: order.user,
     type: 'order_status',
     title,
@@ -153,6 +153,23 @@ async function notifyOrderStatus(order) {
     refModel: 'Order',
     refId: order._id,
   });
+
+  try {
+    const pushNotificationService = require('./pushNotificationService');
+    await pushNotificationService.sendPushToUser(order.user, {
+      title,
+      body,
+      data: {
+        orderId: String(order._id),
+        type: 'order_status',
+        status: order.status,
+      },
+    });
+  } catch (err) {
+    // push error ignored
+  }
+
+  return notif;
 }
 
 /**
@@ -165,7 +182,7 @@ async function notifyReviewReply(review) {
     ? review.managerReply.slice(0, 80) + (review.managerReply.length > 80 ? '...' : '')
     : 'Management has replied to your review.';
 
-  return await createNotification({
+  const notif = await createNotification({
     user: review.user,
     type: 'review_reply',
     title: '💬 Management Replied to Your Review',
@@ -173,6 +190,23 @@ async function notifyReviewReply(review) {
     refModel: 'Review',
     refId: review._id,
   });
+
+  try {
+    const pushNotificationService = require('./pushNotificationService');
+    await pushNotificationService.sendPushToUser(review.user, {
+      title: '💬 Management Replied to Your Review',
+      body: preview,
+      data: {
+        reviewId: String(review._id),
+        dishId: String(review.menuItem),
+        type: 'review_reply',
+      },
+    });
+  } catch (err) {
+    // push error ignored
+  }
+
+  return notif;
 }
 
 /**
@@ -181,7 +215,7 @@ async function notifyReviewReply(review) {
 async function notifyLoyaltyPoints(userId, pointsEarned, totalPoints) {
   if (!userId || pointsEarned <= 0) return null;
 
-  return await createNotification({
+  const notif = await createNotification({
     user: userId,
     type: 'loyalty_points',
     title: `🎁 +${pointsEarned} Loyalty Points!`,
@@ -189,6 +223,19 @@ async function notifyLoyaltyPoints(userId, pointsEarned, totalPoints) {
     refModel: null,
     refId: null,
   });
+
+  try {
+    const pushNotificationService = require('./pushNotificationService');
+    await pushNotificationService.sendPushToUser(userId, {
+      title: `🎁 +${pointsEarned} Loyalty Points!`,
+      body: `You just earned ${pointsEarned} loyalty points! Your current balance is ${totalPoints} pts.`,
+      data: { type: 'loyalty_points' },
+    });
+  } catch (err) {
+    // push error ignored
+  }
+
+  return notif;
 }
 
 /**

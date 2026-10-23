@@ -153,6 +153,12 @@ export const AuthProvider = ({ children }) => {
    * Logout user and wipe credentials from AsyncStorage
    */
   const logout = async () => {
+    try {
+      const { unregisterPushTokenFromBackend } = require('../services/pushNotificationService');
+      await unregisterPushTokenFromBackend();
+    } catch {
+      // unregister token error ignored
+    }
     setUser(null);
     setToken(null);
     try {

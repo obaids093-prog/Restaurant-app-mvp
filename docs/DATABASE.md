@@ -163,6 +163,7 @@ Stores customer and administrative staff accounts with encrypted credentials and
 | `membership`| `String` | No | `'Member'` | Freeform string | Loyalty tier badge (e.g. `'VIP Emerald Patron'`) |
 | `avatar` | `String` | No | Unsplash URL | Valid URI string | Default profile image URL |
 | `isActive` | `Boolean` | No | `true` | Boolean flag | Account status toggle |
+| `pushTokens` | `[String]` | No | `[]` | Array of strings | Registered Expo device push tokens |
 | `loyaltyPoints` | `Number` | No | `0` | `min: 0` | Current redeemable loyalty points balance |
 | `lifetimePoints` | `Number` | No | `0` | `min: 0` | Total points earned across all orders (drives tier) |
 | `loyaltyTier` | `String` | No | `'Bronze'` | `['Bronze', 'Silver', 'Gold', 'Platinum']` | Calculated tier based on lifetimePoints thresholds |
