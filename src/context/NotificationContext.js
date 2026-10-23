@@ -19,6 +19,8 @@ export function NotificationProvider({ children }) {
   const notificationListener = useRef(null);
   const responseListener = useRef(null);
 
+  const lastShownNotificationIdRef = useRef(null);
+
   // Register push token when authenticated user signs in
   useEffect(() => {
     let isCancelled = false;
@@ -40,6 +42,37 @@ export function NotificationProvider({ children }) {
       isCancelled = true;
     };
   }, [user?._id]);
+
+  // Automatically trigger in-app banner for new notifications (works seamlessly in Expo Go & standalone APK)
+  useEffect(() => {
+    const list = notificationState?.notifications || [];
+    if (list.length === 0) return;
+
+    const latest = list[0];
+    if (
+      latest &&
+      !latest.isRead &&
+      latest._id &&
+      latest._id !== lastShownNotificationIdRef.current
+    ) {
+      const createdMs = new Date(latest.createdAt).getTime();
+      // Only pop up if created within last 3 minutes so old notifications don't spam on initial login
+      const isRecent = Date.now() - createdMs < 180000;
+
+      if (isRecent) {
+        lastShownNotificationIdRef.current = latest._id;
+        setActiveBannerNotification({
+          title: latest.title || 'AURA Alert',
+          body: latest.body || '',
+          data: {
+            type: latest.type,
+            orderId: latest.refModel === 'Order' ? latest.refId : null,
+          },
+        });
+      }
+    }
+  }, [notificationState?.notifications]);
+
 
   // Set up listeners for foreground push notifications & user responses
   useEffect(() => {

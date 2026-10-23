@@ -64,29 +64,36 @@ export function useNotifications() {
     [user]
   );
 
+  const prevUnreadCountRef = useRef(0);
+
   const fetchUnreadCount = useCallback(async () => {
     if (!user) return;
     try {
       const res = await apiClient('/api/notifications/unread-count');
       if (isMountedRef.current && res && res.success && res.data) {
-        setUnreadCount(res.data.unreadCount || 0);
+        const newCount = res.data.unreadCount || 0;
+        setUnreadCount(newCount);
+        if (newCount > prevUnreadCountRef.current) {
+          fetchNotifications(1, true);
+        }
+        prevUnreadCountRef.current = newCount;
       }
     } catch {
       // Background poll failure silently swallowed
     }
-  }, [user]);
+  }, [user, fetchNotifications]);
 
   // Initial load
   useEffect(() => {
     fetchNotifications(1, false);
   }, [fetchNotifications]);
 
-  // Auto-poll unread badge every 20 seconds when user is authenticated
+  // Auto-poll unread badge every 6 seconds when user is authenticated
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(() => {
       fetchUnreadCount();
-    }, 20000);
+    }, 6000);
     return () => clearInterval(interval);
   }, [user, fetchUnreadCount]);
 
