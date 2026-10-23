@@ -64,7 +64,7 @@ All screens exceeding ~600 lines have been decomposed into focused sub-module fo
 | :--- | :--- | :--- |
 | **Menu** | `src/screens/Menu/` | `menuStyles.js`, `HeroCarousel`, `CategoryRow`, `OrderAgainRow`, `DealsSection`, `TopRatedRow`, `FilterSheet`, `DishGrid`, `MenuScreen`, `index.js` |
 | **Reservation** | `src/screens/Reservation/` | `reservationStyles.js`, `DateRow`, `PartyStepper`, `ZonePicker`, `SlotGrid`, `BookingForm`, `BookTabContent`, `ConfirmSheet`, `SuccessSheet`, `MyBookingsList`, `ReservationScreen`, `index.js` |
-| **Manager** | `src/screens/Manager/` | `managerStyles.js`, `OrderItemCard`, `ReservationCard`, `MenuItemCard`, `OverviewTab`, `OrdersTab`, `ReservationsTab`, `MenuStockTab`, `TeamTab`, `ReviewsTab`, `ReviewReplyModal`, `reviewsTabStyles.js`, `AddDishModal`, `EditDishModal`, `ManagerDashboardScreen`, `index.js` |
+| **Manager** | `src/screens/Manager/` | `managerStyles.js`, `OrderItemCard`, `ReservationCard`, `MenuItemCard`, `OverviewTab`, `OrdersTab`, `ReservationsTab`, `MenuStockTab`, `TeamTab`, `ReviewsTab`, `ReviewReplyModal`, `reviewsTabStyles.js`, `VouchersTab`, `VoucherModal`, `AddDishModal`, `EditDishModal`, `ManagerDashboardScreen`, `index.js` |
 | **Login** | `src/screens/Login/` | `loginStyles.js`, `BrandCanopy`, `EmailPasswordForm`, `PhoneOtpStep`, `NameEntryStep`, `GuestBrowseFooter`, `LoginScreen`, `index.js` |
 | **Cart** | `src/screens/Cart/` | `cartStyles.js`, `EmptyClocheIllustration`, `CartEmptyState`, `CartItemCard`, `VoucherSection`, `BillSummary`, `FloatingCartFooter`, `CartScreen`, `index.js` |
 | **OrderTracking** | `src/screens/OrderTracking/` | `trackingStyles.js`, `trackingHelpers.js`, `ActiveOrderHero`, `PastOrderCard`, `TrackingEmptyState`, `OrderTrackingScreen`, `index.js` |
@@ -134,6 +134,12 @@ The backend is built with Express.js using a modular controller-route-model arch
 | | `PATCH` | `/api/reviews/:id` | Authenticated | Updates review rating/comment (owner only, within 24h). |
 | | `PATCH` | `/api/reviews/:id/reply` | Manager | Official executive chef / manager reply to review. |
 | | `DELETE` | `/api/reviews/:id` | Authenticated/Manager | Deletes review and recalculates dish rating aggregates. |
+| **Vouchers** | `POST` | `/api/vouchers/validate` | Public | Validates voucher code against subtotal and branch; calculates discount. |
+| | `GET` | `/api/vouchers` | Manager | Paginated list of vouchers with optional active/inactive filter. |
+| | `POST` | `/api/vouchers` | Manager | Creates new percentage or fixed discount promotional voucher. |
+| | `PUT` | `/api/vouchers/:id` | Manager | Updates voucher properties (value, limits, branch, dates). |
+| | `PATCH` | `/api/vouchers/:id/toggle` | Manager | Toggles voucher active/inactive status. |
+| | `DELETE` | `/api/vouchers/:id` | Manager | Permanently removes promotional voucher. |
 
 ---
 

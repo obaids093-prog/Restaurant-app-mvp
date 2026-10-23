@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import safeStorage from '../utils/safeStorage';
+import apiClient from '../api/client';
 import { cartReducer, initialCartState } from '../reducers/cartReducer';
 import { useMenu } from './MenuContext';
 
@@ -32,7 +33,16 @@ export const CartProvider = ({ children }) => {
             });
             if (parsed.promoCode) {
               try {
-                dispatch({ type: 'APPLY_PROMO', payload: { code: parsed.promoCode } });
+                dispatch({
+                  type: 'APPLY_PROMO',
+                  payload: {
+                    code: parsed.promoCode,
+                    discountPercent: parsed.discountPercent,
+                    discountAmount: parsed.discountAmount,
+                    discountType: parsed.discountType,
+                    voucherDetails: parsed.voucherDetails,
+                  },
+                });
               } catch (_) {}
             }
           }
@@ -59,20 +69,77 @@ export const CartProvider = ({ children }) => {
   // Derived live count of all items (e.g. 2 steaks + 1 drink = 3)
   const totalItemCount = cartState.items.reduce((sum, item) => sum + item.quantity, 0);
 
+  const getSubtotal = () => {
+    return cartState.items.reduce(
+      (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
+      0
+    );
+  };
+
   // Helper action methods
   const addItem = (item) => dispatch({ type: 'ADD_ITEM', payload: { item } });
   const removeItem = (id) => dispatch({ type: 'REMOVE_ITEM', payload: { id } });
   const increment = (id) => dispatch({ type: 'INCREMENT', payload: { id } });
   const decrement = (id) => dispatch({ type: 'DECREMENT', payload: { id } });
   const updateNote = (id, note) => dispatch({ type: 'UPDATE_NOTE', payload: { id, note } });
-  const applyPromo = (code) => {
+
+  const applyPromo = async (code, subtotal = null, branchId = 'all') => {
     const cleanCode = code ? code.trim().toUpperCase() : '';
-    const { PROMO_CODES } = require('../reducers/cartReducer');
-    if (!PROMO_CODES[cleanCode]) {
-      throw new Error(`Promo code "${code}" is invalid or expired.`);
+    if (!cleanCode) {
+      throw new Error('Please enter a voucher code.');
     }
-    dispatch({ type: 'APPLY_PROMO', payload: { code: cleanCode } });
+
+    const currentSubtotal =
+      subtotal !== null && subtotal !== undefined ? Number(subtotal) : getSubtotal();
+
+    try {
+      const response = await apiClient('/api/vouchers/validate', {
+        method: 'POST',
+        body: { code: cleanCode, subtotal: currentSubtotal, branchId },
+      });
+
+      if (response && response.success && response.data) {
+        const data = response.data;
+        dispatch({
+          type: 'APPLY_PROMO',
+          payload: {
+            code: data.code,
+            discountPercent: data.discountType === 'percentage' ? data.discountValue : 0,
+            discountAmount: data.discountAmount,
+            discountType: data.discountType,
+            voucherDetails: data,
+          },
+        });
+        return data;
+      }
+      throw new Error(response?.message || 'Failed to validate voucher');
+    } catch (err) {
+      // Fallback for legacy hardcoded promo codes if offline or not in DB
+      const { PROMO_CODES } = require('../reducers/cartReducer');
+      if (PROMO_CODES[cleanCode]) {
+        const percent = PROMO_CODES[cleanCode];
+        const discAmount = Math.round(currentSubtotal * (percent / 100));
+        dispatch({
+          type: 'APPLY_PROMO',
+          payload: {
+            code: cleanCode,
+            discountPercent: percent,
+            discountAmount: discAmount,
+            discountType: 'percentage',
+          },
+        });
+        return {
+          valid: true,
+          code: cleanCode,
+          discountType: 'percentage',
+          discountValue: percent,
+          discountAmount: discAmount,
+        };
+      }
+      throw err;
+    }
   };
+
   const removePromo = () => dispatch({ type: 'REMOVE_PROMO' });
   const clearCart = () => dispatch({ type: 'CLEAR_CART' });
 

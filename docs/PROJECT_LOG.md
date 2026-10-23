@@ -1,5 +1,42 @@
 # Project Log
 
+## [2026-10-23] - Feat: Promotional Coupon & Voucher Engine Architecture (Batch 1)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Promotional Coupon & Voucher Engine Architecture (Batch 1)
+- **WHAT changed**:
+  - In `server/models/Voucher.js`: Created `Voucher` schema supporting percentage & fixed discounts, minimum spend, max discount cap, expiration date, usage limits, atomic redemption counters, branch restrictions, and indexes (`{ code, isActive }`, `{ validUntil }`).
+  - In `server/models/Order.js`: Added `promoCode` field to track applied voucher on order documents.
+  - In `server/services/voucherService.js`: Implemented core voucher business logic: `validateVoucher` (with active, expiry, usage limit, outlet, and minimum order checks), `recordVoucherUsage`, and manager CRUD operations (`createVoucher`, `getAllVouchers`, `updateVoucher`, `toggleVoucher`, `deleteVoucher`).
+  - In `server/controllers/voucherController.js`: Thin controllers for public validation endpoint and manager management actions.
+  - In `server/routes/voucherRoutes.js` & `server/server.js`: Mounted `/api/vouchers` routes with role-based access control.
+  - In `server/controllers/orderController.js`: Wired `voucherService.validateVoucher` and atomic `recordVoucherUsage` into `placeOrder`, replacing hardcoded client promo checks with server validation and fallback support.
+  - In `src/reducers/cartReducer.js`: Updated `initialCartState`, `APPLY_PROMO`, `REMOVE_PROMO`, and `CLEAR_CART` to support server-validated voucher payloads (`discountAmount`, `discountType`, `voucherDetails`).
+  - In `src/context/CartContext.js`: Updated `applyPromo` to asynchronously validate voucher codes via `POST /api/vouchers/validate` using `apiClient`, supporting dynamic subtotal and fallback.
+  - In `src/screens/Cart/CartScreen.js`, `VoucherSection.js`, `BillSummary.js`, and `OrderSummaryScreen.js`: Updated financial calculations and UI labels to support both percentage discounts and fixed amount voucher redemptions.
+  - In `src/hooks/useVouchers.js`: Created custom hook for manager voucher listing, creation, editing, active toggles, and deletion.
+  - In `src/screens/Manager/VouchersTab.js` & `src/screens/Manager/VoucherModal.js`: Built Manager Dashboard vouchers tab with status filters, detailed voucher cards, and a modal for creating/editing vouchers.
+  - In `src/screens/Manager/ManagerDashboardScreen.js`: Added "Vouchers" tab to manager scroller and render hierarchy.
+  - In `server/tests/vouchers.test.js`: Built test suite with 18 automated tests covering validation conditions, checkout discount calculation, atomic usage counting, and manager CRUD RBAC.
+  - In `docs/DATABASE.md` & `docs/ARCHITECTURE.md`: Documented Voucher schema, indexes, ERD relationship, and REST endpoints.
+- **WHY (the problem or goal)**:
+  - Replace client-side hardcoded promo codes with an enterprise, server-validated promotional coupon and voucher engine with usage limits, expiration dates, branch gating, and a dedicated manager administration interface.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Enforced single source of truth for discounts in `voucherService.js`.
+  - Maintained backward compatibility for existing promo codes while migrating checkout calculation to dynamic server vouchers.
+  - Preserved Layer Rules by encapsulating manager voucher API interactions in `useVouchers.js` hook and customer cart validation in `CartContext.js`.
+  - Kept all new files strictly under the 400-line modular design limit.
+- **HOW TO TEST**:
+  - Run `npm test` in `server/` to execute all 32 tests (`reviews.test.js` and `vouchers.test.js`).
+  - Add items to tray in Cart -> enter voucher (e.g. `WELCOME10`) -> verify discount applied.
+  - Open Manager Dashboard -> switch to "Vouchers" tab -> create new voucher -> toggle active status -> edit -> delete.
+- **RISKS or follow-ups**:
+  - None. Both legacy promo codes and database vouchers are supported seamlessly.
+- **Commit hashes**:
+  - `TBD`
+
+---
+
 ## [2026-10-23] - Fix: Extended API Timeout for Cloud Cold-Starts & Strict @gmail.com Signup Enforcement
 
 - **Date**: 2026-10-23

@@ -22,6 +22,7 @@ erDiagram
     User ||--o{ Review : writes
     MenuItem ||--o{ Review : receives
     Order ||--o{ Review : references
+    User ||--o{ Voucher : creates
 
     User {
         ObjectId _id PK
@@ -252,6 +253,7 @@ Customer food and beverage orders, checkout bill breakdowns, and kitchen fulfill
 | `items` | `[orderItemSchema]` | Yes | — | Array must contain $\ge 1$ item | Custom validation: `items.length > 0` |
 | `subtotal` | `Number` | No | `0` | `min: 0` | Sum of item unit prices $\times$ quantities |
 | `discountAmount`| `Number` | No | `0` | `min: 0` | Promotional coupon / loyalty deductions |
+| `promoCode` | `String` | No | `null` | `trim: true` | Applied promotional coupon code |
 | `serviceCharge` | `Number` | No | `0` | `min: 0` | Hospitality service charge |
 | `salesTax` | `Number` | No | `0` | `min: 0` | Provincial sales tax |
 | `totalAmount` | `Number` | Yes | — | `min: 0` | Net payable balance |
@@ -291,6 +293,35 @@ Patron reviews, 1-to-5 star ratings, and management responses for menu items ord
 **Indexes**:
 - Unique Review per Order Item: `{ user: 1, order: 1, menuItem: 1 }` (`unique: true`) — Enforces one review per dish per served order.
 - Dish Reviews Sorting: `{ menuItem: 1, createdAt: -1 }` — High-speed paginated retrieval of reviews for a dish.
+
+---
+
+### 2.7 Collection: `vouchers` (Model: `Voucher` in `server/models/Voucher.js`)
+
+Promotional coupons, percentage/fixed discounts, usage counters, and outlet restrictions.
+
+| Field | Type | Required | Default | Enum / Constraints | Relations / Validation |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `_id` | `ObjectId` | Auto | Auto | MongoDB ObjectId | Primary Key |
+| `code` | `String` | Yes | — | `unique: true`, `uppercase: true`, `trim: true` | Voucher redemption code |
+| `description` | `String` | No | `''` | `trim: true` | Promotional copy / privilege summary |
+| `discountType` | `String` | Yes | `'percentage'` | `['percentage', 'fixed']` | Calculation formula |
+| `discountValue` | `Number` | Yes | — | `min: 0` (max 100 if percentage) | Discount magnitude |
+| `minOrderAmount`| `Number` | No | `0` | `min: 0` | Basket subtotal threshold required |
+| `maxDiscountAmount`| `Number` | No | `null` | `min: 0` | Ceiling cap on percentage savings |
+| `validFrom` | `Date` | No | Current Time | Date | Activation timestamp |
+| `validUntil` | `Date` | Yes | — | Date | Expiration timestamp |
+| `usageLimit` | `Number` | No | `null` | `min: 1` | Global redemption cap |
+| `usageCount` | `Number` | No | `0` | `min: 0` | Atomic redemption counter |
+| `isActive` | `Boolean` | No | `true` | Boolean | Administrative toggle |
+| `applicableBranchId`| `String` | No | `'all'` | Branch key or `'all'` | Outlet restriction |
+| `createdBy` | `ObjectId` | No | — | References `User` model | FK: `ref: 'User'` (manager) |
+| `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+| `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+
+**Indexes**:
+- Active Code Lookup: `{ code: 1, isActive: 1 }` — Fast validation lookup at cart checkout.
+- Expiration Maintenance: `{ validUntil: 1 }` — Expiry scans and cleanup.
 
 ---
 

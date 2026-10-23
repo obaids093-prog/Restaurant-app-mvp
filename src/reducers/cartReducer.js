@@ -21,6 +21,9 @@ export const initialCartState = {
   items: [],
   promoCode: null,
   discountPercent: 0,
+  discountAmount: 0,
+  discountType: null,
+  voucherDetails: null,
   orderType: 'dine-in',
 };
 
@@ -119,8 +122,20 @@ export function cartReducer(state, action) {
     }
 
     case 'APPLY_PROMO': {
-      const { code } = action.payload;
+      const { code, discountPercent, discountAmount, discountType, voucherDetails } = action.payload || {};
       const cleanCode = code ? code.trim().toUpperCase() : '';
+
+      // Server-validated voucher payload
+      if (discountPercent !== undefined || discountAmount !== undefined || voucherDetails) {
+        return {
+          ...state,
+          promoCode: cleanCode,
+          discountPercent: typeof discountPercent === 'number' ? discountPercent : 0,
+          discountAmount: typeof discountAmount === 'number' ? discountAmount : 0,
+          discountType: discountType || (discountPercent > 0 ? 'percentage' : 'fixed'),
+          voucherDetails: voucherDetails || null,
+        };
+      }
 
       // Pure reducer: if invalid, return state unchanged without side effects
       if (!PROMO_CODES[cleanCode]) {
@@ -131,6 +146,9 @@ export function cartReducer(state, action) {
         ...state,
         promoCode: cleanCode,
         discountPercent: PROMO_CODES[cleanCode] || 0,
+        discountAmount: 0,
+        discountType: 'percentage',
+        voucherDetails: null,
       };
     }
 
@@ -139,6 +157,9 @@ export function cartReducer(state, action) {
         ...state,
         promoCode: null,
         discountPercent: 0,
+        discountAmount: 0,
+        discountType: null,
+        voucherDetails: null,
       };
     }
 
@@ -147,6 +168,9 @@ export function cartReducer(state, action) {
         items: [],
         promoCode: null,
         discountPercent: 0,
+        discountAmount: 0,
+        discountType: null,
+        voucherDetails: null,
       };
     }
 

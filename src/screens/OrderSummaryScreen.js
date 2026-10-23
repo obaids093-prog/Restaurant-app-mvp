@@ -541,10 +541,10 @@ export default function OrderSummaryScreen({ route, navigation }) {
             </Text>
           </View>
 
-          {cartState.discountPercent > 0 && (
+          {calculations.discountAmount > 0 && (
             <View style={styles.calcRow}>
               <Text style={[styles.calcLabel, { color: colors.ready }]}>
-                Voucher ({cartState.promoCode} - {cartState.discountPercent}%)
+                Voucher ({cartState.promoCode}{cartState.discountPercent > 0 ? ` - ${cartState.discountPercent}%` : ''})
               </Text>
               <Text style={[styles.calcValue, { color: colors.ready, fontWeight: '700' }]}>
                 - {brand.formatPrice(calculations.discountAmount)}

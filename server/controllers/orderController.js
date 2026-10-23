@@ -14,6 +14,7 @@
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const MenuItem = require('../models/MenuItem');
+const voucherService = require('../services/voucherService');
 const { CANCEL_WINDOW_MINUTES } = require('../config/constants');
 
 // Safe regex string escaper to prevent NoSQL regex injection / ReDoS (S1-A)
@@ -111,28 +112,43 @@ const placeOrder = async (req, res) => {
     }
 
     // Compute financial totals: subtotal, discount, 5% service charge, 15% tax, nothing else
-    const PROMO_CODES = {
-      WELCOME10: 10,
-      FEAST20: 20,
-      AURA10: 10,
-      AURA20: 20,
-      AURA30: 30,
-      AURA50: 50,
-      SAVE10: 10,
-      TASTY20: 20,
-      CHEF15: 15,
-      GOURMET30: 30,
-    };
+    const subtotal = calculatedTotal;
+    let discountAmount = 0;
+    let appliedPromoCode = null;
 
-    let discountPercent = 0;
-    if (req.body.promoCode && PROMO_CODES[String(req.body.promoCode).toUpperCase().trim()]) {
-      discountPercent = PROMO_CODES[String(req.body.promoCode).toUpperCase().trim()];
+    if (req.body.promoCode && typeof req.body.promoCode === 'string' && req.body.promoCode.trim()) {
+      const cleanCode = req.body.promoCode.trim().toUpperCase();
+      try {
+        const validation = await voucherService.validateVoucher(cleanCode, subtotal, branchId);
+        discountAmount = validation.discountAmount;
+        appliedPromoCode = validation.code;
+      } catch (err) {
+        // Fallback for legacy hardcoded promo codes if not seeded in DB
+        const LEGACY_PROMO_CODES = {
+          WELCOME10: 10,
+          FEAST20: 20,
+          AURA10: 10,
+          AURA20: 20,
+          AURA30: 30,
+          AURA50: 50,
+          SAVE10: 10,
+          TASTY20: 20,
+          CHEF15: 15,
+          GOURMET30: 30,
+        };
+        if (err.status === 404 && LEGACY_PROMO_CODES[cleanCode]) {
+          const percent = LEGACY_PROMO_CODES[cleanCode];
+          discountAmount = Math.round(subtotal * (percent / 100));
+          appliedPromoCode = cleanCode;
+        } else {
+          return res.status(400).json({ message: err.message || 'Invalid voucher code' });
+        }
+      }
     } else if (Number(req.body.discountPercent) > 0) {
-      discountPercent = Math.min(100, Math.max(0, Number(req.body.discountPercent)));
+      const discountPercent = Math.min(100, Math.max(0, Number(req.body.discountPercent)));
+      discountAmount = Math.round(subtotal * (discountPercent / 100));
     }
 
-    const subtotal = calculatedTotal;
-    const discountAmount = subtotal * (discountPercent / 100);
     const discountedSubtotal = Math.max(0, subtotal - discountAmount);
     const serviceCharge = discountedSubtotal * 0.05; // 5% Service Charge
     const salesTax = discountedSubtotal * 0.15;      // 15% Sales Tax
@@ -144,6 +160,7 @@ const placeOrder = async (req, res) => {
       items: verifiedItems,
       subtotal,
       discountAmount,
+      promoCode: appliedPromoCode,
       serviceCharge,
       salesTax,
       totalAmount: Math.round(finalTotalAmount * 100) / 100,
@@ -155,6 +172,14 @@ const placeOrder = async (req, res) => {
       branchName: branchName || 'AURA • Gulberg III, Lahore',
       branchCity: branchCity || 'Lahore',
     });
+
+    if (appliedPromoCode) {
+      try {
+        await voucherService.recordVoucherUsage(appliedPromoCode);
+      } catch (usageErr) {
+        console.warn('Failed to record voucher usage:', usageErr.message);
+      }
+    }
 
     res.status(201).json(newOrder);
   } catch (error) {

@@ -8,6 +8,8 @@ export default function VoucherSection({
   shadows,
   promoCode,
   discountPercent,
+  discountAmount,
+  discountType,
   promoInput,
   promoError,
   onPromoInputChange,
@@ -37,7 +39,9 @@ export default function VoucherSection({
                 {promoCode} Applied
               </Text>
               <Text style={[styles.activePromoSub, { color: colors.textSecondary }]}>
-                {discountPercent}% Patron Privilege Active
+                {discountType === 'fixed' || (discountAmount > 0 && !discountPercent)
+                  ? `Rs. ${Number(discountAmount || 0).toLocaleString()} Patron Privilege Active`
+                  : `${discountPercent}% Patron Privilege Active`}
               </Text>
             </View>
           </View>
