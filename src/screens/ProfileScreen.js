@@ -115,8 +115,8 @@ export default function ProfileScreen({ navigation }) {
       setEditError('Please enter your full name.');
       return;
     }
-    if (trimmedEmail && (!trimmedEmail.includes('@') || !trimmedEmail.includes('.'))) {
-      setEditError('Please enter a valid email address (e.g. yourname@gmail.com).');
+    if (trimmedEmail && (!trimmedEmail.includes('@') || !trimmedEmail.toLowerCase().endsWith('@gmail.com'))) {
+      setEditError('Only Google Mail accounts (@gmail.com) are accepted.');
       return;
     }
 

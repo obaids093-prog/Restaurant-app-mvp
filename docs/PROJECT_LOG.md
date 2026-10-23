@@ -1,5 +1,27 @@
 # Project Log
 
+## [2026-10-23] - Fix: Extended API Timeout for Cloud Cold-Starts & Strict @gmail.com Signup Enforcement
+
+- **Date**: 2026-10-23
+- **Title**: Fix: Extended API Timeout for Cloud Cold-Starts & Strict @gmail.com Signup Enforcement
+- **WHAT changed**:
+  - In `src/api/client.js`: Increased fetch timeout from 15s to 45s to prevent Render free-tier cold-start abort errors.
+  - In `server/controllers/authController.js`: Added strict `.endsWith('@gmail.com')` check to both `register` and `applyEmailUpdate` functions.
+  - In `server/models/User.js`: Updated Mongoose schema regex for `email` to `/^[a-zA-Z0-9_.+-]+@gmail\.com$/`.
+  - In `src/screens/Login/LoginScreen.js`: Enforced `@gmail.com` check in signup validation with friendly error feedback.
+  - In `src/screens/ProfileScreen.js`: Enforced `@gmail.com` check when saving profile email.
+- **WHY (the problem or goal)**:
+  - Fix "Cannot reach server. Check your Wi-Fi and try again" warning triggered when Render cloud backend is waking up from idle.
+  - Enforce user requirement that only authentic `@gmail.com` addresses are accepted for registration and profile updates.
+- **HOW TO TEST**:
+  - Attempt signup with `user@yahoo.com` or `test@outlook.com`: verify rejection with clear message.
+  - Attempt signup with `valid.user@gmail.com`: verify successful registration.
+  - Launch app on cold start: verify requests wait up to 45s and successfully fetch menu without aborting.
+- **Commit hashes**:
+  - Pending commit.
+
+---
+
 ## [2026-10-23] - Feat: Verified Patron Dish Reviews & Executive Ratings Architecture (Batch 1)
 
 - **Date**: 2026-10-23

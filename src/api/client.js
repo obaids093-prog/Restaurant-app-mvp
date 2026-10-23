@@ -95,9 +95,10 @@ export const apiClient = async (endpoint, options = {}) => {
   }
 
   const controller = new AbortController();
+  // 45s timeout to gracefully accommodate Render free-tier cold starts (spins down after 15 min inactivity)
   const timeoutId = setTimeout(() => {
     controller.abort();
-  }, 15000);
+  }, 45000);
 
   const config = {
     method: options.method || 'GET',
