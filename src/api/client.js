@@ -13,9 +13,14 @@
 import { Platform } from 'react-native';
 import safeStorage from '../utils/safeStorage';
 
-// Live Render Cloud URL accessible from ANY phone worldwide 24/7 on Wi-Fi or Mobile Data
-// Using localhost on Web for instant browser testing, and Render HTTPS URL on native devices (iOS/Android)
-export const BASE_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'https://aura-app-49n0.onrender.com';
+// Local development connects to laptop server (192.168.100.6:5000) when scanning Expo QR code;
+// Web browser uses localhost:5000; production falls back to Render cloud.
+const DEV_LAN_IP = '192.168.100.6';
+export const BASE_URL = __DEV__
+  ? Platform.OS === 'web'
+    ? 'http://localhost:5000'
+    : `http://${DEV_LAN_IP}:5000`
+  : 'https://aura-app-49n0.onrender.com';
 
 export const TOKEN_KEY = '@restaurant_app_auth_token';
 

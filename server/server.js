@@ -163,6 +163,7 @@ app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/vouchers', require('./routes/voucherRoutes'));
 app.use('/api/loyalty', require('./routes/loyaltyRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
 
 // ── 404 Handler ─────────────────────────────────────────────
 app.use((req, res) => {

@@ -64,7 +64,7 @@ All screens exceeding ~600 lines have been decomposed into focused sub-module fo
 | :--- | :--- | :--- |
 | **Menu** | `src/screens/Menu/` | `menuStyles.js`, `HeroCarousel`, `CategoryRow`, `OrderAgainRow`, `DealsSection`, `TopRatedRow`, `FilterSheet`, `DishGrid`, `MenuScreen`, `index.js` |
 | **Reservation** | `src/screens/Reservation/` | `reservationStyles.js`, `DateRow`, `PartyStepper`, `ZonePicker`, `SlotGrid`, `BookingForm`, `BookTabContent`, `ConfirmSheet`, `SuccessSheet`, `MyBookingsList`, `ReservationScreen`, `index.js` |
-| **Manager** | `src/screens/Manager/` | `managerStyles.js`, `OrderItemCard`, `ReservationCard`, `MenuItemCard`, `OverviewTab`, `OrdersTab`, `ReservationsTab`, `MenuStockTab`, `TeamTab`, `ReviewsTab`, `ReviewReplyModal`, `reviewsTabStyles.js`, `VouchersTab`, `VoucherModal`, `AddDishModal`, `EditDishModal`, `ManagerDashboardScreen`, `index.js` |
+| **Manager** | `src/screens/Manager/` | `managerStyles.js`, `OrderItemCard`, `ReservationCard`, `MenuItemCard`, `OverviewTab`, `HourlyBarChart`, `OrdersTab`, `ReservationsTab`, `MenuStockTab`, `TeamTab`, `ReviewsTab`, `ReviewReplyModal`, `reviewsTabStyles.js`, `VouchersTab`, `VoucherModal`, `AddDishModal`, `EditDishModal`, `ManagerDashboardScreen`, `index.js` |
 | **Login** | `src/screens/Login/` | `loginStyles.js`, `BrandCanopy`, `EmailPasswordForm`, `PhoneOtpStep`, `NameEntryStep`, `GuestBrowseFooter`, `LoginScreen`, `index.js` |
 | **Cart** | `src/screens/Cart/` | `cartStyles.js`, `EmptyClocheIllustration`, `CartEmptyState`, `CartItemCard`, `VoucherSection`, `BillSummary`, `FloatingCartFooter`, `CartScreen`, `index.js` |
 | **OrderTracking** | `src/screens/OrderTracking/` | `trackingStyles.js`, `trackingHelpers.js`, `ActiveOrderHero`, `PastOrderCard`, `TrackingEmptyState`, `OrderTrackingScreen`, `index.js` |
@@ -147,6 +147,7 @@ The backend is built with Express.js using a modular controller-route-model arch
 | | `GET` | `/api/notifications/unread-count` | Authenticated | High-speed unread badge count for header polling. |
 | | `PATCH` | `/api/notifications/read-all` | Authenticated | Marks all unread user notifications as read. |
 | | `PATCH` | `/api/notifications/:id/read` | Authenticated | Marks single user notification as read. |
+| **Analytics** | `GET` | `/api/analytics/summary` | Manager | Aggregated business KPIs, sales volume, AOV, PKT hourly rush buckets, top dishes, branch breakdown, and repeat customer rate. |
 
 ---
 

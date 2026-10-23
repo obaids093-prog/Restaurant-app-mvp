@@ -298,6 +298,8 @@ Customer food and beverage orders, checkout bill breakdowns, and kitchen fulfill
 **Indexes**:
 - User History Index: `{ user: 1, createdAt: -1 }` — High-speed retrieval of customer order receipts sorted chronologically.
 - Kitchen Status Index: `{ status: 1 }` — High-speed live order queue filtering for manager/kitchen displays.
+- Analytics Date-Status Compound Index: `{ createdAt: -1, status: 1 }` — High-performance date range filtering and aggregation across non-cancelled order metrics.
+- Multi-Branch Analytics Compound Index: `{ branchId: 1, createdAt: -1 }` — Filtered branch timeline queries and regional revenue analysis.
 
 ---
 

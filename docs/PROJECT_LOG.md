@@ -1,5 +1,34 @@
 # Project Log
 
+## [2026-10-23] - Feat: Features Batch 1 - Feature 3: Manager Analytics Dashboard & Aggregations
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Features Batch 1 - Feature 3: Manager Analytics Dashboard & Aggregations
+- **WHAT changed**:
+  - In `server/services/analyticsService.js`: Implemented MongoDB aggregation pipelines for date-filtered business analytics (`today`, `7d`, `30d`), calculating net revenue, total order volume, Average Order Value (AOV), order status distribution, top 5 dishes by quantity and revenue, 24-hour hourly rush distribution in PKT (`+05:00`), multi-branch revenue/order breakdown, and repeat customer retention rate.
+  - In `server/controllers/analyticsController.js` and `server/routes/analyticsRoutes.js`: Exposed `GET /api/analytics/summary` protected with `protect` and `managerOnly` authorization.
+  - In `server/models/Order.js`: Added compound indexes `{ createdAt: -1, status: 1 }` and `{ branchId: 1, createdAt: -1 }` for high-throughput aggregation performance.
+  - In `server/tests/analytics.test.js`: Created comprehensive integration test suite verifying metrics calculation, status breakdown, 24-hour PKT buckets, and RBAC authentication (58/58 passing tests across full server suite).
+  - In `src/api/client.js`: Configured development fallback for native physical devices to connect directly to the local dev server over LAN (`192.168.100.6:5000`) instead of older cloud deployments.
+  - In `src/hooks/useManagerAnalytics.js`: Created reactive custom hook supporting time range toggling (`today`, `7d`, `30d`), pull-to-refresh, loading states, and error handling with retry.
+  - In `src/screens/Manager/HourlyBarChart.js`: Built pure View-based responsive 24-hour rush bar chart using theme tokens, peak hour highlight, and time labels.
+  - In `src/screens/Manager/OverviewTab.js`: Redesigned executive overview with range switcher pills, 4 primary KPI cards (Revenue, Orders, AOV, Repeat Rate), status breakdown chips, hourly rush distribution chart, top culinary performers with revenue badges, skeleton loader, and error retry state.
+- **WHY (the problem or goal)**:
+  - Complete Feature 3 of Features Batch 1 to empower restaurant managers with actionable business intelligence, sales metrics, kitchen peak-hour visibility, and regional outlet performance without requiring paid external analytics tools.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Decomposed into modular service, controller, test, hook, chart component, and tab view, keeping every file strictly under 400 lines.
+  - Pure View-based bar chart using theme tokens avoided adding heavy external charting packages.
+- **HOW TO TEST**:
+  - Log in as Manager (`manager@aura.pk` / `manager123`).
+  - On Manager Dashboard "Overview" tab, observe KPI cards (Revenue, Orders, AOV, Repeat Rate).
+  - Tap time range pills: "Today", "7 Days", "30 Days" and verify metrics update.
+  - Inspect 24-hour rush bar chart and top dishes leaderboard.
+  - Pull down to refresh or test offline state with Retry button.
+- **Commit hashes**:
+  - `1b8d70d` (feat(analytics): implement manager business analytics endpoint and overview dashboard)
+
+---
+
 ## [2026-10-23] - Feat: Design Refresh V2 - Screen 6: Table Reservation (My Bookings & Reservations)
 
 - **Date**: 2026-10-23
