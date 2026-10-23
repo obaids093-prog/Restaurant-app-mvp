@@ -1,5 +1,37 @@
 # Project Log
 
+## [2026-10-23] - Feat: Design Refresh V2 - Screen 2: Table Reservation Step 1 (When & Guests)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Design Refresh V2 - Screen 2: Table Reservation Step 1 (When & Guests)
+- **WHAT changed**:
+  - In `src/screens/Reservation/step1Styles.js`: Created dedicated stylesheet implementing Warm Table design tokens (coral `#FC5834` light, `#FF6B4A` dark, rounded 16px/20px cards, progress bar segments, and sticky tray).
+  - In `src/screens/Reservation/DateStripSection.js`: Built 7-day horizontal date carousel with calendar header, dynamic month/year pill, day name/num, and live status dots ("Open", "Prime", "Few left", "Full").
+  - In `src/screens/Reservation/GuestCounterSection.js`: Built tactile guest counter card with circular plus/minus buttons (1-12 guests), auto-configured tables subtitle, and quick-picker chips (`1`, `2`, `4`, `6`, `8+`).
+  - In `src/screens/Reservation/SeatingGridSection.js`: Built 2x2 grid of seating options (`Indoor`, `Patio`, `Family`, `Booth`) with ambience emojis, description subtext, and active checkmark badges.
+  - In `src/screens/Reservation/VenueSnapshotCard.js`: Built ambient venue photo card with dynamic branch name pill, "No booking fee" badge, and trust row (Instant confirmation & Free cancellation).
+  - In `src/screens/Reservation/Step1WhenGuests.js`: Assembled Step 1 screen featuring 3-segment progress indicator, step 1 of 3 pill, top navigation bar, and sticky bottom primary CTA ("Next: Pick a time").
+  - In `src/screens/Reservation/ReservationScreen.js`: Wired `bookingStep` state machine rendering `Step1WhenGuests` at Step 1, with seamless transition to Step 2 and persistent access to My Bookings.
+  - In `src/screens/Reservation/BookTabContent.js`: Added `onBack` handler providing a clean "Back to Step 1" navigation route.
+- **WHY (the problem or goal)**:
+  - Transform Table Reservation Step 1 into a modern multi-step booking experience matching Stitch HTML/screenshot sources of truth, with tactile guest counters, horizontal date carousel, and seating preferences.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Extracted modular sub-components keeping every file strictly <400 lines (each component is 60-180 lines).
+  - Preserved existing reservation state and backend table compatibility.
+- **HOW TO TEST**:
+  - Open app and navigate to Reservations tab -> Step 1 (When & Guests) renders.
+  - Verify 3-segment progress bar with Step 1 active and "Step 1 of 3" pill badge.
+  - Tap dates in 7-day strip -> active date highlights in Coral with white typography.
+  - Use +/- stepper or quick chips to change party size -> count and chips update in real-time.
+  - Select a seating preference -> checkmark badge moves to selected card.
+  - Tap "Next: Pick a time" -> advances to Step 2; tap back -> returns to Step 1 with preserved state.
+- **RISKS or follow-ups**:
+  - None. ESLint passed with 0 errors (78 pre-existing warnings) and all 53 backend tests passed.
+- **Commit hashes**:
+  - Pending commit
+
+---
+
 ## [2026-10-23] - Feat: Design Refresh V2 - Screen 1: Menu Home Screen
 
 - **Date**: 2026-10-23

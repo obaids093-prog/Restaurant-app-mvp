@@ -18,6 +18,7 @@ import BookTabContent from './BookTabContent';
 import MyBookingsList from './MyBookingsList';
 import ConfirmBookingModal from './ConfirmSheet';
 import ReservationConfirmedModal from './SuccessSheet';
+import Step1WhenGuests from './Step1WhenGuests';
 
 export default function ReservationScreen() {
   const { user } = useAuth();
@@ -64,7 +65,8 @@ export default function ReservationScreen() {
 
   // Screen UI State
   const [activeTab, setActiveTab] = useState(0); // 0 = 'book', 1 = 'history'
-  const [selectedZone, setSelectedZone] = useState('glasshouse');
+  const [bookingStep, setBookingStep] = useState(1); // 1 = When & Guests, 2 = Pick Time, 3 = Details
+  const [selectedZone, setSelectedZone] = useState('indoor');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmedReservation, setConfirmedReservation] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -168,83 +170,125 @@ export default function ReservationScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* HEADER & CONTEXT BAR */}
-      <View
-        style={[
-          styles.headerContainer,
-          {
-            borderBottomColor: colors.cardBorder,
-            paddingTop: insets.top > 0 ? insets.top + 8 : 12,
-          },
-        ]}
-      >
-        <View style={styles.headerTopRow}>
-          <View style={{ flex: 1, paddingRight: 8 }}>
-            <Text style={[typography.headingLg, { color: colors.textPrimary, fontWeight: '800' }]}>
-              Reserve an Artisan Table
-            </Text>
-            <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-              Fine dining dine-in experience in {activeBranch?.city || 'Pakistan'}
-            </Text>
-          </View>
-
-          {/* Dynamic Branch Chip with Picker */}
-          <BranchChip />
-        </View>
-
-        {/* SEGMENTED CONTROL TABS (New Reservation vs My Bookings) */}
-        <View style={styles.segmentWrapper}>
-          <SegmentedControl
-            segments={[
-              'New Reservation',
-              `My Bookings (${displayedBookings.length})`,
-            ]}
-            selectedIndex={activeTab}
-            onChange={(idx) => setActiveTab(idx)}
-          />
-        </View>
-      </View>
-
       {/* ACTIVE TAB CONTENT */}
       {activeTab === 0 ? (
-        <BookTabContent
-          isLoading={isLoading}
-          tablesList={tablesList}
-          error={error}
-          loadTables={loadTables}
-          upcomingDates={upcomingDates}
-          selectedDate={selectedDate}
-          setSelectedDate={setSelectedDate}
-          validationErrors={validationErrors}
-          partySize={partySize}
-          setPartySize={setPartySize}
-          selectedTimeSlot={selectedTimeSlot}
-          setSelectedTimeSlot={setSelectedTimeSlot}
-          isSlotAvailable={isSlotAvailable}
-          selectedZone={selectedZone}
-          setSelectedZone={setSelectedZone}
-          specialRequests={specialRequests}
-          setSpecialRequests={setSpecialRequests}
-          selectedTable={selectedTable}
-          contactName={contactName}
-          setContactName={setContactName}
-          contactPhone={contactPhone}
-          setContactPhone={setContactPhone}
-          handleOpenReview={handleOpenReview}
-          scrollContentStyle={scrollContentStyle}
-        />
+        bookingStep === 1 ? (
+          <Step1WhenGuests
+            upcomingDates={upcomingDates}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            partySize={partySize}
+            setPartySize={setPartySize}
+            selectedZone={selectedZone}
+            setSelectedZone={setSelectedZone}
+            onNext={() => setBookingStep(2)}
+            onViewBookings={() => setActiveTab(1)}
+            bookingsCount={displayedBookings.length}
+          />
+        ) : (
+          <>
+            <View
+              style={[
+                styles.headerContainer,
+                {
+                  borderBottomColor: colors.cardBorder,
+                  paddingTop: insets.top > 0 ? insets.top + 8 : 12,
+                },
+              ]}
+            >
+              <View style={styles.headerTopRow}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={[typography.headingLg, { color: colors.textPrimary, fontWeight: '800' }]}>
+                    Reserve an Artisan Table
+                  </Text>
+                  <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
+                    Step 2: Select Dining Time Slot & Table
+                  </Text>
+                </View>
+                <BranchChip />
+              </View>
+            </View>
+            <BookTabContent
+              isLoading={isLoading}
+              tablesList={tablesList}
+              error={error}
+              loadTables={loadTables}
+              upcomingDates={upcomingDates}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              validationErrors={validationErrors}
+              partySize={partySize}
+              setPartySize={setPartySize}
+              selectedTimeSlot={selectedTimeSlot}
+              setSelectedTimeSlot={setSelectedTimeSlot}
+              isSlotAvailable={isSlotAvailable}
+              selectedZone={selectedZone}
+              setSelectedZone={setSelectedZone}
+              specialRequests={specialRequests}
+              setSpecialRequests={setSpecialRequests}
+              selectedTable={selectedTable}
+              contactName={contactName}
+              setContactName={setContactName}
+              contactPhone={contactPhone}
+              setContactPhone={setContactPhone}
+              handleOpenReview={handleOpenReview}
+              scrollContentStyle={scrollContentStyle}
+              onBack={() => setBookingStep(1)}
+            />
+          </>
+        )
       ) : (
-        <MyBookingsList
-          isLoading={isLoading}
-          error={error}
-          reservationsList={reservationsList}
-          displayedBookings={displayedBookings}
-          refetchReservations={refetchReservations}
-          cancellingBookingId={cancellingBookingId}
-          onCancelPress={handleCancelPress}
-          onRebookPress={() => setActiveTab(0)}
-          scrollContentStyle={scrollContentStyle}
-        />
+        <>
+          <View
+            style={[
+              styles.headerContainer,
+              {
+                borderBottomColor: colors.cardBorder,
+                paddingTop: insets.top > 0 ? insets.top + 8 : 12,
+              },
+            ]}
+          >
+            <View style={styles.headerTopRow}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={[typography.headingLg, { color: colors.textPrimary, fontWeight: '800' }]}>
+                  Your Table Reservations
+                </Text>
+                <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
+                  Manage upcoming & past dining experiences
+                </Text>
+              </View>
+              <BranchChip />
+            </View>
+
+            <View style={styles.segmentWrapper}>
+              <SegmentedControl
+                segments={[
+                  'New Reservation',
+                  `My Bookings (${displayedBookings.length})`,
+                ]}
+                selectedIndex={activeTab}
+                onChange={(idx) => {
+                  setActiveTab(idx);
+                  if (idx === 0) setBookingStep(1);
+                }}
+              />
+            </View>
+          </View>
+          <MyBookingsList
+            isLoading={isLoading}
+            error={error}
+            reservationsList={reservationsList}
+            displayedBookings={displayedBookings}
+            refetchReservations={refetchReservations}
+            cancellingBookingId={cancellingBookingId}
+            onCancelPress={handleCancelPress}
+            onRebookPress={() => {
+              setActiveTab(0);
+              setBookingStep(1);
+            }}
+            scrollContentStyle={scrollContentStyle}
+          />
+        </>
       )}
 
       {/* REVIEW & CONFIRM MODAL */}
