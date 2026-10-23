@@ -23,7 +23,7 @@
   - Cart: Validate voucher codes against `/api/vouchers/validate`.
   - Manager Dashboard: Demo vouchers display DEMO badge; tap "Deactivate Demo" to bulk-deactivate; open VoucherModal to see live chip preview update as fields change.
 - **Commit hashes**:
-  - `(pending)`
+  - `91b8cd4` (fix(vouchers): replace hardcoded deals with server-driven /active endpoint)
 
 ---
 
