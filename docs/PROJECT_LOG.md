@@ -30,7 +30,7 @@
 - **RISKS or follow-ups**:
   - None. ESLint passed with 0 errors (78 pre-existing warnings) and all 53 backend tests passed.
 - **Commit hashes**:
-  - Pending commit
+  - `1027683` (feat(reservation): refresh Step 2 Pick Time to design-refresh-v2 specs)
 
 ---
 
