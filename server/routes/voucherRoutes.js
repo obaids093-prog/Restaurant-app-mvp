@@ -1,16 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const {
+  getActiveVouchers,
   validateVoucher,
   getAllVouchers,
   createVoucher,
   updateVoucher,
   toggleVoucher,
   deleteVoucher,
+  deactivateDemoVouchers,
 } = require('../controllers/voucherController');
 const { protect, managerOnly } = require('../middleware/auth');
 
-// Public validation endpoint for checkout
+// Public endpoints
+router.get('/active', getActiveVouchers);
 router.post('/validate', validateVoucher);
 
 // Manager management routes
@@ -26,5 +29,6 @@ router.route('/:id')
   .delete(deleteVoucher);
 
 router.patch('/:id/toggle', toggleVoucher);
+router.post('/deactivate-demo', deactivateDemoVouchers);
 
 module.exports = router;

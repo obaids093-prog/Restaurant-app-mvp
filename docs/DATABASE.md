@@ -399,6 +399,35 @@ In-app alerts and notifications delivered to patrons and managers for order stat
 - User Feed Sorting: `{ user: 1, createdAt: -1 }` — Fast chronological feed retrieval.
 - Unread Query Index: `{ user: 1, isRead: 1 }` — Instant badge count query execution.
 
+### 2.10 Collection: `vouchers` (Model: `Voucher` in `server/models/Voucher.js`)
+
+Promotional privilege vouchers, dynamic discounts, and coupon redemption rules.
+
+| Field | Type | Required | Default | Enum / Constraints | Relations / Validation |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `_id` | `ObjectId` | Auto | Auto | MongoDB ObjectId | Primary Key |
+| `code` | `String` | Yes | — | `unique: true`, `uppercase: true`, `trim: true` | Unique promo code |
+| `description` | `String` | No | `""` | `trim: true`, `maxlength: 300` | Optional description |
+| `discountType` | `String` | Yes | — | `['percentage', 'fixed']` | Calculation strategy |
+| `discountValue` | `Number` | Yes | — | `min: 1` | Percentage or fixed Rs amount |
+| `minOrderAmount` | `Number` | No | `0` | `min: 0` | Minimum order subtotal required |
+| `maxDiscountAmount` | `Number` | No | `null` | `min: 0` | Ceiling discount cap for percentage promos |
+| `validFrom` | `Date` | No | `Date.now` | Date | Effective start date |
+| `validUntil` | `Date` | Yes | — | Date | Expiration date |
+| `usageLimit` | `Number` | No | `null` | `min: 1` | Global usage ceiling |
+| `usageCount` | `Number` | No | `0` | `min: 0` | Times redeemed across system |
+| `perUserLimit` | `Number` | No | `null` | `min: 1` | Maximum redemptions per patron |
+| `isActive` | `Boolean` | No | `true` | Boolean | Operational status flag |
+| `isDemo` | `Boolean` | No | `false` | Boolean | Demo seeded voucher flag |
+| `applicableBranchId`| `String` | No | `'all'` | String | Branch filter or 'all' |
+| `createdBy` | `ObjectId` | No | `null` | References `User` model | FK: `ref: 'User'` |
+| `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+| `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+
+**Indexes**:
+- Code Unique Lookup: `{ code: 1 }` (unique)
+- Customer Active Vouchers Index: `{ isActive: 1, validFrom: 1, validUntil: 1, isDemo: 1 }` — High-efficiency pipeline for `/api/vouchers/active`.
+
 ---
 
 ## 3. Business Rules Enforced in the Database
@@ -456,3 +485,18 @@ npm run seed -- --reset
 # or
 node seed.js --reset
 ```
+
+### 4.3 Demo Voucher Seeding (`npm run seed:demo`)
+Development-only demo voucher seeder located in `server/seedDemo.js`:
+- **Production Guard**: Immediately aborts if `process.env.NODE_ENV === 'production'`. Never runs in production or at server startup.
+- **Idempotent**: Upserts vouchers by `code` so it can be re-run safely without creating duplicates.
+- **Demo Tagging**: Explicitly tags each created document with `isDemo: true`, allowing clean deactivation by managers or automated omission in production queries.
+- Seeds 4 representative vouchers: `SAVE20`, `FEAST20`, `WELCOME10`, `FLAT500`.
+
+```bash
+# In server/
+npm run seed:demo
+# or
+node seedDemo.js
+```
+

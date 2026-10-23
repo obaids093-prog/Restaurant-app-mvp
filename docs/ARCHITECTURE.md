@@ -135,12 +135,14 @@ The backend is built with Express.js using a modular controller-route-model arch
 | | `PATCH` | `/api/reviews/:id` | Authenticated | Updates review rating/comment (owner only, within 24h). |
 | | `PATCH` | `/api/reviews/:id/reply` | Manager | Official executive chef / manager reply to review. |
 | | `DELETE` | `/api/reviews/:id` | Authenticated/Manager | Deletes review and recalculates dish rating aggregates. |
-| **Vouchers** | `POST` | `/api/vouchers/validate` | Public | Validates voucher code against subtotal and branch; calculates discount. |
+| **Vouchers** | `GET` | `/api/vouchers/active` | Public | Returns only currently active, non-expired, usage-left vouchers for the customer Deals row (excludes demo vouchers in production). |
+| | `POST` | `/api/vouchers/validate` | Public | Validates voucher code against subtotal, branch, and user limits; calculates discount. |
 | | `GET` | `/api/vouchers` | Manager | Paginated list of vouchers with optional active/inactive filter. |
 | | `POST` | `/api/vouchers` | Manager | Creates new percentage or fixed discount promotional voucher. |
 | | `PUT` | `/api/vouchers/:id` | Manager | Updates voucher properties (value, limits, branch, dates). |
 | | `PATCH` | `/api/vouchers/:id/toggle` | Manager | Toggles voucher active/inactive status. |
 | | `DELETE` | `/api/vouchers/:id` | Manager | Permanently removes promotional voucher. |
+| | `POST` | `/api/vouchers/deactivate-demo` | Manager | Deactivates all seeded demo vouchers (`isDemo: true`). |
 | **Loyalty** | `GET` | `/api/loyalty/profile` | Authenticated | Patron loyalty profile (points, tier, lifetime). |
 | | `POST` | `/api/loyalty/quote` | Authenticated | Calculates points redemption discount for a given subtotal. |
 | **Notifications** | `GET` | `/api/notifications` | Authenticated | Paginated feed of user alerts with unread counter. |

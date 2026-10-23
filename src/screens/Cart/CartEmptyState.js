@@ -39,14 +39,14 @@ export default function CartEmptyState({
         </View>
       </View>
 
-      {/* Privilege Voucher Banner */}
+      {/* Deals Prompt Banner */}
       <TouchableOpacity
         style={[
           styles.welcomeVoucherBanner,
           { backgroundColor: colors.card, borderColor: colors.cardBorder },
           shadows.soft,
         ]}
-        onPress={() => onApplyPromo('WELCOME10')}
+        onPress={() => navigation.navigate('Menu')}
         activeOpacity={0.85}
       >
         <View style={[styles.voucherIconCircle, { backgroundColor: colors.primaryTint }]}>
@@ -54,7 +54,9 @@ export default function CartEmptyState({
         </View>
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={[typography.caption, { color: colors.textPrimary }]}>
-            Voucher <Text style={{ color: colors.primary, fontWeight: '700' }}>WELCOME10</Text> (10% off) ready for checkout.
+            Check the menu for{' '}
+            <Text style={{ color: colors.primary, fontWeight: '700' }}>active deals</Text>
+            {' '}and save on your next order.
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.mutedText} />

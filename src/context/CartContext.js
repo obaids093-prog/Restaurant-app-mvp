@@ -92,52 +92,26 @@ export const CartProvider = ({ children }) => {
     const currentSubtotal =
       subtotal !== null && subtotal !== undefined ? Number(subtotal) : getSubtotal();
 
-    try {
-      const response = await apiClient('/api/vouchers/validate', {
-        method: 'POST',
-        body: { code: cleanCode, subtotal: currentSubtotal, branchId },
-      });
+    const response = await apiClient('/api/vouchers/validate', {
+      method: 'POST',
+      body: { code: cleanCode, subtotal: currentSubtotal, branchId },
+    });
 
-      if (response && response.success && response.data) {
-        const data = response.data;
-        dispatch({
-          type: 'APPLY_PROMO',
-          payload: {
-            code: data.code,
-            discountPercent: data.discountType === 'percentage' ? data.discountValue : 0,
-            discountAmount: data.discountAmount,
-            discountType: data.discountType,
-            voucherDetails: data,
-          },
-        });
-        return data;
-      }
-      throw new Error(response?.message || 'Failed to validate voucher');
-    } catch (err) {
-      // Fallback for legacy hardcoded promo codes if offline or not in DB
-      const { PROMO_CODES } = require('../reducers/cartReducer');
-      if (PROMO_CODES[cleanCode]) {
-        const percent = PROMO_CODES[cleanCode];
-        const discAmount = Math.round(currentSubtotal * (percent / 100));
-        dispatch({
-          type: 'APPLY_PROMO',
-          payload: {
-            code: cleanCode,
-            discountPercent: percent,
-            discountAmount: discAmount,
-            discountType: 'percentage',
-          },
-        });
-        return {
-          valid: true,
-          code: cleanCode,
-          discountType: 'percentage',
-          discountValue: percent,
-          discountAmount: discAmount,
-        };
-      }
-      throw err;
+    if (response && response.success && response.data) {
+      const data = response.data;
+      dispatch({
+        type: 'APPLY_PROMO',
+        payload: {
+          code: data.code,
+          discountPercent: data.discountType === 'percentage' ? data.discountValue : 0,
+          discountAmount: data.discountAmount,
+          discountType: data.discountType,
+          voucherDetails: data,
+        },
+      });
+      return data;
     }
+    throw new Error(response?.message || 'Failed to validate voucher');
   };
 
   const removePromo = () => dispatch({ type: 'REMOVE_PROMO' });

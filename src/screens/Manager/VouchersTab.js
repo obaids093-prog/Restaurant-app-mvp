@@ -26,10 +26,35 @@ export default function VouchersTab({ colors, fonts, radius, shadows, insets }) 
     updateVoucher,
     toggleVoucher,
     deleteVoucher,
+    deactivateDemoVouchers,
   } = useVouchers();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [voucherToEdit, setVoucherToEdit] = useState(null);
+
+  const hasDemoVouchers = vouchers?.some((v) => v.isDemo);
+
+  const handleDeactivateDemo = () => {
+    Alert.alert(
+      'Deactivate Demo Vouchers',
+      'Are you sure you want to deactivate all seeded demo vouchers?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Deactivate All',
+          style: 'destructive',
+          onPress: async () => {
+            const res = await deactivateDemoVouchers();
+            if (res.success) {
+              Alert.alert('Success', `Deactivated ${res.count} demo voucher(s).`);
+            } else {
+              Alert.alert('Error', res.message || 'Could not deactivate demo vouchers');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleOpenCreate = () => {
     setVoucherToEdit(null);
@@ -119,9 +144,16 @@ export default function VouchersTab({ colors, fonts, radius, shadows, insets }) 
             </Text>
           </View>
 
-          <View style={[styles.statusBadge, { backgroundColor: `${badgeColor}20` }]}>
-            <View style={[styles.statusDot, { backgroundColor: badgeColor }]} />
-            <Text style={[styles.statusBadgeText, { color: badgeColor }]}>{badgeText}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {v.isDemo ? (
+              <View style={[styles.statusBadge, { backgroundColor: '#8B5CF620' }]}>
+                <Text style={[styles.statusBadgeText, { color: '#8B5CF6' }]}>DEMO</Text>
+              </View>
+            ) : null}
+            <View style={[styles.statusBadge, { backgroundColor: `${badgeColor}20` }]}>
+              <View style={[styles.statusDot, { backgroundColor: badgeColor }]} />
+              <Text style={[styles.statusBadgeText, { color: badgeColor }]}>{badgeText}</Text>
+            </View>
           </View>
         </View>
 
@@ -220,7 +252,7 @@ export default function VouchersTab({ colors, fonts, radius, shadows, insets }) 
     <View style={styles.container}>
       {/* Header bar: Title & Add Button */}
       <View style={styles.headerBar}>
-        <View>
+        <View style={{ flex: 1, marginRight: 8 }}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
             Privilege Vouchers
           </Text>
@@ -229,14 +261,27 @@ export default function VouchersTab({ colors, fonts, radius, shadows, insets }) 
           </Text>
         </View>
 
-        <TouchableOpacity
-          onPress={handleOpenCreate}
-          style={[styles.addBtn, { backgroundColor: colors.primary }]}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="add" size={16} color="#FFFFFF" />
-          <Text style={styles.addBtnText}>New Code</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {hasDemoVouchers ? (
+            <TouchableOpacity
+              onPress={handleDeactivateDemo}
+              style={[styles.deactivateDemoBtn, { borderColor: '#8B5CF640' }]}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="trash-outline" size={13} color="#8B5CF6" />
+              <Text style={styles.deactivateDemoText}>Deactivate Demo</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          <TouchableOpacity
+            onPress={handleOpenCreate}
+            style={[styles.addBtn, { backgroundColor: colors.primary }]}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="add" size={16} color="#FFFFFF" />
+            <Text style={styles.addBtnText}>New Code</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Filter Tabs */}
@@ -356,6 +401,26 @@ const styles = StyleSheet.create({
   sectionSubtitle: {
     fontSize: 12,
     marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  deactivateDemoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    backgroundColor: '#8B5CF615',
+    gap: 4,
+  },
+  deactivateDemoText: {
+    color: '#8B5CF6',
+    fontSize: 11,
+    fontWeight: '700',
   },
   addBtn: {
     flexDirection: 'row',

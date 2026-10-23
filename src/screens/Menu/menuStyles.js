@@ -27,28 +27,8 @@ export const PRICE_FILTERS = [
   { id: 'above-3000', label: 'Above Rs. 3,000' },
 ];
 
-export const DEALS_FOR_YOU = [
-  {
-    code: 'CHEF15',
-    discountPercent: 15,
-    description: "Chef's Tasting Reserve Special on culinary orders",
-  },
-  {
-    code: 'FEAST20',
-    discountPercent: 20,
-    description: 'Artisan Feast Celebration for gourmet dining',
-  },
-  {
-    code: 'GOURMET30',
-    discountPercent: 30,
-    description: 'VIP Chef\'s Privilege on curated trays',
-  },
-  {
-    code: 'WELCOME10',
-    discountPercent: 10,
-    description: 'Welcome Sanctuary Gift for your first order',
-  },
-];
+
+
 
 /**
  * Pure helper to filter and sort menu dishes outside component

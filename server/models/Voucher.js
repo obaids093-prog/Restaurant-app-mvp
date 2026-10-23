@@ -82,6 +82,15 @@ const voucherSchema = new mongoose.Schema(
       ref: 'User',
       default: null,
     },
+    isDemo: {
+      type: Boolean,
+      default: false,
+    },
+    perUserLimit: {
+      type: Number,
+      default: null,
+      min: [1, 'Per-user limit must be at least 1'],
+    },
   },
   {
     timestamps: true,
@@ -91,5 +100,7 @@ const voucherSchema = new mongoose.Schema(
 // High-speed lookup index for voucher validation
 voucherSchema.index({ code: 1, isActive: 1 });
 voucherSchema.index({ validUntil: 1 });
+// Index for /active query
+voucherSchema.index({ isActive: 1, validFrom: 1, validUntil: 1, isDemo: 1 });
 
 module.exports = mongoose.model('Voucher', voucherSchema);

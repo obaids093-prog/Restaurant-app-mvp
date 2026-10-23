@@ -1,5 +1,32 @@
 # Project Log
 
+## [2026-10-23] - Fix: Deals Row - Real Server-Driven Vouchers Only
+
+- **Date**: 2026-10-23
+- **Title**: Fix: Deals Row - Real Server-Driven Vouchers Only
+- **WHAT changed**:
+  - In `server/models/Voucher.js`: Added `isDemo: Boolean` (default false), `perUserLimit: Number` (default null), and compound active query index `{ isActive: 1, validFrom: 1, validUntil: 1, isDemo: 1 }`.
+  - In `server/services/voucherService.js`: Implemented `getActiveVouchers(userId)` with strict filtering (active, valid dates, usage left, per-user limits, production demo exclusion). Updated `validateVoucher` to enforce user limits, return `validUntil`, and reject demo vouchers in production. Added `deactivateDemoVouchers()`.
+  - In `server/controllers/voucherController.js` and `server/routes/voucherRoutes.js`: Exposed public `GET /api/vouchers/active` and manager `POST /api/vouchers/deactivate-demo`.
+  - In `server/seedDemo.js` & `server/package.json`: Created isolated demo seeder tagged with `isDemo: true` guarded against production; added `"seed:demo"` script.
+  - In `src/screens/Menu/DealsSection.js`: Fully refactored to consume `GET /api/vouchers/active` via `useApi` with `useFocusEffect` refetching; chips built strictly from voucher fields (`buildChipLabel`, `buildChipDetails`); row auto-hides when empty/error; applies deal through server validation and removes rejected vouchers.
+  - In `src/screens/Menu/menuStyles.js` & `src/screens/Menu/MenuScreen.js`: Removed hardcoded `DEALS_FOR_YOU` array and static props.
+  - In `src/screens/Cart/`: Removed hardcoded promo code references and banners in `VoucherSection.js`, `CartEmptyState.js`, and `CartContext.js`.
+  - In `src/screens/Manager/VouchersTab.js` & `VoucherModal.js`: Added `DEMO` badge, header "Deactivate Demo" batch action with confirmation modal, and live customer deals chip preview in the voucher creation/edit modal.
+  - In `server/tests/`: Added unit/integration tests in `vouchers.test.js` and `noHardcodedVouchers.test.js` (all 6 suites, 67/67 tests passing).
+- **WHY (the problem or goal)**:
+  - Eliminate all hardcoded promo codes and guarantee that the customer Deals row renders 100% real, active, valid promotional vouchers sourced dynamically from MongoDB Atlas.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Server is single source of truth; demo vouchers are strictly separated and disabled in production; live preview in manager modal mirrors exact customer chip rendering.
+- **HOW TO TEST**:
+  - Customer Menu: Verify Deals row dynamically shows active vouchers from MongoDB; row hides completely when no vouchers active.
+  - Cart: Validate voucher codes against `/api/vouchers/validate`.
+  - Manager Dashboard: Demo vouchers display DEMO badge; tap "Deactivate Demo" to bulk-deactivate; open VoucherModal to see live chip preview update as fields change.
+- **Commit hashes**:
+  - `(pending)`
+
+---
+
 ## [2026-10-23] - Feat: Features Batch 2 - Feature 1: Expo Push Notifications & Order Lifecycle Alerts
 
 - **Date**: 2026-10-23

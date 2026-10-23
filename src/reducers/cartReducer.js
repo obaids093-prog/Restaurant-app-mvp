@@ -4,18 +4,7 @@
  * Guarantees zero mutations by returning new immutable state copies.
  */
 
-export const PROMO_CODES = {
-  WELCOME10: 10,  // 10% Off
-  FEAST20: 20,    // 20% Off
-  AURA10: 10,     // 10% Off
-  AURA20: 20,     // 20% Off
-  AURA30: 30,     // 30% Off
-  AURA50: 50,     // 50% Off
-  SAVE10: 10,     // 10% Off
-  TASTY20: 20,    // 20% Off
-  CHEF15: 15,     // 15% Chef Special
-  GOURMET30: 30,  // 30% Off VIP
-};
+export const PROMO_CODES = {};
 
 export const initialCartState = {
   items: [],

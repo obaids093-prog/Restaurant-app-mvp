@@ -372,4 +372,122 @@ describe('Feature 2: Promotional Coupon & Voucher Engine', () => {
       expect(found).toBeNull();
     });
   });
+
+  describe('GET /api/vouchers/active (Customer Real Deals Engine)', () => {
+    beforeAll(async () => {
+      // 1. Active & valid
+      await Voucher.create({
+        code: 'TEST_ACT_VALID',
+        discountType: 'percentage',
+        discountValue: 20,
+        validFrom: new Date(Date.now() - 3600000),
+        validUntil: new Date(Date.now() + 86400000),
+        isActive: true,
+        usageLimit: 10,
+        usageCount: 0,
+      });
+
+      // 2. Inactive
+      await Voucher.create({
+        code: 'TEST_ACT_INACTIVE',
+        discountType: 'percentage',
+        discountValue: 15,
+        validUntil: new Date(Date.now() + 86400000),
+        isActive: false,
+      });
+
+      // 3. Not started yet
+      await Voucher.create({
+        code: 'TEST_ACT_FUTURE',
+        discountType: 'percentage',
+        discountValue: 10,
+        validFrom: new Date(Date.now() + 86400000), // tomorrow
+        validUntil: new Date(Date.now() + 86400000 * 2),
+        isActive: true,
+      });
+
+      // 4. Expired
+      await Voucher.create({
+        code: 'TEST_ACT_EXPIRED',
+        discountType: 'percentage',
+        discountValue: 25,
+        validUntil: new Date(Date.now() - 86400000), // yesterday
+        isActive: true,
+      });
+
+      // 5. Usage limit reached
+      await Voucher.create({
+        code: 'TEST_ACT_EXHAUSTED',
+        discountType: 'fixed',
+        discountValue: 300,
+        validUntil: new Date(Date.now() + 86400000),
+        isActive: true,
+        usageLimit: 5,
+        usageCount: 5,
+      });
+    });
+
+    it('returns only active, non-expired, usage-left vouchers and excludes inactive/future/used-up', async () => {
+      const res = await request(app).get('/api/vouchers/active');
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+
+      const codes = res.body.data.map((v) => v.code);
+      expect(codes).toContain('TEST_ACT_VALID');
+      expect(codes).not.toContain('TEST_ACT_INACTIVE');
+      expect(codes).not.toContain('TEST_ACT_FUTURE');
+      expect(codes).not.toContain('TEST_ACT_EXPIRED');
+      expect(codes).not.toContain('TEST_ACT_EXHAUSTED');
+    });
+
+    it('excludes demo vouchers when NODE_ENV is production', async () => {
+      await Voucher.create({
+        code: 'TEST_PROD_DEMO',
+        discountType: 'percentage',
+        discountValue: 15,
+        validUntil: new Date(Date.now() + 86400000),
+        isActive: true,
+        isDemo: true,
+      });
+
+      const oldEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+
+      const res = await request(app).get('/api/vouchers/active');
+      process.env.NODE_ENV = oldEnv;
+
+      expect(res.status).toBe(200);
+      const codes = res.body.data.map((v) => v.code);
+      expect(codes).not.toContain('TEST_PROD_DEMO');
+    });
+  });
+
+  describe('POST /api/vouchers/deactivate-demo (Manager Demo Cleanup)', () => {
+    it('deactivates all demo vouchers and requires manager permissions', async () => {
+      await Voucher.create({
+        code: 'TEST_DEMO_CLEAN',
+        discountType: 'percentage',
+        discountValue: 10,
+        validUntil: new Date(Date.now() + 86400000),
+        isActive: true,
+        isDemo: true,
+      });
+
+      // Customer should be forbidden
+      const forbiddenRes = await request(app)
+        .post('/api/vouchers/deactivate-demo')
+        .set('Authorization', `Bearer ${customerToken}`);
+      expect(forbiddenRes.status).toBe(403);
+
+      // Manager should succeed
+      const res = await request(app)
+        .post('/api/vouchers/deactivate-demo')
+        .set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+
+      const updated = await Voucher.findOne({ code: 'TEST_DEMO_CLEAN' });
+      expect(updated.isActive).toBe(false);
+    });
+  });
 });

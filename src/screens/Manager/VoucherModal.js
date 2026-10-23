@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { buildChipLabel, buildChipDetails } from '../Menu/DealsSection';
 
 export default function VoucherModal({
   visible,
@@ -60,6 +61,18 @@ export default function VoucherModal({
     }
     setErrorMessage('');
   }, [voucherToEdit, visible]);
+
+  const previewVoucher = {
+    code: (code.trim() || 'PROMOCODE').toUpperCase(),
+    discountType,
+    discountValue: Number(discountValue) || 10,
+    minOrderAmount: Number(minOrderAmount) || 0,
+    maxDiscountAmount: Number(maxDiscountAmount) || 0,
+    validUntil: new Date(Date.now() + (Number(validDays) || 30) * 86400000).toISOString(),
+  };
+
+  const previewLabel = buildChipLabel(previewVoucher);
+  const previewDetails = buildChipDetails(previewVoucher);
 
   if (!visible) return null;
 
@@ -143,6 +156,40 @@ export default function VoucherModal({
           ) : null}
 
           <ScrollView style={modalStyles.formBody} showsVerticalScrollIndicator={false}>
+            {/* Live Customer Deals Preview */}
+            <View
+              style={[
+                modalStyles.previewCard,
+                { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
+              ]}
+            >
+              <View style={modalStyles.previewHeader}>
+                <Ionicons name="eye-outline" size={13} color={colors.primary} />
+                <Text style={[modalStyles.previewTitle, { color: colors.textSecondary }]}>
+                  CUSTOMER DEALS CHIP PREVIEW
+                </Text>
+              </View>
+              <View
+                style={[
+                  modalStyles.previewChip,
+                  { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                ]}
+              >
+                <Ionicons name="pricetag" size={12} color={colors.primary} />
+                <Text
+                  style={[modalStyles.previewChipText, { color: colors.textPrimary }]}
+                  numberOfLines={1}
+                >
+                  {previewLabel}
+                </Text>
+              </View>
+              {previewDetails ? (
+                <Text style={[modalStyles.previewDetailsText, { color: colors.mutedText }]}>
+                  {previewDetails}
+                </Text>
+              ) : null}
+            </View>
+
             {/* Voucher Code */}
             <Text style={[modalStyles.fieldLabel, { color: colors.textSecondary }]}>
               VOUCHER CODE *
@@ -555,5 +602,42 @@ const modalStyles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
+  },
+  previewCard: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  previewTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
+  previewChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 6,
+  },
+  previewChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  previewDetailsText: {
+    fontSize: 11,
+    marginTop: 6,
+    marginLeft: 2,
   },
 });

@@ -13,7 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../../context/CartContext';
 import { useMenu } from '../../context/MenuContext';
 import { useTheme } from '../../context/ThemeContext';
-import { PROMO_CODES } from '../../reducers/cartReducer';
 import { styles, SERVICE_CHARGE_RATE, SALES_TAX_RATE } from './cartStyles';
 import CartEmptyState from './CartEmptyState';
 import CartItemCard from './CartItemCard';

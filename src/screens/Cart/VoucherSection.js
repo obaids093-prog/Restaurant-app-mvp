@@ -62,7 +62,7 @@ export default function VoucherSection({
                   color: colors.textPrimary,
                 },
               ]}
-              placeholder="Enter voucher (e.g. WELCOME10)"
+              placeholder="Enter voucher code"
               placeholderTextColor={colors.mutedText}
               value={promoInput}
               onChangeText={onPromoInputChange}
@@ -85,26 +85,9 @@ export default function VoucherSection({
             </Text>
           ) : null}
 
-          {/* Quick Hint Chips */}
-          <View style={styles.promoHintsRow}>
-            {['WELCOME10 (10%)', 'FEAST20 (20%)', 'AURA30 (30%)'].map((hint) => {
-              const code = hint.split(' ')[0];
-              return (
-                <TouchableOpacity
-                  key={code}
-                  onPress={() => onPromoInputChange(code)}
-                  style={[
-                    styles.hintChip,
-                    { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder },
-                  ]}
-                >
-                  <Text style={[styles.hintText, { color: colors.textSecondary }]}>
-                    {hint}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <Text style={[styles.hintText, { color: colors.mutedText, paddingHorizontal: 4, marginTop: 4, fontSize: 11 }]}>
+            Browse deals on the menu for available vouchers
+          </Text>
         </View>
       )}
     </View>

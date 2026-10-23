@@ -38,7 +38,6 @@ import {
   CATEGORY_ICONS,
   SORT_OPTIONS,
   PRICE_FILTERS,
-  DEALS_FOR_YOU,
   FAVOURITES_KEY,
   filterAndSortDishes,
   resolveReorderItems,
@@ -359,22 +358,19 @@ export default function MenuScreen({ navigation }) {
     [menuItems, addItem]
   );
 
-  // Apply promo deal
+  // Apply promo deal — async, throws on rejection for DealsSection to handle
   const handleApplyDeal = useCallback(
-    (code) => {
-      try {
-        applyPromo(code);
-        Alert.alert(
-          'Promotion Applied',
-          `Voucher code "${code}" is now active on your tray!`,
-          [
-            { text: 'View Tray', onPress: () => navigation.navigate('Cart') },
-            { text: 'Continue Ordering', style: 'cancel' },
-          ]
-        );
-      } catch (err) {
-        Alert.alert('Promo Notice', err.message);
-      }
+    async (code) => {
+      const result = await applyPromo(code);
+      Alert.alert(
+        'Promotion Applied',
+        `Voucher code "${code}" is now active on your tray!`,
+        [
+          { text: 'View Tray', onPress: () => navigation.navigate('Cart') },
+          { text: 'Continue Ordering', style: 'cancel' },
+        ]
+      );
+      return result;
     },
     [applyPromo, navigation]
   );
@@ -791,7 +787,6 @@ export default function MenuScreen({ navigation }) {
 
       {/* Deals Row (only when real vouchers exist, ticket chips on one line) */}
       <DealsSection
-        deals={DEALS_FOR_YOU}
         selectedCategory={selectedCategory}
         searchQuery={searchQuery}
         appliedPromo={cartState?.promoCode}

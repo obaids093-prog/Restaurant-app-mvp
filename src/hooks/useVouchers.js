@@ -141,6 +141,20 @@ export function useVouchers() {
     []
   );
 
+  const deactivateDemoVouchers = useCallback(async () => {
+    try {
+      const res = await apiClient('/api/vouchers/deactivate-demo', {
+        method: 'POST',
+      });
+      if (isMountedRef.current) {
+        await fetchVouchers(1, true, statusFilter);
+      }
+      return { success: true, count: res?.data?.modifiedCount || 0 };
+    } catch (err) {
+      return { success: false, message: err.message || 'Failed to deactivate demo vouchers' };
+    }
+  }, [fetchVouchers, statusFilter]);
+
   return {
     vouchers,
     isLoading,
@@ -157,6 +171,7 @@ export function useVouchers() {
     updateVoucher,
     toggleVoucher,
     deleteVoucher,
+    deactivateDemoVouchers,
   };
 }
 export default useVouchers;

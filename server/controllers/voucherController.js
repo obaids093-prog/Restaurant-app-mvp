@@ -1,12 +1,29 @@
 const voucherService = require('../services/voucherService');
 
+// @desc    Get active vouchers for customer Deals row
+// @route   GET /api/vouchers/active
+// @access  Public
+exports.getActiveVouchers = async (req, res) => {
+  try {
+    const userId = req.user ? req.user._id : null;
+    const vouchers = await voucherService.getActiveVouchers(userId);
+    res.status(200).json({ success: true, data: vouchers });
+  } catch (err) {
+    res.status(err.status || 500).json({
+      success: false,
+      message: err.message || 'Error fetching active vouchers',
+    });
+  }
+};
+
 // @desc    Validate voucher code against subtotal and branch
 // @route   POST /api/vouchers/validate
 // @access  Public / Authenticated
 exports.validateVoucher = async (req, res) => {
   try {
     const { code, subtotal, branchId } = req.body;
-    const result = await voucherService.validateVoucher(code, subtotal, branchId);
+    const userId = req.user ? req.user._id : null;
+    const result = await voucherService.validateVoucher(code, subtotal, branchId, userId);
     res.status(200).json({ success: true, data: result });
   } catch (err) {
     res.status(err.status || 500).json({
@@ -88,6 +105,21 @@ exports.deleteVoucher = async (req, res) => {
     res.status(err.status || 500).json({
       success: false,
       message: err.message || 'Error deleting voucher',
+    });
+  }
+};
+
+// @desc    Deactivate all demo vouchers (Manager only)
+// @route   POST /api/vouchers/deactivate-demo
+// @access  Private (Manager only)
+exports.deactivateDemoVouchers = async (req, res) => {
+  try {
+    const result = await voucherService.deactivateDemoVouchers();
+    res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    res.status(err.status || 500).json({
+      success: false,
+      message: err.message || 'Error deactivating demo vouchers',
     });
   }
 };

@@ -1,9 +1,68 @@
 const Voucher = require('../models/Voucher');
+const Order = require('../models/Order');
+
+/**
+ * Get active vouchers for customer-facing Deals row.
+ * Strict filters: isActive, validFrom <= now, validUntil > now,
+ * usage left, excludes isDemo in production.
+ */
+async function getActiveVouchers(userId = null) {
+  const now = new Date();
+
+  const query = {
+    isActive: true,
+    validFrom: { $lte: now },
+    $or: [
+      { validUntil: { $gt: now } },
+      { validUntil: null },
+    ],
+  };
+
+  // Exclude demo vouchers in production
+  if (process.env.NODE_ENV === 'production') {
+    query.isDemo = { $ne: true };
+  }
+
+  let vouchers = await Voucher.find(query)
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .lean();
+
+  // Filter out vouchers that have reached their global usage limit
+  vouchers = vouchers.filter((v) => {
+    if (v.usageLimit !== null && v.usageLimit !== undefined) {
+      return (v.usageCount || 0) < v.usageLimit;
+    }
+    return true;
+  });
+
+  // Filter out per-user exhausted vouchers
+  if (userId && vouchers.length > 0) {
+    const codes = vouchers
+      .filter((v) => v.perUserLimit)
+      .map((v) => v.code);
+
+    if (codes.length > 0) {
+      const usageCounts = await Order.aggregate([
+        { $match: { user: userId, promoCode: { $in: codes } } },
+        { $group: { _id: '$promoCode', count: { $sum: 1 } } },
+      ]);
+      const usageMap = new Map(usageCounts.map((u) => [u._id, u.count]));
+
+      vouchers = vouchers.filter((v) => {
+        if (!v.perUserLimit) return true;
+        return (usageMap.get(v.code) || 0) < v.perUserLimit;
+      });
+    }
+  }
+
+  return vouchers;
+}
 
 /**
  * Validate a promotional voucher against cart subtotal and optional branch
  */
-async function validateVoucher(code, subtotal = 0, branchId = 'all') {
+async function validateVoucher(code, subtotal = 0, branchId = 'all', userId = null) {
   if (!code || typeof code !== 'string') {
     const error = new Error('Please provide a voucher code');
     error.status = 400;
@@ -26,6 +85,13 @@ async function validateVoucher(code, subtotal = 0, branchId = 'all') {
     throw error;
   }
 
+  // Reject demo vouchers in production
+  if (process.env.NODE_ENV === 'production' && voucher.isDemo) {
+    const error = new Error(`Voucher code "${cleanCode}" is not available`);
+    error.status = 400;
+    throw error;
+  }
+
   const now = new Date();
   if (voucher.validFrom && now < new Date(voucher.validFrom)) {
     const error = new Error(`Voucher code "${cleanCode}" is not yet active`);
@@ -43,6 +109,19 @@ async function validateVoucher(code, subtotal = 0, branchId = 'all') {
     const error = new Error(`Voucher code "${cleanCode}" has reached its maximum usage limit`);
     error.status = 400;
     throw error;
+  }
+
+  // Per-user limit check
+  if (voucher.perUserLimit && userId) {
+    const userUsageCount = await Order.countDocuments({
+      user: userId,
+      promoCode: cleanCode,
+    });
+    if (userUsageCount >= voucher.perUserLimit) {
+      const error = new Error(`You have already used voucher "${cleanCode}" the maximum number of times`);
+      error.status = 400;
+      throw error;
+    }
   }
 
   if (voucher.applicableBranchId && voucher.applicableBranchId !== 'all' && branchId && branchId !== 'all') {
@@ -87,6 +166,7 @@ async function validateVoucher(code, subtotal = 0, branchId = 'all') {
     maxDiscountAmount: voucher.maxDiscountAmount,
     originalSubtotal: numericSubtotal,
     discountedSubtotal,
+    validUntil: voucher.validUntil,
   };
 }
 
@@ -117,6 +197,7 @@ async function createVoucher(voucherData, managerId) {
     validFrom,
     validUntil,
     usageLimit,
+    perUserLimit,
     isActive,
     applicableBranchId,
   } = voucherData;
@@ -145,6 +226,7 @@ async function createVoucher(voucherData, managerId) {
     validFrom: validFrom ? new Date(validFrom) : new Date(),
     validUntil: new Date(validUntil),
     usageLimit: usageLimit ? Math.max(1, Number(usageLimit)) : null,
+    perUserLimit: perUserLimit ? Math.max(1, Number(perUserLimit)) : null,
     isActive: isActive !== undefined ? Boolean(isActive) : true,
     applicableBranchId: applicableBranchId ? applicableBranchId.trim() : 'all',
     createdBy: managerId || null,
@@ -209,6 +291,7 @@ async function updateVoucher(id, updateData) {
     'validUntil',
     'validFrom',
     'usageLimit',
+    'perUserLimit',
     'isActive',
     'applicableBranchId',
   ];
@@ -252,7 +335,19 @@ async function deleteVoucher(id) {
   return { success: true, message: 'Voucher deleted successfully' };
 }
 
+/**
+ * Deactivate all demo vouchers (Manager action)
+ */
+async function deactivateDemoVouchers() {
+  const result = await Voucher.updateMany(
+    { isDemo: true, isActive: true },
+    { $set: { isActive: false } }
+  );
+  return { deactivated: result.modifiedCount || 0 };
+}
+
 module.exports = {
+  getActiveVouchers,
   validateVoucher,
   recordVoucherUsage,
   createVoucher,
@@ -260,4 +355,5 @@ module.exports = {
   updateVoucher,
   toggleVoucher,
   deleteVoucher,
+  deactivateDemoVouchers,
 };
