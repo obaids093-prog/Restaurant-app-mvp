@@ -18,7 +18,10 @@ import { getOptimizedImageUrl, getCategoryIcon } from '../utils/imageUrl';
 const MenuItemCard = React.memo(function MenuItemCard({
   item,
   isFavourite,
+  quantity = 0,
   onAddToCart,
+  onIncrement,
+  onDecrement,
   onToggleFavourite,
   onExplore,
   colors,
@@ -268,27 +271,64 @@ const MenuItemCard = React.memo(function MenuItemCard({
             Rs. {item.price.toLocaleString()}
           </Text>
 
-          {/* Add to Tray Button with Bounce */}
+          {/* Add to Tray Button OR Stepper */}
           <Animated.View style={{ transform: [{ scale: bounceAnim }] }}>
-            <TouchableOpacity
-              onPress={handleAddPress}
-              disabled={!isAvailable}
-              style={[
-                styles.addBtn,
-                {
-                  backgroundColor: isAvailable ? colors.primary : colors.disabled,
-                },
-                shadows && isAvailable && shadows.buttonPrimary,
-              ]}
-              activeOpacity={0.85}
-              accessibilityLabel={`Add ${item.name} to tray`}
-            >
-              <Ionicons
-                name={isAvailable ? 'add' : 'ban'}
-                size={18}
-                color={colors.onPrimary}
-              />
-            </TouchableOpacity>
+            {quantity > 0 ? (
+              <View
+                style={[
+                  styles.stepperContainer,
+                  { backgroundColor: colors.primary },
+                  shadows && shadows.buttonPrimary,
+                ]}
+              >
+                <TouchableOpacity
+                  onPress={() => onDecrement && onDecrement(item)}
+                  style={styles.stepperBtn}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  accessibilityLabel={`Decrease ${item.name} quantity`}
+                >
+                  <Ionicons name="remove" size={14} color={colors.onPrimary || '#FFFFFF'} />
+                </TouchableOpacity>
+
+                <Text
+                  style={[
+                    styles.stepperQtyText,
+                    { color: colors.onPrimary || '#FFFFFF', fontFamily: fonts ? fonts.bold : undefined },
+                  ]}
+                >
+                  {quantity}
+                </Text>
+
+                <TouchableOpacity
+                  onPress={() => onIncrement && onIncrement(item)}
+                  style={styles.stepperBtn}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  accessibilityLabel={`Increase ${item.name} quantity`}
+                >
+                  <Ionicons name="add" size={14} color={colors.onPrimary || '#FFFFFF'} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={handleAddPress}
+                disabled={!isAvailable}
+                style={[
+                  styles.addBtn,
+                  {
+                    backgroundColor: isAvailable ? colors.primary : colors.disabled,
+                  },
+                  shadows && isAvailable && shadows.buttonPrimary,
+                ]}
+                activeOpacity={0.85}
+                accessibilityLabel={`Add ${item.name} to tray`}
+              >
+                <Ionicons
+                  name={isAvailable ? 'add' : 'ban'}
+                  size={18}
+                  color={colors.onPrimary || '#FFFFFF'}
+                />
+              </TouchableOpacity>
+            )}
           </Animated.View>
         </View>
       </View>
@@ -419,5 +459,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minWidth: 34,
     minHeight: 34,
+  },
+  stepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 34,
+    borderRadius: 17,
+    paddingHorizontal: 6,
+    gap: 6,
+  },
+  stepperBtn: {
+    width: 22,
+    height: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperQtyText: {
+    fontSize: 12,
+    minWidth: 16,
+    textAlign: 'center',
   },
 });

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>My Bookings &amp; Reservations</title>
+<!-- Google Font: Poppins -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Custom Configuration -->
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: '#121212',
+              card: '#1E1E1E',
+              raised: '#262626',
+              border: '#2E2E2E',
+              coral: '#FF6B4A',
+              textPrimary: '#F5F5F5',
+              textSecondary: '#A8A8A8',
+              textMuted: '#777777',
+              noticeBg: '#2A1B1B',
+            }
+          },
+          fontFamily: {
+            sans: ['Poppins', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+<!-- Base Custom Styling -->
+<style data-purpose="custom-typography">
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #121212;
+      color: #F5F5F5;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+  </style>
+<style data-purpose="scroll-touch-handling">
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-[#121212] flex justify-center min-h-screen antialiased text-[#F5F5F5]">
+<!-- BEGIN: MobileDeviceFrame -->
+<div class="w-full max-w-[430px] min-h-screen bg-[#121212] flex flex-col justify-between pb-24 relative shadow-2xl overflow-x-hidden">
+<!-- BEGIN: TopBar -->
+<header class="sticky top-0 z-40 bg-[#121212]/95 backdrop-blur-md px-5 pt-12 pb-3.5 flex items-center justify-between border-b border-[#2E2E2E]/40" data-purpose="app-header">
+<!-- Monogram / Forks icon -->
+<div class="flex items-center gap-3">
+<button aria-label="Restaurant Brand" class="w-11 h-11 rounded-full bg-[#1E1E1E] border border-[#2E2E2E] flex items-center justify-center text-[#FF6B4A] shadow-inner focus:outline-none" type="button">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M12 6v13m0-13c-1.5 0-3 1.2-3 3.5 0 2.2 1.5 3.5 3 3.5m0-7c1.5 0 3 1.2 3 3.5 0 2.2-1.5 3.5-3 3.5m-5 4h10m-8 6h6" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<h1 class="text-xl font-bold tracking-tight text-[#F5F5F5]">My Reservations</h1>
+</div>
+<!-- Action Icons: Search & Profile -->
+<div class="flex items-center gap-2">
+<button aria-label="Search" class="w-11 h-11 rounded-full flex items-center justify-center text-[#A8A8A8] hover:text-[#F5F5F5] transition-colors focus:outline-none" type="button">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24">
+<circle cx="11" cy="11" r="7"></circle>
+<path d="m20 20-3.5-3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<button aria-label="User Profile" class="w-11 h-11 rounded-full bg-[#1E1E1E] border border-[#2E2E2E] flex items-center justify-center text-[#A8A8A8] hover:text-[#F5F5F5] transition-colors focus:outline-none" type="button">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+</header>
+<!-- END: TopBar -->
+<!-- BEGIN: MainContent -->
+<main class="px-5 pt-3 flex-1 flex flex-col space-y-4">
+<!-- Notice Banner: Refresh error -->
+<section class="bg-[#2A1B1B] border border-[#FF6B4A]/30 rounded-2xl p-3.5 flex items-center justify-between text-sm shadow-sm" data-purpose="notice-banner">
+<div class="flex items-center gap-2.5 min-w-0 pr-2">
+<!-- Refresh alert icon -->
+<svg class="w-5 h-5 text-[#FF6B4A] flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span class="text-[#FF6B4A] font-medium text-[13.5px] truncate">Could not refresh live bookings...</span>
+</div>
+<div class="flex items-center gap-2 flex-shrink-0">
+<button class="bg-[#262626] border border-[#2E2E2E] text-[#F5F5F5] text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-[#2E2E2E] transition-colors focus:outline-none min-h-[32px]" type="button">
+            Retry
+          </button>
+<button aria-label="Dismiss banner" class="text-[#A8A8A8] hover:text-[#F5F5F5] p-1 focus:outline-none" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+</section>
+<!-- Section Title & Counter -->
+<section class="flex items-center justify-between pt-1" data-purpose="section-header">
+<div class="flex items-center gap-2.5">
+<h2 class="text-2xl font-bold tracking-tight text-[#F5F5F5]">My Bookings</h2>
+<span class="bg-[#262626] text-[#A8A8A8] text-xs font-semibold px-2.5 py-0.5 rounded-full border border-[#2E2E2E]">5 total</span>
+</div>
+</section>
+<!-- Filter Tabs Container -->
+<nav class="bg-[#1E1E1E] p-1 rounded-full border border-[#2E2E2E] flex items-center justify-between shadow-sm overflow-x-auto no-scrollbar" data-purpose="filter-tabs">
+<!-- Selected Tab -->
+<button class="flex-1 min-w-[108px] h-10 rounded-full bg-[#262626] text-[#FF6B4A] text-xs font-bold border border-[#2E2E2E] flex items-center justify-center transition-all focus:outline-none" type="button">
+          Upcoming (1)
+        </button>
+<!-- Inactive Tab -->
+<button class="flex-1 min-w-[108px] h-10 rounded-full text-[#A8A8A8] text-xs font-medium hover:text-[#F5F5F5] flex items-center justify-center transition-colors focus:outline-none" type="button">
+          Past / Done (3)
+        </button>
+<!-- Inactive Tab -->
+<button class="flex-1 min-w-[108px] h-10 rounded-full text-[#A8A8A8] text-xs font-medium hover:text-[#F5F5F5] flex items-center justify-center transition-colors focus:outline-none" type="button">
+          Cancelled (1)
+        </button>
+</nav>
+<!-- BEGIN: ActiveBookingCard -->
+<article class="bg-[#1E1E1E] border border-[#2E2E2E] rounded-[20px] p-4 flex flex-col space-y-3.5 shadow-lg relative" data-purpose="booking-card">
+<!-- Card Top Bar: Reference & Status -->
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-semibold tracking-wider text-[#A8A8A8] uppercase">Booking ID #TBL-90124</span>
+<!-- Confirmed Status Badge -->
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30">
+<span class="w-1.5 h-1.5 rounded-full bg-[#22C55E]"></span>
+            Confirmed
+          </span>
+</div>
+<!-- Venue Title -->
+<div>
+<h3 class="text-xl font-bold text-[#F5F5F5] tracking-tight">L’Aura Osteria &amp; Bar</h3>
+</div>
+<!-- Details Box -->
+<div class="bg-[#262626] border border-[#2E2E2E] rounded-2xl p-3 flex items-center gap-3.5">
+<!-- Photo Container -->
+<div class="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-[#121212] border border-[#2E2E2E]">
+<img alt="Dining Area at L'Aura Osteria &amp; Bar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRBN_7mdSf8ZI8CvrUseSg4THWnHRv3Jd7NGxxmxW1_UtmOePH7yVJNCuQAsbEBqUfuGvU0QPbc9WLyjXJ_fXpVf7G8VLos4VT0jZu3EVkxNKElfI9sS8UHBuwYhNo7GiBHHHaF1e5btXMEasqdzyVcaC3JMJZMVveI5-qUIS4ygy-2qTrKgtwk1psuZsR8l0ioKRrfoNticYo7DKfOF6gC0oPojnLXh6tP942vdRbEulqYKdMZorO"/>
+</div>
+<!-- Schedule & Details -->
+<div class="flex flex-col space-y-1 justify-center min-w-0">
+<div class="flex items-center gap-1.5 text-sm font-semibold text-[#F5F5F5]">
+<svg class="w-4 h-4 text-[#FF6B4A] flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect>
+<path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round"></path>
+</svg>
+<span>Tomorrow, Oct 25</span>
+</div>
+<div class="text-[13px] font-medium text-[#FF6B4A]">
+              7:30 PM <span class="text-[#A8A8A8] font-normal">• Dinner Service</span>
+</div>
+<div class="text-xs text-[#A8A8A8] flex items-center gap-2 pt-0.5 truncate">
+<span class="flex items-center gap-1">
+<svg class="w-3.5 h-3.5 text-[#A8A8A8]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+                4 Guests
+              </span>
+<span>•</span>
+<span class="flex items-center gap-1">
+<svg class="w-3.5 h-3.5 text-[#A8A8A8]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M3 21h18M4 18h16M6 18v-7m4 7v-7m4 7v-7m4 7v-7M3 11l9-7 9 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+                Outdoor Patio
+              </span>
+</div>
+</div>
+</div>
+<!-- Venue Address & Direct Directions -->
+<div class="flex items-center justify-between text-xs pt-0.5 px-0.5">
+<div class="flex items-center gap-1.5 text-[#F5F5F5] truncate">
+<svg class="w-4 h-4 text-[#FF6B4A] flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24">
+<path d="M12 21s-8-7.5-8-12a8 8 0 1116 0c0 4.5-8 12-8 12z" stroke-linecap="round" stroke-linejoin="round"></path>
+<circle cx="12" cy="9" r="2.5"></circle>
+</svg>
+<span class="truncate">442 Brannan St, SoMa District</span>
+</div>
+<a class="text-[#FF6B4A] font-semibold hover:underline inline-flex items-center gap-1 ml-2 flex-shrink-0" href="#directions">
+            Get Directions
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M7 17L17 7M17 7H7M17 7V17" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</a>
+</div>
+<!-- Card Action Buttons -->
+<div class="grid grid-cols-2 gap-3 pt-1">
+<!-- Modify Action -->
+<button class="min-h-[44px] rounded-full bg-[#262626] border border-[#2E2E2E] text-[#F5F5F5] font-semibold text-xs flex items-center justify-center gap-1.5 hover:border-[#FF6B4A]/50 transition-colors focus:outline-none" type="button">
+<svg class="w-4 h-4 text-[#A8A8A8]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect>
+<path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round"></path>
+</svg>
+            Modify
+          </button>
+<!-- Cancel Action -->
+<button class="min-h-[44px] rounded-full bg-[#EF4444]/15 border border-[#EF4444]/25 text-[#EF4444] font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-[#EF4444]/25 transition-colors focus:outline-none" type="button">
+<svg class="w-4 h-4 text-[#EF4444]" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="9"></circle>
+<path d="m9 9 6 6m0-6-6 6" stroke-linecap="round"></path>
+</svg>
+            Cancel Table
+          </button>
+</div>
+</article>
+<!-- END: ActiveBookingCard -->
+<!-- BEGIN: PerkInformationCard -->
+<article class="bg-[#1E1E1E] border border-[#2E2E2E] rounded-[20px] p-4 flex gap-3.5 items-start shadow-md" data-purpose="complimentary-perk-card">
+<!-- Wine Glass Icon Circle -->
+<div class="w-10 h-10 rounded-full bg-[#FF6B4A]/15 border border-[#FF6B4A]/30 flex items-center justify-center text-[#FF6B4A] flex-shrink-0 mt-0.5">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M7 3h10a4 4 0 010 8h-1a5 5 0 01-4 4.899V20h3a1 1 0 110 2H9a1 1 0 110-2h3v-4.101A5 5 0 018 11H7a4 4 0 010-8z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<!-- Description Details -->
+<div class="space-y-1">
+<h4 class="text-sm font-bold text-[#F5F5F5] tracking-tight">Complimentary Welcome Sip</h4>
+<p class="text-xs text-[#A8A8A8] leading-relaxed">
+            Your table booking includes a signature house aperitivo upon arrival. Free cancellation is open until 5:30 PM tomorrow.
+          </p>
+</div>
+</article>
+<!-- END: PerkInformationCard -->
+</main>
+<!-- END: MainContent -->
+<!-- BEGIN: BottomNavigation -->
+<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-[#1A1A1A]/95 backdrop-blur-lg border-t border-[#2E2E2E] px-4 py-2 z-50" data-purpose="bottom-bar">
+<ul class="flex items-center justify-between text-[11px] font-medium text-[#A8A8A8]">
+<!-- Menu -->
+<li class="flex-1">
+<a class="min-h-[48px] flex flex-col items-center justify-center gap-1 hover:text-[#F5F5F5] transition-colors" href="#menu">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="9"></circle>
+<path d="m14.5 9.5-5 5m0-5 5 5" stroke-linecap="round"></path>
+</svg>
+<span>Explore</span>
+</a>
+</li>
+<!-- Saved -->
+<li class="flex-1">
+<a class="min-h-[48px] flex flex-col items-center justify-center gap-1 hover:text-[#F5F5F5] transition-colors" href="#saved">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Saved</span>
+</a>
+</li>
+<!-- Central Tray Action Button -->
+<li class="flex-1 flex justify-center -mt-5">
+<a aria-label="View current order tray" class="w-14 h-14 rounded-full bg-[#FF6B4A] text-white flex items-center justify-center shadow-lg shadow-[#FF6B4A]/30 border-4 border-[#121212] relative focus:outline-none transition-transform active:scale-95" href="#tray">
+<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24">
+<path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<!-- Counter Badge -->
+<span class="absolute top-0 right-0 w-5 h-5 bg-[#121212] border-2 border-[#FF6B4A] text-[10px] font-bold text-white rounded-full flex items-center justify-center">2</span>
+</a>
+</li>
+<!-- Active: Bookings / Reserve -->
+<li class="flex-1">
+<a class="min-h-[48px] flex flex-col items-center justify-center gap-1 text-[#FF6B4A] transition-colors font-semibold" href="#bookings">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24">
+<rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect>
+<path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round"></path>
+</svg>
+<span>Bookings</span>
+<span class="w-1 h-1 rounded-full bg-[#FF6B4A] -mt-0.5"></span>
+</a>
+</li>
+<!-- Profile -->
+<li class="flex-1">
+<a class="min-h-[48px] flex flex-col items-center justify-center gap-1 hover:text-[#F5F5F5] transition-colors" href="#profile">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Profile</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- END: BottomNavigation -->
+</div>
+<!-- END: MobileDeviceFrame -->
+</body></html>

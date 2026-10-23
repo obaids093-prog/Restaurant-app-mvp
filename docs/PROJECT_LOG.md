@@ -1,5 +1,36 @@
 # Project Log
 
+## [2026-10-23] - Feat: Design Refresh V2 - Screen 1: Menu Home Screen
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Design Refresh V2 - Screen 1: Menu Home Screen
+- **WHAT changed**:
+  - In `src/screens/Menu/ChefsPickBanner.js`: Created compact modern Chef's Pick hero banner (~120px) matching Stitch designs, featuring gradient overlay, price tag badge, quick-add button, and dish preview.
+  - In `src/screens/Menu/OrderAgainRow.js`: Redesigned to compact horizontal cards displaying max 3 recent dishes with thumbnail, price, title, and quick "+" add-to-cart button.
+  - In `src/screens/Menu/DealsSection.js`: Refactored voucher / deal cards into compact single-line dashed ticket chips with copy-code feedback.
+  - In `src/screens/Menu/CategoryRow.js`: Redesigned categories into vibrant Coral filled pills (`#FC5834`) with modern typography and smooth horizontal scroll.
+  - In `src/components/MenuItemCard.js`: Updated dish card design with inline quantity stepper (`- qty +`) when item is in cart, subtle border radius, rating pills, and clean price presentation.
+  - In `src/screens/Menu/DishGrid.js`: Integrated floating mini cart bar at bottom with live item count, subtotal, and direct "View Cart" navigation.
+  - In `src/screens/Menu/menuStyles.js`: Unified typography, spacing, and brand coral color tokens (`#FC5834` light, `#FF6B4A` dark) per REDESIGN_BRIEF.md.
+  - In `src/screens/Menu/MenuScreen.js`: Reordered scroll layout: Header Search & Location -> Chef's Pick Banner -> Deals / Vouchers -> Order Again -> Categories -> Dish Grid with Active Filters and Floating Cart Bar.
+- **WHY (the problem or goal)**:
+  - Upgrade the Menu Home screen to design-refresh-v2 specifications based on Stitch HTML/screenshot sources of truth, optimizing layout density, visual hierarchy, and instant add-to-cart interactivity.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Extracted modular components under `src/screens/Menu/` keeping each file <400 lines.
+  - Used existing theme colors and Ionicons without introducing third-party packages or paid assets.
+  - Preserved backward compatibility with CartContext, AuthContext, and backend APIs.
+- **HOW TO TEST**:
+  - Open app to Menu Home screen.
+  - Verify Chef's Pick banner, compact Deals ticket chips, Order Again horizontal row, Category pills, and 2-column Dish Grid.
+  - Tap "+" on any dish: verify inline quantity stepper appears and floating mini cart bar updates with count and price.
+  - Tap mini cart bar: navigates to Cart screen.
+- **RISKS or follow-ups**:
+  - None. ESLint passed with 0 errors (78 pre-existing warnings) and all 53 backend tests passed.
+- **Commit hashes**:
+  - Pending commit
+
+---
+
 ## [2026-10-23] - Feat: Real-Time In-App Notification Center Architecture (Batch 1)
 
 - **Date**: 2026-10-23

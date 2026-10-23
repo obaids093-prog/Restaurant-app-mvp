@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100%;min-height:100%;margin:0;padding:0;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"on-secondary-container":"#5f6178","tertiary":"#00657b","background":"#fbf8ff","inverse-on-surface":"#f1effa","on-primary":"#ffffff","on-secondary-fixed-variant":"#43455b","surface-variant":"#e3e1ec","inverse-primary":"#ffb4a3","surface-dim":"#dad9e3","on-error-container":"#93000a","surface-container-highest":"#e3e1ec","primary-fixed":"#ffdad2","surface-tint":"#b52603","tertiary-container":"#007f9b","surface-container-lowest":"#ffffff","outline-variant":"#e3beb6","primary":"#b22301","surface-container-high":"#e8e7f1","error":"#ba1a1a","surface-bright":"#fbf8ff","inverse-surface":"#2f3038","on-secondary":"#ffffff","on-primary-fixed":"#3d0600","outline":"#8f7069","on-tertiary":"#ffffff","on-surface-variant":"#5b403a","surface-container-low":"#f4f2fd","secondary":"#5b5d74","on-error":"#ffffff","primary-container":"#d53d1b","on-primary-fixed-variant":"#8c1900","on-surface":"#1a1b22","on-primary-container":"#fffbff","on-secondary-fixed":"#181a2e","on-background":"#1a1b22","surface-container":"#eeedf7","surface":"#fbf8ff","tertiary-fixed-dim":"#61d4f8","primary-fixed-dim":"#ffb4a3","secondary-fixed":"#e0e0fc","secondary-fixed-dim":"#c4c4df","secondary-container":"#ddddf9","on-tertiary-container":"#fafdff","error-container":"#ffdad6","on-tertiary-fixed":"#001f28","tertiary-fixed":"#b5ebff","on-tertiary-fixed-variant":"#004e60"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-lg":"1.5rem","space-xs":"0.25rem","gutter":"1.5rem","gutter-mobile":"1rem","space-md":"1rem","margin-mobile":"1.25rem","space-xl":"2.5rem","space-sm":"0.5rem","margin":"2.5rem"},"fontFamily":{"headline-lg":["Epilogue"],"body-md":["Inter"],"headline-md":["Epilogue"],"body-sm":["Inter"],"label-sm":["Inter"],"headline-lg-mobile":["Epilogue"],"display":["Epilogue"],"label-lg":["Inter"],"display-mobile":["Epilogue"],"headline-sm":["Inter"],"label-md":["Inter"],"body-lg":["Inter"]},"fontSize":{"headline-lg":["28px",{"lineHeight":"36px","letterSpacing":"-0.01em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"22px","fontWeight":"400"}],"headline-md":["20px",{"lineHeight":"28px","letterSpacing":"-0.005em","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"18px","fontWeight":"400"}],"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.03em","fontWeight":"500"}],"headline-lg-mobile":["22px",{"lineHeight":"30px","letterSpacing":"-0.01em","fontWeight":"600"}],"display":["40px",{"lineHeight":"48px","letterSpacing":"-0.02em","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0.01em","fontWeight":"600"}],"display-mobile":["30px",{"lineHeight":"38px","letterSpacing":"-0.015em","fontWeight":"600"}],"headline-sm":["16px",{"lineHeight":"24px","fontWeight":"600"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"500"}],"body-lg":["16px",{"lineHeight":"26px","fontWeight":"400"}]}}}}</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col min-h-full"><header class="fixed top-0 inset-x-0 z-50 bg-surface/80 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.03)]"><div class="h-16 px-margin-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-full bg-primary-container/15 flex items-center justify-center text-primary"><span class="material-symbols-outlined text-[20px]">restaurant_menu</span></div><span class="font-headline-md text-headline-md text-on-surface tracking-tight font-semibold">My Reservations</span></div><div class="flex items-center gap-space-xs"><button class="w-11 h-11 flex items-center justify-center rounded-full text-secondary hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">search</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col w-full px-margin-mobile pt-16 pb-24 bg-surface"><div class="flex flex-col w-full pb-8">
+<!-- Interactive Error Toast Simulation (Dismissible/Triggerable) -->
+<div class="mb-4 flex items-center justify-between p-3.5 rounded-xl bg-error-container text-on-error-container shadow-sm transition-all duration-300" id="error-banner">
+<div class="flex items-center gap-2.5 min-w-0">
+<span class="material-symbols-outlined text-[20px] text-error flex-shrink-0">sync_problem</span>
+<span class="font-body-md text-body-md truncate">Could not refresh live bookings.</span>
+</div>
+<div class="flex items-center gap-2 flex-shrink-0">
+<button class="px-2.5 py-1 rounded-lg bg-surface-container-lowest font-label-md text-label-md text-primary font-semibold active:scale-95 transition-transform" onclick="retrySync()">
+        Retry
+      </button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full text-on-error-container/70 hover:text-on-error-container" onclick="document.getElementById('error-banner').classList.add('hidden')">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+</div>
+<!-- Header Title & Count -->
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2.5">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-semibold tracking-tight">My Bookings</h1>
+<span class="px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-semibold" id="total-badge">
+        5 total
+      </span>
+</div>
+<button class="flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface-container-high text-secondary hover:text-on-surface font-label-md text-label-md transition-colors active:scale-95" onclick="toggleEmptyStateSim()">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+<span>Simulate Empty</span>
+</button>
+</div>
+<!-- Segmented Filter Tabs -->
+<div class="p-1 rounded-xl bg-surface-container flex items-center gap-1 mb-6 shadow-sm overflow-x-auto">
+<button class="tab-btn flex-1 min-h-[44px] px-3 rounded-lg bg-surface-container-lowest text-primary font-label-lg text-label-lg font-semibold shadow-sm transition-all text-center whitespace-nowrap" id="tab-upcoming" onclick="switchTab('upcoming')">
+      Upcoming (1)
+    </button>
+<button class="tab-btn flex-1 min-h-[44px] px-3 rounded-lg text-secondary font-label-lg text-label-lg transition-all text-center whitespace-nowrap" id="tab-past" onclick="switchTab('past')">
+      Past / Done (3)
+    </button>
+<button class="tab-btn flex-1 min-h-[44px] px-3 rounded-lg text-secondary font-label-lg text-label-lg transition-all text-center whitespace-nowrap" id="tab-cancelled" onclick="switchTab('cancelled')">
+      Cancelled (1)
+    </button>
+</div>
+<!-- TAB CONTENT 1: UPCOMING (DEFAULT VIEW) -->
+<div class="flex flex-col gap-6" id="content-upcoming">
+<!-- Active Hero Card -->
+<div class="rounded-xl bg-surface-container-lowest p-5 shadow-sm relative overflow-hidden">
+<!-- Glow Accent -->
+<div class="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-primary/10 blur-2xl pointer-events-none"></div>
+<div class="flex items-start justify-between gap-3 mb-3 relative">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary font-medium uppercase tracking-wider">Booking ID #TBL-90124</span>
+<h2 class="font-headline-md text-headline-md text-on-surface font-semibold tracking-tight mt-0.5">L’Aura Osteria &amp; Bar</h2>
+</div>
+<span class="px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md font-semibold flex items-center gap-1.5 flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+          Confirmed
+        </span>
+</div>
+<!-- Food & Vibe Thumbnail with Details -->
+<div class="flex gap-3.5 p-3 rounded-xl bg-surface-container-low mb-4">
+<img class="w-20 h-20 rounded-lg object-cover flex-shrink-0" data-alt="A warm and moody Italian rustic osteria with handmade pasta on ceramic plates, ambient amber lighting, wine glasses, and terracotta details in modern bistro aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnuek5i1YTdzeZzzCvJsaI1yepHqyxVKyrWsRgRqzNsKhDAQ19i4MZG02yK1RyETunb7KnChuS0cQIUTb4QZv9AeeJ4zGp_eSC0tyOdMyawXF6PvtVdMLQ9ni6PfBpGQzJSPo0ZH9U6orADSMxH-Pps6zTonvUScnYiTDH7QP-amDvWEQ_OB7QyCp9_hZn9jtO0kVqqly_bnSLTyvMEOBP34gSrjx7okyqhbl_x65t7M3pRUjgoEzK"/>
+<div class="flex flex-col justify-center min-w-0">
+<div class="flex items-center gap-1.5 text-on-surface font-headline-sm text-headline-sm font-semibold truncate">
+<span class="material-symbols-outlined text-[18px] text-primary">calendar_clock</span>
+<span>Tomorrow, Oct 25</span>
+</div>
+<p class="font-body-md text-body-md text-primary font-semibold mt-0.5">
+            7:30 PM <span class="font-body-sm text-body-sm text-secondary font-normal">• Dinner Service</span>
+</p>
+<div class="flex items-center gap-2 mt-1 text-secondary font-body-sm text-body-sm">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">groups</span>
+              4 Guests
+            </span>
+<span>•</span>
+<span class="flex items-center gap-1 truncate">
+<span class="material-symbols-outlined text-[16px]">deck</span>
+              Outdoor Patio
+            </span>
+</div>
+</div>
+</div>
+<!-- Direction and Venue Info -->
+<div class="flex items-center justify-between mb-5 px-1 text-secondary">
+<div class="flex items-center gap-1.5 min-w-0">
+<span class="material-symbols-outlined text-[18px] text-tertiary">location_on</span>
+<span class="font-body-sm text-body-sm truncate">442 Brannan St, SoMa District</span>
+</div>
+<a class="font-label-md text-label-md text-tertiary font-semibold flex items-center gap-0.5 hover:underline flex-shrink-0" href="#" onclick="event.preventDefault(); triggerDirections();">
+<span>Get Directions</span>
+<span class="material-symbols-outlined text-[16px]">arrow_outward</span>
+</a>
+</div>
+<!-- Card Action Buttons -->
+<div class="grid grid-cols-2 gap-3 pt-1">
+<button class="min-h-[44px] px-4 rounded-xl bg-surface-container font-label-lg text-label-lg text-on-surface font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all" onclick="openModifyDrawer()">
+<span class="material-symbols-outlined text-[18px]">edit_calendar</span>
+          Modify
+        </button>
+<button class="min-h-[44px] px-4 rounded-xl bg-error-container/40 text-error hover:bg-error-container/60 font-label-lg text-label-lg font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all" onclick="promptCancellation()">
+<span class="material-symbols-outlined text-[18px]">cancel</span>
+          Cancel Table
+        </button>
+</div>
+</div>
+<!-- Friendly Hospitality Tip -->
+<div class="p-4 rounded-xl bg-surface-container-low flex items-start gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">wine_bar</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Complimentary Welcome Sip</span>
+<p class="font-body-sm text-body-sm text-secondary mt-0.5">Your table booking includes a signature house aperitivo upon arrival. Free cancellation is open until 5:30 PM tomorrow.</p>
+</div>
+</div>
+</div>
+<!-- TAB CONTENT 2: PAST / DONE -->
+<div class="hidden flex flex-col gap-4" id="content-past">
+<!-- Card 1 -->
+<div class="rounded-xl bg-surface-container-lowest p-4 shadow-sm flex flex-col gap-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<img class="w-14 h-14 rounded-lg object-cover flex-shrink-0" data-alt="Sunlit courtyard dining table at an upscale organic garden bistro with lush greenery, wine bottles, fresh salads, and natural timber furniture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0tYODx2bstKuWti3nivaguWs7k_cO5nyGMBu2S2DnReGGhRBALWfjdkADeb0nd7_G5zNk7K9gGoEhOeVXBhxmNrm67Mckq_UjgtJW1GsWKigRLmxvBzMVIPYqrviGBYYfU6qt7EE1NQg4LuJm3fNeUNOyff_qHhW3GhsIWoAfDiCHcAGObq77J1qhqGNcTGFBlbRs4a4_qGnpyoQioeJJFkWSBbV82NhrypgnOHfOL2U2bpAFlUs5"/>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">The Garden Bistro</h3>
+<p class="font-body-sm text-body-sm text-secondary mt-0.5">Sep 18, 2025 • 2 Guests</p>
+<span class="font-label-sm text-label-sm text-outline mt-0.5">Table 14 • Indoor Dining</span>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-secondary font-label-sm text-label-sm font-medium flex-shrink-0">
+          Completed
+        </span>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-sm text-label-sm text-secondary ml-1">Rated 5.0</span>
+</div>
+<button class="min-h-[44px] px-4 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold flex items-center gap-1.5 shadow-sm active:scale-95 transition-transform" onclick="rebookRestaurant('The Garden Bistro')">
+<span class="material-symbols-outlined text-[16px]">restart_alt</span>
+          Rebook Table
+        </button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="rounded-xl bg-surface-container-lowest p-4 shadow-sm flex flex-col gap-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<img class="w-14 h-14 rounded-lg object-cover flex-shrink-0" data-alt="Artisanal sushi counter with dark slate finishes, fresh sashimi nigiri platters, minimalist Japanese dining aesthetics with warm spot lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkUgz-layjd5VPrvcLZ8KxISZfSlqHcXShFtrbNXD5-O4MxDtqelUzF_Se2HmJk80ytFunnzBXcxMDqoDNfJ6xdIBf1WWq7RuWKSiNFgaC5tRpJ1dLxPF0jJWbgvzgsgvggVFsX0V5aSb7-1NjM60szJnJjTUFGz3dHEhFA_dGFEtFEy_JQCWB5Cdm4E1KDpyfUP1s9exTptoy5DqqqmfZ17sI2p-YZPjej_w3oA7XHc5KcwDN46O7"/>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">Komorebi Omakase</h3>
+<p class="font-body-sm text-body-sm text-secondary mt-0.5">Aug 04, 2025 • 2 Guests</p>
+<span class="font-label-sm text-label-sm text-outline mt-0.5">Chef Counter • 8:00 PM</span>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-secondary font-label-sm text-label-sm font-medium flex-shrink-0">
+          Completed
+        </span>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-body-sm text-body-sm text-secondary">Receipt #INV-8812 • $240.00</span>
+<button class="min-h-[44px] px-4 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold flex items-center gap-1.5 shadow-sm active:scale-95 transition-transform" onclick="rebookRestaurant('Komorebi Omakase')">
+<span class="material-symbols-outlined text-[16px]">restart_alt</span>
+          Rebook Table
+        </button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="rounded-xl bg-surface-container-lowest p-4 shadow-sm flex flex-col gap-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="w-14 h-14 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary flex-shrink-0">
+<span class="material-symbols-outlined text-[28px]">local_cafe</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">Atelier French Bakery</h3>
+<p class="font-body-sm text-body-sm text-secondary mt-0.5">Jul 12, 2025 • 3 Guests</p>
+<span class="font-label-sm text-label-sm text-outline mt-0.5">Breakfast Patio • 9:30 AM</span>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-secondary font-label-sm text-label-sm font-medium flex-shrink-0">
+          Completed
+        </span>
+</div>
+<div class="flex items-center justify-end pt-1">
+<button class="min-h-[44px] px-4 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold flex items-center gap-1.5 shadow-sm active:scale-95 transition-transform" onclick="rebookRestaurant('Atelier French Bakery')">
+<span class="material-symbols-outlined text-[16px]">restart_alt</span>
+          Rebook Table
+        </button>
+</div>
+</div>
+</div>
+<!-- TAB CONTENT 3: CANCELLED -->
+<div class="hidden flex flex-col gap-4" id="content-cancelled">
+<div class="rounded-xl bg-surface-container-lowest p-4 shadow-sm opacity-90 flex flex-col gap-3">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Ref #CAN-41902</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Cantina Del Sol</h3>
+<p class="font-body-sm text-body-sm text-secondary mt-0.5">Cancelled for Jun 22, 2025 • 6 Guests</p>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-semibold">
+          Cancelled
+        </span>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low text-secondary font-body-sm text-body-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-tertiary">check_circle</span>
+<span>Full deposit refunded • No fee applied</span>
+</div>
+<div class="flex justify-end pt-1">
+<button class="min-h-[44px] px-4 rounded-xl bg-surface-container text-on-surface font-label-md text-label-md font-semibold flex items-center gap-1.5 active:scale-95 transition-transform" onclick="rebookRestaurant('Cantina Del Sol')">
+<span class="material-symbols-outlined text-[16px]">search</span>
+          Find Alternate Date
+        </button>
+</div>
+</div>
+</div>
+<!-- SIMULATED EMPTY STATE (Hidden by default, activated via button) -->
+<div class="hidden flex flex-col items-center justify-center text-center p-6 my-4 rounded-xl bg-surface-container-lowest shadow-sm" id="empty-state-view">
+<div class="w-20 h-20 rounded-full bg-primary-fixed/60 flex items-center justify-center text-primary mb-4 animate-bounce">
+<span class="material-symbols-outlined text-[36px]">restaurant</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface font-semibold">No upcoming bookings yet</h3>
+<p class="font-body-md text-body-md text-secondary max-w-[270px] mt-1.5 mb-6">
+      Craving wood-fired pizza, fresh sushi, or a tranquil patio brunch? Your next memorable table is waiting.
+    </p>
+<a class="w-full max-w-xs min-h-[48px] px-6 rounded-xl bg-primary text-on-primary font-label-lg text-label-lg font-semibold flex items-center justify-center gap-2 shadow-md active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined text-[20px]">explore</span>
+      Book a Table Now
+    </a>
+</div>
+<!-- Cancellation Confirmation Modal / Dialog Overlay -->
+<div class="fixed inset-0 z-50 bg-inverse-surface/40 backdrop-blur-sm hidden items-end sm:items-center justify-center p-4 transition-opacity" id="cancel-dialog">
+<div class="w-full max-w-md rounded-2xl bg-surface-container-lowest p-6 shadow-2xl flex flex-col gap-4 animate-in fade-in slide-in-from-bottom duration-200">
+<div class="w-12 h-12 rounded-full bg-error-container text-error flex items-center justify-center">
+<span class="material-symbols-outlined text-[24px]">event_busy</span>
+</div>
+<div class="flex flex-col">
+<h3 class="font-headline-md text-headline-md text-on-surface font-semibold">Cancel Reservation?</h3>
+<p class="font-body-md text-body-md text-secondary mt-1">
+          Are you sure you want to cancel your table at <strong class="text-on-surface">L’Aura Osteria &amp; Bar</strong> for tomorrow at 7:30 PM?
+        </p>
+</div>
+<div class="p-3 rounded-xl bg-surface-container-low flex items-center gap-2.5 text-tertiary">
+<span class="material-symbols-outlined text-[20px] flex-shrink-0">verified_user</span>
+<span class="font-body-sm text-body-sm font-medium">Free cancellation applies. No fee will be charged to your card.</span>
+</div>
+<div class="flex flex-col gap-2.5 pt-2">
+<button class="w-full min-h-[44px] rounded-xl bg-error text-on-error font-label-lg text-label-lg font-semibold shadow-sm active:scale-95 transition-transform" onclick="confirmCancelAction()">
+          Yes, Cancel Booking
+        </button>
+<button class="w-full min-h-[44px] rounded-xl bg-surface-container font-label-lg text-label-lg text-on-surface font-semibold active:scale-95 transition-transform" onclick="closeCancelDialog()">
+          Keep My Reservation
+        </button>
+</div>
+</div>
+</div>
+<!-- Modification Toast / Feedback Feedback -->
+<div class="fixed bottom-24 left-4 right-4 z-50 p-4 rounded-xl bg-inverse-surface text-inverse-on-surface shadow-xl flex items-center justify-between hidden transition-all" id="feedback-toast">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-[20px] text-tertiary-fixed">info</span>
+<span class="font-body-md text-body-md" id="toast-text">Reservation updated successfully!</span>
+</div>
+<button class="text-inverse-on-surface/80 hover:text-inverse-on-surface" onclick="document.getElementById('feedback-toast').classList.add('hidden')">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+</div>
+<script>
+  let isSimulatingEmpty = false;
+
+  function switchTab(tab) {
+    if (isSimulatingEmpty) {
+      toggleEmptyStateSim();
+    }
+    
+    // Reset all tabs
+    const tabs = ['upcoming', 'past', 'cancelled'];
+    tabs.forEach(t => {
+      const btn = document.getElementById(`tab-${t}`);
+      const content = document.getElementById(`content-${t}`);
+      if (btn && content) {
+        btn.classList.remove('bg-surface-container-lowest', 'text-primary', 'shadow-sm');
+        btn.classList.add('text-secondary');
+        content.classList.add('hidden');
+      }
+    });
+
+    // Activate selected
+    const activeBtn = document.getElementById(`tab-${tab}`);
+    const activeContent = document.getElementById(`content-${tab}`);
+    if (activeBtn && activeContent) {
+      activeBtn.classList.add('bg-surface-container-lowest', 'text-primary', 'shadow-sm');
+      activeBtn.classList.remove('text-secondary');
+      activeContent.classList.remove('hidden');
+    }
+  }
+
+  function toggleEmptyStateSim() {
+    isSimulatingEmpty = !isSimulatingEmpty;
+    const emptyView = document.getElementById('empty-state-view');
+    const tabs = ['upcoming', 'past', 'cancelled'];
+
+    if (isSimulatingEmpty) {
+      tabs.forEach(t => {
+        const c = document.getElementById(`content-${t}`);
+        if (c) c.classList.add('hidden');
+      });
+      emptyView.classList.remove('hidden');
+      showToast('Empty state active. Showing diner welcome prompt.');
+    } else {
+      emptyView.classList.add('hidden');
+      switchTab('upcoming');
+      showToast('Restored standard reservations view.');
+    }
+  }
+
+  function promptCancellation() {
+    const dialog = document.getElementById('cancel-dialog');
+    dialog.classList.remove('hidden');
+    dialog.classList.add('flex');
+  }
+
+  function closeCancelDialog() {
+    const dialog = document.getElementById('cancel-dialog');
+    dialog.classList.add('hidden');
+    dialog.classList.remove('flex');
+  }
+
+  function confirmCancelAction() {
+    closeCancelDialog();
+    // Simulate moving item to cancelled
+    document.getElementById('tab-upcoming').innerText = 'Upcoming (0)';
+    document.getElementById('tab-cancelled').innerText = 'Cancelled (2)';
+    toggleEmptyStateSim();
+    showToast('Reservation #TBL-90124 was cancelled. Refund processed.');
+  }
+
+  function openModifyDrawer() {
+    showToast('Party size or time editor opened for L’Aura Osteria.');
+  }
+
+  function triggerDirections() {
+    showToast('Opening navigation route to 442 Brannan St...');
+  }
+
+  function rebookRestaurant(name) {
+    showToast(`Checking live availability for ${name}...`);
+  }
+
+  function retrySync() {
+    const banner = document.getElementById('error-banner');
+    banner.classList.add('opacity-50');
+    setTimeout(() => {
+      banner.classList.add('hidden');
+      banner.classList.remove('opacity-50');
+      showToast('Refreshed. All tables are up-to-date.');
+    }, 600);
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('feedback-toast');
+    const toastText = document.getElementById('toast-text');
+    toastText.innerText = msg;
+    toast.classList.remove('hidden');
+    setTimeout(() => {
+      toast.classList.add('hidden');
+    }, 3500);
+  }
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(43,45,66,0.04)]" data-active-classes="text-primary font-semibold"><div class="flex justify-around items-center h-16 px-space-sm"><a class="flex flex-col items-center justify-center gap-1 min-w-[48px] h-12 text-secondary hover:text-on-surface transition-colors" data-path="explore-restaurants" href="#"><span class="material-symbols-outlined text-[22px]">explore</span><span class="font-label-sm text-label-sm">Explore</span></a><a class="flex flex-col items-center justify-center gap-1 min-w-[48px] h-12 text-secondary hover:text-on-surface transition-colors" data-path="saved-tables" href="#"><span class="material-symbols-outlined text-[22px]">bookmark_border</span><span class="font-label-sm text-label-sm">Saved</span></a><a aria-current="page" class="flex flex-col items-center justify-center gap-1 min-w-[48px] h-12 transition-colors text-primary font-semibold" data-path="my-reservations" href="#"><span class="material-symbols-outlined text-[22px]">calendar_today</span><span class="font-label-sm text-label-sm">Bookings</span></a><a class="flex flex-col items-center justify-center gap-1 min-w-[48px] h-12 text-secondary hover:text-on-surface transition-colors" data-path="profile-settings" href="#"><span class="material-symbols-outlined text-[22px]">account_circle</span><span class="font-label-sm text-label-sm">Profile</span></a></div></nav></body></html>

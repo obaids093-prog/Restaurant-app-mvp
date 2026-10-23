@@ -68,67 +68,66 @@ export default function DishGrid({
         ListEmptyComponent={ListEmptyComponent}
       />
 
-      {/* FLOATING GLASS ORDER CART PILL */}
+      {/* STICKY MINI CART BAR ABOVE TAB BAR */}
       {totalItemCount > 0 && (
         <View
-          style={[styles.floatingCartWrapper, { bottom: 20 + insets.bottom }]}
+          style={[styles.floatingCartWrapper, { bottom: 12 + insets.bottom }]}
           pointerEvents="box-none"
         >
           <TouchableOpacity
             style={[
               styles.floatingCartPill,
-              { backgroundColor: colors.card, borderColor: colors.subtleBorder },
-              shadows.cardLight,
+              {
+                backgroundColor: colors.primary,
+                borderColor: colors.primary,
+              },
+              shadows?.buttonPrimary,
             ]}
             onPress={() => navigation.navigate('Cart')}
-            activeOpacity={0.9}
-            accessibilityLabel={`View Tray with ${totalItemCount} items`}
+            activeOpacity={0.92}
+            accessibilityRole="button"
+            accessibilityLabel={`View Tray with ${totalItemCount} items, total Rs. ${cartTotal.toLocaleString()}`}
           >
-            <View style={[styles.cartPillBag, { backgroundColor: colors.primary }]}>
-              <Ionicons name="bag-handle" size={16} color={colors.onPrimary} />
-              <View
-                style={[
-                  styles.cartCountBadge,
-                  { backgroundColor: colors.secondary },
-                ]}
-              >
+            {/* Left: Items pill badge and Total */}
+            <View style={styles.cartPillLeftGroup}>
+              <View style={styles.cartWhiteBadge}>
                 <Text
                   style={[
-                    styles.cartCountBadgeText,
-                    { color: colors.onPrimary, fontFamily: fonts.bold },
+                    styles.cartWhiteBadgeText,
+                    { color: colors.primary, fontFamily: fonts.bold },
                   ]}
                 >
-                  {totalItemCount}
+                  {totalItemCount} {totalItemCount === 1 ? 'item' : 'items'}
                 </Text>
               </View>
-            </View>
 
-            <View style={styles.cartPillTextGroup}>
               <Text
                 style={[
-                  styles.cartPillItemsLabel,
-                  { color: colors.textPrimary, fontFamily: fonts.semiBold },
+                  styles.cartTotalAmountText,
+                  { color: '#FFFFFF', fontFamily: fonts.bold },
                 ]}
-              >
-                {totalItemCount} {totalItemCount === 1 ? 'item' : 'items'} in Tray
-              </Text>
-              <Text
-                style={[
-                  styles.cartPillTotalLabel,
-                  { color: colors.primary, fontFamily: fonts.bold },
-                ]}
+                numberOfLines={1}
               >
                 Rs. {cartTotal.toLocaleString()}
               </Text>
             </View>
 
-            <View
-              style={[
-                styles.cartPillActionCircle,
-                { backgroundColor: colors.surfaceSubtle },
-              ]}
-            >
-              <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+            {/* Right: View Tray action with arrow */}
+            <View style={styles.cartPillRightGroup}>
+              <Text
+                style={[
+                  styles.viewTrayLabel,
+                  { color: '#FFFFFF', fontFamily: fonts.bold },
+                ]}
+              >
+                View Tray
+              </Text>
+              <Ionicons
+                name="arrow-forward"
+                size={16}
+                color="#FFFFFF"
+                style={{ marginLeft: 4 }}
+              />
             </View>
           </TouchableOpacity>
         </View>

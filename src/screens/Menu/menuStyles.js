@@ -227,22 +227,29 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   greetingSubtitle: {
-    fontSize: 10,
-    letterSpacing: 1.2,
+    fontSize: 12,
+    letterSpacing: 0.2,
     marginBottom: 2,
   },
   greetingTitle: {
     fontSize: 22,
     letterSpacing: -0.4,
   },
-  profileAvatarBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  headerActionBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 12,
+  },
+  profileAvatarBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarCircle: {
     width: 36,
@@ -294,17 +301,17 @@ export const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Hero Carousel
+  // Hero Carousel / Banner Section
   heroCarouselSection: {
-    marginBottom: 4,
+    marginBottom: 16,
   },
   heroScrollContent: {
     paddingHorizontal: 16,
     gap: 12,
   },
   heroCardSlide: {
-    height: 200,
-    borderRadius: 20,
+    height: 140,
+    borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
     position: 'relative',
@@ -386,37 +393,35 @@ export const styles = StyleSheet.create({
     borderRadius: 3,
   },
 
-  // Overlapping Search Bar
+  // Search Bar
   searchBarWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 16,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     height: 48,
-    borderRadius: 14,
+    borderRadius: 24,
     borderWidth: 1,
     marginBottom: 16,
   },
   overlappingSearchBar: {
-    marginTop: -20,
     zIndex: 10,
   },
   searchLeadingIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
     height: '100%',
-    fontSize: 13,
+    fontSize: 14,
   },
   searchActionBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 6,
-    borderWidth: 1,
   },
   searchDividerBtn: {
     borderLeftWidth: 1,
@@ -611,50 +616,38 @@ export const styles = StyleSheet.create({
   floatingCartPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 24,
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 26,
     borderWidth: 1,
     width: '100%',
-    maxWidth: 380,
+    maxWidth: 420,
   },
-  cartPillBag: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  cartPillLeftGroup: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  cartCountBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartCountBadgeText: {
-    fontSize: 9,
-  },
-  cartPillTextGroup: {
+    gap: 10,
     flex: 1,
-    marginLeft: 12,
   },
-  cartPillItemsLabel: {
+  cartWhiteBadge: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+  },
+  cartWhiteBadgeText: {
     fontSize: 12,
   },
-  cartPillTotalLabel: {
-    fontSize: 14,
+  cartTotalAmountText: {
+    fontSize: 15,
   },
-  cartPillActionCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  cartPillRightGroup: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  viewTrayLabel: {
+    fontSize: 13,
   },
 
   // Filter Sheet Modal
