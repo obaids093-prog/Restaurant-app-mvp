@@ -1,5 +1,22 @@
 # Project Log
 
+## [2026-10-23] - Fix: Reservation Step 3 Contact Email Placeholder & Pre-Fill Standardization
+
+- **Date**: 2026-10-23
+- **Title**: Fix: Reservation Step 3 Contact Email Placeholder & Pre-Fill Standardization
+- **WHAT changed**:
+  - In `src/screens/Reservation/Step3YourDetails.js`: Added `isPlaceholderEmail` filter and `useAuth()` hook to pre-fill the customer's real email while filtering out internal phone OTP placeholder domains (`@customer.aura.pk`, `@aurabistro.pk`, `@aurakitchen.pk`).
+  - In `src/screens/Reservation/PrimaryContactCard.js`: Replaced hardcoded dummy email placeholder `guest@aurakitchen.pk` with industry-standard `yourname@gmail.com`, added a clear text button (`close-circle`) when typed, and added receipt helper microcopy.
+- **WHY (the problem or goal)**:
+  - Internal synthetic emails (e.g. `guest@aurakitchen.pk`) should never be displayed as suggestions or placeholders to customers in real-world apps. Matches the Gmail standardization established across the user profile.
+- **HOW TO TEST**:
+  - Open Reservation -> Step 3. If signed in with phone OTP, email field starts clean with `yourname@gmail.com` hint.
+  - If user enters email, clear button allows quick reset.
+- **Commit hashes**:
+  - `97bd4cc` (fix(reservation): replace dummy placeholder email with yourname@gmail.com and filter internal domain)
+
+---
+
 ## [2026-10-23] - Feat: Design Refresh V2 - Screen 4: Table Reservation Step 3 (Your Details & Review)
 
 - **Date**: 2026-10-23

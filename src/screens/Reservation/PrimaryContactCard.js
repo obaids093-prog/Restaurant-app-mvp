@@ -44,11 +44,7 @@ export default function PrimaryContactCard({
             styles.inputWrapper,
             {
               backgroundColor: isDark ? '#262626' : '#F4F2FD',
-              borderColor: validationErrors.name
-                ? '#EF4444'
-                : isDark
-                ? '#2E2E2E'
-                : '#EBEAE5',
+              borderColor: validationErrors.name ? '#EF4444' : isDark ? '#2E2E2E' : '#EBEAE5',
             },
           ]}
         >
@@ -71,11 +67,7 @@ export default function PrimaryContactCard({
               activeOpacity={0.7}
               style={styles.clearBtn}
             >
-              <Ionicons
-                name="close-circle"
-                size={16}
-                color={isDark ? '#777777' : '#999999'}
-              />
+              <Ionicons name="close-circle" size={16} color={isDark ? '#777777' : '#999999'} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -96,19 +88,15 @@ export default function PrimaryContactCard({
             styles.inputWrapper,
             {
               backgroundColor: isDark ? '#262626' : '#F4F2FD',
-              borderColor: validationErrors.phone
-                ? '#EF4444'
-                : isDark
-                ? '#2E2E2E'
-                : '#EBEAE5',
+              borderColor: validationErrors.phone ? '#EF4444' : isDark ? '#2E2E2E' : '#EBEAE5',
             },
           ]}
         >
-          <View style={[styles.flagPrefixBox, { borderRightColor: isDark ? '#2E2E2E' : '#EBEAE5' }]}>
+          <View
+            style={[styles.flagPrefixBox, { borderRightColor: isDark ? '#2E2E2E' : '#EBEAE5' }]}
+          >
             <Text style={styles.flagEmoji}>🇵🇰</Text>
-            <Text style={[styles.prefixText, { color: isDark ? '#F5F5F5' : '#1A1B22' }]}>
-              +92
-            </Text>
+            <Text style={[styles.prefixText, { color: isDark ? '#F5F5F5' : '#1A1B22' }]}>+92</Text>
           </View>
           <TextInput
             style={[styles.textInput, { color: isDark ? '#F5F5F5' : '#1A1B22' }]}
@@ -124,11 +112,7 @@ export default function PrimaryContactCard({
               activeOpacity={0.7}
               style={styles.clearBtn}
             >
-              <Ionicons
-                name="close-circle"
-                size={16}
-                color={isDark ? '#777777' : '#999999'}
-              />
+              <Ionicons name="close-circle" size={16} color={isDark ? '#777777' : '#999999'} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -164,14 +148,26 @@ export default function PrimaryContactCard({
           />
           <TextInput
             style={[styles.textInput, { color: isDark ? '#F5F5F5' : '#1A1B22' }]}
-            placeholder="guest@aurakitchen.pk"
+            placeholder="yourname@gmail.com"
             placeholderTextColor={isDark ? '#777777' : '#999999'}
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
             onChangeText={setEmail}
           />
+          {email ? (
+            <TouchableOpacity
+              onPress={() => setEmail('')}
+              activeOpacity={0.7}
+              style={styles.clearBtn}
+            >
+              <Ionicons name="close-circle" size={16} color={isDark ? '#777777' : '#999999'} />
+            </TouchableOpacity>
+          ) : null}
         </View>
+        <Text style={[styles.fieldHelperText, { color: isDark ? '#A8A8A8' : '#71717A' }]}>
+          For booking confirmation receipt
+        </Text>
       </View>
     </View>
   );

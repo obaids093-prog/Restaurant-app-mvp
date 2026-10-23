@@ -1,15 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Image,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 import { useBranch } from '../../context/BranchContext';
 import { BranchChip } from '../../components/ui';
 import { styles } from './step3Styles';
@@ -18,6 +12,20 @@ import SpecialRequestsCard from './SpecialRequestsCard';
 
 const ROOM_THUMBNAIL =
   'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&auto=format&fit=crop&q=80';
+
+/** Detect auto-generated placeholder emails from Phone OTP signup */
+const isPlaceholderEmail = (e) => {
+  if (!e || typeof e !== 'string') return true;
+  const lower = e.toLowerCase().trim();
+  return (
+    lower.includes('@customer.aura.pk') ||
+    lower.includes('@aurabistro.pk') ||
+    lower.includes('@aurakitchen.pk') ||
+    lower.includes('aurahospitality') ||
+    lower.includes('aura.internal') ||
+    /^\+?\d{9,15}@/.test(lower)
+  );
+};
 
 export default function Step3YourDetails({
   selectedDate,
@@ -39,7 +47,11 @@ export default function Step3YourDetails({
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const { activeBranch } = useBranch();
-  const [email, setEmail] = useState('');
+  const { user } = useAuth();
+
+  // Pre-fill email from user profile, but show empty if it's a placeholder
+  const userRealEmail = user?.email && !isPlaceholderEmail(user.email) ? user.email : '';
+  const [email, setEmail] = useState(userRealEmail);
 
   const primaryCoral = isDark ? '#FF6B4A' : '#FC5834';
 
@@ -53,7 +65,11 @@ export default function Step3YourDetails({
     try {
       const parts = selectedDate.split('-');
       if (parts.length === 3) {
-        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        const d = new Date(
+          parseInt(parts[0], 10),
+          parseInt(parts[1], 10) - 1,
+          parseInt(parts[2], 10)
+        );
         return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       }
     } catch {
@@ -98,16 +114,9 @@ export default function Step3YourDetails({
             <TouchableOpacity
               onPress={onBack}
               activeOpacity={0.8}
-              style={[
-                styles.backBtn,
-                { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF' },
-              ]}
+              style={[styles.backBtn, { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF' }]}
             >
-              <Ionicons
-                name="arrow-back"
-                size={20}
-                color={isDark ? '#F5F5F5' : '#1A1B22'}
-              />
+              <Ionicons name="arrow-back" size={20} color={isDark ? '#F5F5F5' : '#1A1B22'} />
             </TouchableOpacity>
             <Text style={[styles.topBarTitle, { color: isDark ? '#F5F5F5' : '#1A1B22' }]}>
               Guest Details & Review
@@ -136,9 +145,7 @@ export default function Step3YourDetails({
         {/* HERO TITLE & STEP 3 OF 3 BADGE */}
         <View style={styles.heroSection}>
           <View style={styles.stepTagRow}>
-            <Text style={[styles.stepTagText, { color: primaryCoral }]}>
-              Step 3 of 3
-            </Text>
+            <Text style={[styles.stepTagText, { color: primaryCoral }]}>Step 3 of 3</Text>
             <View style={[styles.stepTagDot, { backgroundColor: primaryCoral }]} />
             <Text style={[styles.stepTagSub, { color: isDark ? '#A8A8A8' : '#71717A' }]}>
               Final confirmation
@@ -192,20 +199,10 @@ export default function Step3YourDetails({
               <Ionicons name="calendar-outline" size={20} color={primaryCoral} />
             </View>
             <View style={styles.summaryMainInfo}>
-              <Text
-                style={[
-                  styles.summaryMainTime,
-                  { color: isDark ? '#F5F5F5' : '#1A1B22' },
-                ]}
-              >
+              <Text style={[styles.summaryMainTime, { color: isDark ? '#F5F5F5' : '#1A1B22' }]}>
                 {formattedDate} at {displayTime}
               </Text>
-              <Text
-                style={[
-                  styles.summaryMainParty,
-                  { color: isDark ? '#A8A8A8' : '#71717A' },
-                ]}
-              >
+              <Text style={[styles.summaryMainParty, { color: isDark ? '#A8A8A8' : '#71717A' }]}>
                 {partySize} Guests • {zoneDisplayName} Dining
               </Text>
             </View>
@@ -218,9 +215,7 @@ export default function Step3YourDetails({
                 },
               ]}
             >
-              <Text style={[styles.holdBadgeText, { color: primaryCoral }]}>
-                Hold
-              </Text>
+              <Text style={[styles.holdBadgeText, { color: primaryCoral }]}>Hold</Text>
             </View>
           </View>
 
@@ -231,28 +226,14 @@ export default function Step3YourDetails({
             ]}
           >
             <View style={styles.policyRow}>
-              <Ionicons
-                name="moon-outline"
-                size={14}
-                color={isDark ? '#A8A8A8' : '#71717A'}
-              />
-              <Text
-                style={[
-                  styles.policyText,
-                  { color: isDark ? '#A8A8A8' : '#71717A' },
-                ]}
-              >
+              <Ionicons name="moon-outline" size={14} color={isDark ? '#A8A8A8' : '#71717A'} />
+              <Text style={[styles.policyText, { color: isDark ? '#A8A8A8' : '#71717A' }]}>
                 Table reserved for 90 minutes
               </Text>
             </View>
             <View style={styles.policyRow}>
               <Ionicons name="shield-checkmark-outline" size={14} color="#10B981" />
-              <Text
-                style={[
-                  styles.policyText,
-                  { color: isDark ? '#A8A8A8' : '#71717A' },
-                ]}
-              >
+              <Text style={[styles.policyText, { color: isDark ? '#A8A8A8' : '#71717A' }]}>
                 Free cancellation up to 1 hour before
               </Text>
             </View>
@@ -293,9 +274,7 @@ export default function Step3YourDetails({
           styles.stickyBottomContainer,
           {
             paddingBottom: Math.max(insets.bottom, 12),
-            backgroundColor: isDark
-              ? 'rgba(18, 18, 18, 0.94)'
-              : 'rgba(251, 251, 249, 0.94)',
+            backgroundColor: isDark ? 'rgba(18, 18, 18, 0.94)' : 'rgba(251, 251, 249, 0.94)',
             borderTopColor: isDark ? '#2E2E2E' : '#EBEAE5',
           },
         ]}
