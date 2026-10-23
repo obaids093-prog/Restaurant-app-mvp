@@ -77,7 +77,7 @@ export default function ReviewsTab({ colors, fonts, radius, shadows, insets }) {
       <View style={styles.cardHeader}>
         <View style={styles.userCol}>
           <Text style={[styles.userName, { color: colors.textPrimary, fontFamily: fonts.bold }]}>
-            {rev.user?.name || 'Patron'}
+            {rev.user?.name || 'Customer'}
           </Text>
           <Text style={[styles.dishTag, { color: colors.primary, fontFamily: fonts.semiBold }]}>
             Dish: {rev.menuItem?.name || 'Artisan Dish'}
@@ -128,7 +128,7 @@ export default function ReviewsTab({ colors, fonts, radius, shadows, insets }) {
           <View style={styles.replyBadgeRow}>
             <Ionicons name="shield-checkmark" size={13} color={colors.primary} />
             <Text style={[styles.replyBadgeTitle, { color: colors.primary, fontFamily: fonts.semiBold }]}>
-              Your Executive Reply
+              Your Reply
             </Text>
           </View>
           <Text style={[styles.existingReplyText, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
@@ -157,7 +157,7 @@ export default function ReviewsTab({ colors, fonts, radius, shadows, insets }) {
             style={{ marginRight: 6 }}
           />
           <Text style={[styles.replyBtnText, { color: colors.primary, fontFamily: fonts.semiBold }]}>
-            {rev.managerReply ? 'Edit Reply' : 'Reply to Patron'}
+            {rev.managerReply ? 'Edit Reply' : 'Reply to Customer'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -170,7 +170,7 @@ export default function ReviewsTab({ colors, fonts, radius, shadows, insets }) {
       <View style={styles.tabHeadingRow}>
         <View>
           <Text style={[styles.tabHeadingTitle, { color: colors.textPrimary, fontFamily: fonts.bold }]}>
-            Patron Reviews & Feedback
+            Customer Reviews & Feedback
           </Text>
           <Text style={[styles.tabHeadingSub, { color: colors.mutedText, fontFamily: fonts.regular }]}>
             Verified guest reviews across Lahore & Islamabad menus
@@ -236,7 +236,7 @@ export default function ReviewsTab({ colors, fonts, radius, shadows, insets }) {
             No Reviews Yet
           </Text>
           <Text style={[styles.emptyText, { color: colors.mutedText, fontFamily: fonts.regular }]}>
-            When patrons complete and rate their dining orders, their feedback will appear here for management response.
+            When customers complete and rate their dining orders, their feedback will appear here for management response.
           </Text>
         </View>
       )}

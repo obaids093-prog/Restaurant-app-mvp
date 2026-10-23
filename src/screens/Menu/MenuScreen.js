@@ -442,7 +442,7 @@ export default function MenuScreen({ navigation }) {
   // User display name
   const customerFirstName = user?.name
     ? user.name.trim().split(' ')[0]
-    : 'Esteemed Patron';
+    : 'Valued Guest';
 
   // Memoised 2-column Grid Item
   const renderItem = useCallback(

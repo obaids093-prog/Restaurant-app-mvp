@@ -13,7 +13,7 @@ const normalizeOrder = (o) => ({
   _id: o._id || o.id,
   total: o.totalAmount !== undefined ? o.totalAmount : o.total,
   customerId: o.user?._id || o.user || o.customerId,
-  customerName: o.customerName || o.user?.name || 'Valued Patron',
+  customerName: o.customerName || o.user?.name || 'Valued Guest',
   type: o.orderType || 'Dine-in',
   branchId: o.branchId || 'lhr_gulberg',
   branchName: o.branchName || 'AURA • Gulberg III, Lahore',

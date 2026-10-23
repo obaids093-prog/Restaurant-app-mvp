@@ -64,7 +64,7 @@ function CustomerTabs() {
         name="Cart"
         component={CartScreen}
         options={{
-          title: 'Culinary Tray',
+          title: 'Cart',
         }}
       />
       <Tab.Screen

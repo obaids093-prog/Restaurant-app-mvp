@@ -43,10 +43,10 @@ export default function ReviewReplyModal({
           <View style={styles.modalHeaderRow}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: fonts.bold }]}>
-                Reply as Executive Chef
+                Reply as Manager
               </Text>
               <Text style={[styles.modalSubtitle, { color: colors.mutedText, fontFamily: fonts.regular }]}>
-                Responding to {review?.user?.name || 'Patron'}
+                Responding to {review?.user?.name || 'Customer'}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.modalCloseBtn}>
@@ -64,7 +64,7 @@ export default function ReviewReplyModal({
 
           <View style={styles.inputHeaderRow}>
             <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: fonts.medium }]}>
-              Executive Response (max 300 chars):
+              Manager Reply (max 300 chars):
             </Text>
             <Text style={[styles.charCounter, { color: colors.mutedText, fontFamily: fonts.regular }]}>
               {replyText.length}/300
@@ -81,7 +81,7 @@ export default function ReviewReplyModal({
                 fontFamily: fonts.regular,
               },
             ]}
-            placeholder="e.g. Thank you for your review. We are delighted you enjoyed our handmade agnolotti..."
+            placeholder="e.g. Thank you for your review. We are delighted you enjoyed our dishes..."
             placeholderTextColor={colors.mutedText}
             multiline
             numberOfLines={4}

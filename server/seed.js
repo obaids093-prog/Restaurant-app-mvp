@@ -150,8 +150,8 @@ const initialMenuItems = [
     tag: 'Prime Cut',
   },
   {
-    name: 'Wild Atlantic Halibut en Papillote',
-    description: 'Parchment-baked ocean halibut fillet with baby fennel bulbs, preserved Meyer lemon, caper berries, and extra virgin olive emulsion.',
+    name: 'Wild Atlantic Baked Halibut',
+    description: 'Oven-baked ocean halibut fillet with baby fennel, Meyer lemon, capers, and extra virgin olive oil.',
     price: 2950,
     category: 'Mains',
     image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=600&auto=format&fit=crop',
@@ -159,11 +159,11 @@ const initialMenuItems = [
     isAvailable: true,
     prepTime: '20 min',
     rating: 4.8,
-    tag: 'Sustainable Catch',
+    tag: 'Fresh Fish',
   },
   {
-    name: 'Handmade Morel & Truffle Agnolotti',
-    description: 'Piedmontese filled pasta pillows stuffed with braised leeks and ricotta, glazed in cultured brown butter, sage, and shaved summer truffles.',
+    name: 'Handmade Truffle Pasta',
+    description: 'Fresh handmade pasta filled with ricotta and wild mushrooms, glazed in rich butter, fresh sage, and shaved summer truffles.',
     price: 1850,
     category: 'Mains',
     image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&fm=jpg&q=80&fit=crop',
@@ -174,8 +174,8 @@ const initialMenuItems = [
     tag: 'Fresh Handmade',
   },
   {
-    name: 'Slow-Braised Lamb Shank Tagine',
-    description: '12-hour braised pasture-raised lamb shank in Moroccan spices, Medjool dates, toasted almonds, and fluffy saffron couscous.',
+    name: 'Slow-Braised Lamb Shank',
+    description: '12-hour braised tender lamb shank in aromatic spices, dates, toasted almonds, and fluffy saffron rice.',
     price: 3200,
     category: 'Mains',
     image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&auto=format&fit=crop',
@@ -186,8 +186,8 @@ const initialMenuItems = [
     tag: 'Slow Braised',
   },
   {
-    name: 'Woodfired Neapolitan Burrata Tart',
-    description: '24-hour fermented sourdough crust, San Marzano D.O.P. reduction, creamy pugliese burrata, and garden basil pesto.',
+    name: 'Woodfired Burrata Pizza',
+    description: 'Crispy woodfired pizza crust topped with rich tomato sauce, fresh creamy burrata cheese, and basil.',
     price: 1550,
     category: 'Mains',
     image: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=600&auto=format&fit=crop',
@@ -199,8 +199,8 @@ const initialMenuItems = [
   },
   // Desserts
   {
-    name: 'Valrhona Grand Cru Fondant',
-    description: 'Warm Guanaja 70% dark chocolate molten cake with smoked sea salt crystals, paired with house-churned Tahitian bean gelato.',
+    name: 'Molten Chocolate Lava Cake',
+    description: 'Warm rich dark chocolate lava cake with sea salt crystals, served with creamy vanilla bean gelato.',
     price: 1100,
     category: 'Desserts',
     image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=600&auto=format&fit=crop',
@@ -211,8 +211,8 @@ const initialMenuItems = [
     tag: 'Signature Dessert',
   },
   {
-    name: 'Caramelized Pear & Frangipane Tart',
-    description: 'Poached Bosc pears baked into rich almond cream frangipane pastry with spiced cider caramel and clotted Jersey cream.',
+    name: 'Caramelized Pear & Almond Tart',
+    description: 'Sweet poached pears baked in golden almond pastry crust with spiced caramel sauce and fresh cream.',
     price: 950,
     category: 'Desserts',
     image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop',
@@ -220,11 +220,11 @@ const initialMenuItems = [
     isAvailable: true,
     prepTime: '12 min',
     rating: 4.7,
-    tag: 'French Classic',
+    tag: 'Classic Tart',
   },
   {
-    name: 'Saffron & Pistachio Mille-Feuille',
-    description: 'Crisp caramelized puff pastry sheets layered with Kashmiri saffron diplomat cream and crushed candied emerald pistachios.',
+    name: 'Saffron & Pistachio Pastry',
+    description: 'Crispy golden puff pastry layered with rich saffron cream and crushed roasted pistachios.',
     price: 1200,
     category: 'Desserts',
     image: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?w=600&auto=format&fit=crop',
@@ -232,7 +232,7 @@ const initialMenuItems = [
     isAvailable: true,
     prepTime: '10 min',
     rating: 5.0,
-    tag: 'Artisan Pastry',
+    tag: 'Fresh Pastry',
   },
   // Drinks
   {

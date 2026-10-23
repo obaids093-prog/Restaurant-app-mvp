@@ -382,7 +382,7 @@ export default function ManagerDashboardScreen({ navigation }) {
               { color: colors.textPrimary, fontFamily: fonts?.bold || typography.headingSm?.fontFamily },
             ]}
           >
-            Loading Executive Console
+            Loading Manager Dashboard
           </Text>
           <Text
             style={[
@@ -455,7 +455,7 @@ export default function ManagerDashboardScreen({ navigation }) {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" />
 
-      {/* TOP HEADER BAR (Executive Dark Inset) */}
+      {/* TOP HEADER BAR (Dark Inset) */}
       <View
         style={[
           styles.executiveHeader,
@@ -479,7 +479,7 @@ export default function ManagerDashboardScreen({ navigation }) {
                 </View>
               </View>
               <Text style={styles.brandSubText} numberOfLines={1}>
-                {brand.city || 'Lahore & Islamabad'} • Executive Console
+                {brand.city || 'Lahore & Islamabad'} • Manager Dashboard
               </Text>
             </View>
           </View>

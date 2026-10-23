@@ -152,7 +152,7 @@ export default function OrderPlacedScreen({ route, navigation }) {
               { color: colors.textSecondary },
             ]}
           >
-            Your culinary request has been transmitted directly to Chef Farhan Siddiqui's kitchen brigade.
+            Your order has been sent directly to the kitchen and is being prepared with care.
           </Text>
         </Animated.View>
 

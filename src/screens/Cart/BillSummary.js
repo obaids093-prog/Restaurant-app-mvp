@@ -31,7 +31,7 @@ export default function BillSummary({
       {calculations.discountAmount > 0 && (
         <View style={styles.billRow}>
           <Text style={[styles.billLabel, { color: colors.ready }]}>
-            Privilege Savings{discountPercent > 0 ? ` (${discountPercent}%)` : ''}
+            Voucher Discount{discountPercent > 0 ? ` (${discountPercent}%)` : ''}
           </Text>
           <Text style={[styles.billValue, { color: colors.ready, fontWeight: '700' }]}>
             - {brand.formatPrice(calculations.discountAmount)}

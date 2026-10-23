@@ -333,7 +333,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Patron Contact & Profile Shortcut */}
+        {/* Customer Contact & Profile Shortcut */}
         <View
           style={[
             styles.summaryCard,
@@ -343,7 +343,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
         >
           <View style={styles.cardHeaderWithAction}>
             <Text style={[styles.cardHeading, { color: colors.mutedText }]}>
-              PATRON CONTACT INFO
+              CONTACT INFORMATION
             </Text>
             <TouchableOpacity onPress={() => navigation.navigate('CustomerApp', { screen: 'Profile' })}>
               <Text style={[typography.caption, { color: colors.primary, fontWeight: '600' }]}>

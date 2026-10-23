@@ -108,7 +108,7 @@ export default function FilterSheet({
                 { color: colors.mutedText, fontFamily: fonts.semiBold },
               ]}
             >
-              CULINARY CATEGORY
+              MENU CATEGORIES
             </Text>
             <View style={styles.filterOptionsGrid}>
               {categories.map((cat) => {

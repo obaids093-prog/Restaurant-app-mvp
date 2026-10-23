@@ -46,7 +46,7 @@ beforeAll(async () => {
   await MenuItem.deleteMany({ name: 'Notification Tasting Ribeye' });
 
   patronUser = await User.create({
-    name: 'Notification Patron',
+    name: 'Notification Customer',
     email: 'notif.patron@gmail.com',
     password: 'password123',
     role: 'customer',
@@ -54,7 +54,7 @@ beforeAll(async () => {
   patronToken = jwt.sign({ id: patronUser._id, role: 'customer' }, process.env.JWT_SECRET);
 
   otherPatron = await User.create({
-    name: 'Other Patron',
+    name: 'Other Customer',
     email: 'notif.other@gmail.com',
     password: 'password123',
     role: 'customer',
@@ -282,7 +282,7 @@ describe('Feature 4: In-App Notification System', () => {
     const replyRes = await request(app)
       .patch(`/api/reviews/${reviewId}/reply`)
       .set('Authorization', `Bearer ${managerToken}`)
-      .send({ reply: 'Thank you for dining with us! We appreciate your patronage.' });
+      .send({ reply: 'Thank you for dining with us! We appreciate your visit.' });
 
     expect(replyRes.status).toBe(200);
 

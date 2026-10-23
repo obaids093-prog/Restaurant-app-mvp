@@ -1,5 +1,35 @@
 # Project Log
 
+## [2026-10-24] - Refactor: Replace Obscure Jargon with Plain English Across Entire App
+
+- **Date**: 2026-10-24
+- **Title**: Refactor: Replace Obscure Jargon with Plain English Across Entire App
+- **WHAT changed**:
+  - Replaced obscure patron/culinary jargon across all client screens, navigation, and components:
+    - "Patron" / "Valued Patron" -> "Customer" / "Valued Guest"
+    - "Culinary Tray" -> "Cart"
+    - "Handmade Morel & Truffle Agnolotti" -> "Handmade Truffle Pasta"
+    - "Wild Atlantic Halibut en Papillote" -> "Wild Atlantic Baked Halibut"
+    - "Executive Chef / Manager" / "Executive Response" -> "Manager" / "Manager Reply"
+    - "Privilege Vouchers" / "Privilege Savings" -> "Discount Vouchers" / "Voucher Discount" / "Coupons & Deals"
+    - "Patron points" -> "Loyalty points"
+  - Updated seed data in `server/seed.js` and live MongoDB items.
+  - Updated test data strings in `server/tests/reviews.test.js`, `vouchers.test.js`, and `notifications.test.js`.
+  - Untracked `designs/` folder from Git and added to `.gitignore`.
+  - All 67/67 server tests passing across all 6 test suites.
+- **WHY (the problem or goal)**:
+  - User requested that all obscure, hard-to-understand culinary and patron jargon ("patron", "handmade agnolotti", "culinary tray", "executive console") be replaced with simple, clear, standard English across the entire app so any customer or manager can easily understand everything.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Swept through frontend components, navigation labels, modals, cart views, manager screens, and backend seeders to replace all confusing terminology with clear, friendly words while maintaining design consistency.
+- **HOW TO TEST**:
+  - Open customer app: Tab displays "Cart" instead of "Culinary Tray", dish names show clear English descriptions, cart shows "Voucher Discount" and "Coupons & Vouchers", loyalty shows "loyalty points".
+  - Open manager app: Review reply shows "Reply as Manager" and "Responding to Customer".
+  - Run server test suite: 67/67 tests passing.
+- **Commit hashes**:
+  - `aff8d04` (refactor: replace obscure jargon with plain English across app)
+
+---
+
 ## [2026-10-23] - Fix: Deals Row - Real Server-Driven Vouchers Only
 
 - **Date**: 2026-10-23

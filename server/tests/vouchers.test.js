@@ -35,7 +35,7 @@ beforeAll(async () => {
   await MenuItem.deleteMany({ name: 'Test Voucher Dish' });
 
   customerUser = await User.create({
-    name: 'Voucher Patron',
+    name: 'Voucher Customer',
     email: 'voucher.customer@gmail.com',
     password: 'password123',
     role: 'customer',
@@ -340,14 +340,14 @@ describe('Feature 2: Promotional Coupon & Voucher Engine', () => {
         .put(`/api/vouchers/${createdVoucherId}`)
         .set('Authorization', `Bearer ${managerToken}`)
         .send({
-          description: 'Updated VIP patron voucher description',
+          description: 'Updated VIP customer voucher description',
           discountValue: 25,
         });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.discountValue).toBe(25);
-      expect(res.body.data.description).toBe('Updated VIP patron voucher description');
+      expect(res.body.data.description).toBe('Updated VIP customer voucher description');
     });
 
     it('allows manager to toggle active status of a voucher', async () => {

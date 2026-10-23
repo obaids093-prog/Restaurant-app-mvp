@@ -10,7 +10,7 @@ const TIER_CONFIG = {
     bonusPercent: 0,
     nextTier: 'Silver',
     threshold: 500,
-    perks: 'Standard patron privileges • 1 point per Rs. 100 spent',
+    perks: 'Standard customer rewards • 1 point per Rs. 100 spent',
   },
   Silver: {
     minLifetime: 500,
@@ -61,7 +61,7 @@ async function getLoyaltySummary(userId) {
 
   const user = await User.findById(userId);
   if (!user) {
-    const error = new Error('Patron not found');
+    const error = new Error('Customer not found');
     error.status = 404;
     throw error;
   }
@@ -123,7 +123,7 @@ async function quoteRedemption(userId, pointsToRedeem, orderSubtotal = 0) {
 
   const user = await User.findById(userId);
   if (!user) {
-    const error = new Error('Patron not found');
+    const error = new Error('Customer not found');
     error.status = 404;
     throw error;
   }

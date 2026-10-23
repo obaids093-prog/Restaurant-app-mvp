@@ -41,7 +41,7 @@ export function useManagerReviews() {
       setTotalPages(data.totalPages || 1);
     } catch (err) {
       if (!isMountedRef.current) return;
-      setError(err.message || 'Unable to load patron reviews');
+      setError(err.message || 'Unable to load customer reviews');
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);

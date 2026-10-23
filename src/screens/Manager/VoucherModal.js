@@ -138,7 +138,7 @@ export default function VoucherModal({
           <View style={modalStyles.headerRow}>
             <View style={{ flex: 1 }}>
               <Text style={[modalStyles.title, { color: colors.textPrimary }]}>
-                {isEditing ? 'Edit Voucher' : 'Create Privilege Voucher'}
+                {isEditing ? 'Edit Voucher' : 'Create New Voucher'}
               </Text>
               <Text style={[modalStyles.subtitle, { color: colors.mutedText }]}>
                 Configure discount rules and usage conditions
@@ -224,7 +224,7 @@ export default function VoucherModal({
                   color: colors.textPrimary,
                 },
               ]}
-              placeholder="e.g. 25% off patron tasting menu"
+              placeholder="e.g. 25% off all menu items"
               placeholderTextColor={colors.mutedText}
               value={description}
               onChangeText={setDescription}

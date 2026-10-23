@@ -126,7 +126,7 @@ export default function CartScreen({ navigation }) {
           : `Rs. ${data?.discountAmount || data?.discountValue || ''}`;
       Alert.alert(
         'Voucher Applied',
-        `Privilege voucher ${code.toUpperCase()} activated (${discText} savings).`
+        `Voucher ${code.toUpperCase()} applied successfully (${discText} off).`
       );
     } catch (err) {
       setPromoError(err.message);
@@ -138,7 +138,7 @@ export default function CartScreen({ navigation }) {
   const handleConfirmDelete = (itemId, itemName) => {
     Alert.alert(
       'Remove Dish',
-      `Remove "${itemName}" from your culinary tray?`,
+      `Remove "${itemName}" from your cart?`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Remove', style: 'destructive', onPress: () => removeItem(itemId) },

@@ -255,7 +255,7 @@ export default function RateOrderModal({ visible, order, onClose, onReviewSubmit
                 <View style={styles.commentSection}>
                   <View style={styles.commentHeaderRow}>
                     <Text style={[styles.commentLabel, { color: colors.textPrimary, fontFamily: fonts.medium }]}>
-                      Patron Note (Optional)
+                      Your Review (Optional)
                     </Text>
                     <Text style={[styles.charCount, { color: colors.mutedText, fontFamily: fonts.regular }]}>
                       {comment.length}/300

@@ -100,7 +100,7 @@ export default function TabBar({ state, descriptors, navigation }) {
                 activeOpacity={0.88}
                 style={styles.centerButtonTouchArea}
                 accessibilityRole="button"
-                accessibilityLabel="Culinary Tray, raised center action"
+                accessibilityLabel="Cart, raised center action"
                 accessibilityState={{ selected: isFocused }}
               >
                 <Animated.View

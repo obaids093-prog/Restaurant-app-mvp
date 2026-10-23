@@ -32,7 +32,7 @@ export default function TrackingEmptyState({
         No Active Orders in Kitchen
       </Text>
       <Text style={[typography.body, styles.emptyHeroSub, { color: colors.textSecondary }]}>
-        You don't have any culinary orders currently firing in Chef Farhan's kitchen. Place a dine-in or takeaway order to track station progress live.
+        You don't have any active orders right now. Place an order from the menu to track kitchen progress live.
       </Text>
 
       <TouchableOpacity

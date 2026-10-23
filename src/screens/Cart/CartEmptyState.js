@@ -67,10 +67,10 @@ export default function CartEmptyState({
         <EmptyClocheIllustration colors={colors} isDark={isDark} />
 
         <Text style={[typography.headingLg, styles.emptyTitle, { color: colors.textPrimary }]}>
-          Your Tray is Empty
+          Your Cart is Empty
         </Text>
         <Text style={[typography.body, styles.emptySubtitle, { color: colors.textSecondary }]}>
-          You haven't added any culinary creations yet. Explore Chef Farhan's handcrafted repertoire and reserve your courses.
+          You haven't added any dishes yet. Explore our delicious menu and add your favorite items.
         </Text>
 
         <TouchableOpacity

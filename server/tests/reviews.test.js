@@ -36,7 +36,7 @@ beforeAll(async () => {
   // Clean any existing test items
   await Review.deleteMany({ comment: { $regex: /test/i } });
   await User.deleteMany({ email: { $in: ['hamza.test@gmail.com', 'sara.test@gmail.com', 'tariq.test@gmail.com'] } });
-  await MenuItem.deleteMany({ name: 'Test Handmade Agnolotti' });
+  await MenuItem.deleteMany({ name: 'Test Handmade Truffle Pasta' });
 
   // Seed test users
   customerUser = await User.create({
@@ -68,8 +68,8 @@ beforeAll(async () => {
 
   // Seed test dish
   testDish = await MenuItem.create({
-    name: 'Handmade Agnolotti',
-    description: 'Piedmontese pasta pockets with summer truffle',
+    name: 'Handmade Truffle Pasta',
+    description: 'Homemade pasta pockets with summer truffle',
     price: 1850,
     category: 'Mains',
     image: 'https://images.unsplash.com/photo-agnolotti',
@@ -250,7 +250,7 @@ describe('Feature 1: Ratings and Reviews Endpoints', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.length).toBe(1);
-      expect(res.body.data[0].menuItem.name).toBe('Handmade Agnolotti');
+      expect(res.body.data[0].menuItem.name).toBe('Handmade Truffle Pasta');
     });
 
     it('rejects request without token', async () => {

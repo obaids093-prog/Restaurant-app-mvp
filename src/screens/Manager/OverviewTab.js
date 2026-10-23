@@ -37,7 +37,7 @@ export default function OverviewTab({
 
   return (
     <View style={styles.tabContentBlock}>
-      {/* Executive Greeting */}
+      {/* Manager Greeting */}
       <View style={styles.greetingHeader}>
         <View style={styles.pulseLivePill}>
           <View style={styles.greenPulseDot} />
@@ -49,10 +49,10 @@ export default function OverviewTab({
             { color: colors.textPrimary, fontWeight: '800', marginTop: 6 },
           ]}
         >
-          Welcome, {user?.name || 'Chef General Manager'}
+          Welcome, {user?.name || 'Manager'}
         </Text>
         <Text style={[typography.caption, { color: colors.mutedText, marginTop: 2 }]}>
-          Executive Dashboard • Real-time Business Intelligence
+          Manager Dashboard • Real-time Business Overview
         </Text>
       </View>
 
@@ -100,7 +100,7 @@ export default function OverviewTab({
         >
           <ActivityIndicator size="small" color={colors.primary} />
           <Text style={[typography.caption, { color: colors.mutedText, marginTop: 8 }]}>
-            Aggregating executive metrics...
+            Loading dashboard...
           </Text>
         </View>
       ) : error ? (
@@ -154,12 +154,12 @@ export default function OverviewTab({
               { color: colors.mutedText, marginTop: 2, textAlign: 'center' },
             ]}
           >
-            Live order metrics and hourly rush graphs will appear as patrons place orders.
+            Live order metrics and hourly rush graphs will appear as customers place orders.
           </Text>
         </View>
       ) : (
         <>
-          {/* Executive KPI Cards Grid */}
+          {/* KPI Cards Grid */}
           <View style={styles.kpiGrid}>
             {/* Card 1: Revenue (Full Width) */}
             <View
@@ -231,7 +231,7 @@ export default function OverviewTab({
               </Text>
             </View>
 
-            {/* Card 3: Repeat Patrons */}
+            {/* Card 3: Repeat Customers */}
             <View
               style={[
                 styles.kpiCardHalf,
@@ -245,7 +245,7 @@ export default function OverviewTab({
             >
               <View style={styles.kpiCardTopRow}>
                 <Text style={[typography.caption, { color: colors.mutedText, fontWeight: '600' }]}>
-                  Repeat Patrons
+                  Repeat Customers
                 </Text>
                 <View
                   style={[
@@ -265,7 +265,7 @@ export default function OverviewTab({
                 {analytics?.repeatCustomers || 0}
               </Text>
               <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
-                Multi-order diner loyalty
+                Customers with 2+ orders
               </Text>
             </View>
           </View>

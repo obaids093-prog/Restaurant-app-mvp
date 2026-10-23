@@ -62,7 +62,7 @@ export default function LoyaltySection({
       ) : (
         <View style={styles.optionsContainer}>
           <Text style={[styles.hintLabel, { color: colors.textSecondary }]}>
-            Redeem your patron points for instant savings (1 pt = Rs. 1):
+            Redeem your loyalty points for instant savings (1 pt = Rs. 1):
           </Text>
 
           <View style={styles.chipsRow}>

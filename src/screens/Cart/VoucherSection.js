@@ -25,7 +25,7 @@ export default function VoucherSection({
       ]}
     >
       <Text style={[styles.sectionHeading, { color: colors.mutedText }]}>
-        PATRON PRIVILEGE & VOUCHERS
+        COUPONS & VOUCHERS
       </Text>
 
       {promoCode ? (
@@ -40,8 +40,8 @@ export default function VoucherSection({
               </Text>
               <Text style={[styles.activePromoSub, { color: colors.textSecondary }]}>
                 {discountType === 'fixed' || (discountAmount > 0 && !discountPercent)
-                  ? `Rs. ${Number(discountAmount || 0).toLocaleString()} Patron Privilege Active`
-                  : `${discountPercent}% Patron Privilege Active`}
+                  ? `Rs. ${Number(discountAmount || 0).toLocaleString()} Discount Applied`
+                  : `${discountPercent}% Discount Applied`}
               </Text>
             </View>
           </View>

@@ -164,7 +164,7 @@ export default function VouchersTab({ colors, fonts, radius, shadows, insets }) 
           </Text>
         ) : null}
 
-        {/* Privilege Value Line */}
+        {/* Discount Value Line */}
         <View style={styles.benefitRow}>
           <Text style={[styles.benefitText, { color: colors.primary }]}>
             {v.discountType === 'percentage'
@@ -254,7 +254,7 @@ export default function VouchersTab({ colors, fonts, radius, shadows, insets }) 
       <View style={styles.headerBar}>
         <View style={{ flex: 1, marginRight: 8 }}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-            Privilege Vouchers
+            Discount Vouchers
           </Text>
           <Text style={[styles.sectionSubtitle, { color: colors.mutedText }]}>
             Dynamic promotional discounts & codes

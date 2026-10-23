@@ -313,7 +313,7 @@ export default function DishGrid({
                 )}
               </View>
 
-              {/* Verified Patron Reviews & Star Breakdown */}
+              {/* Verified Customer Reviews & Star Breakdown */}
               {exploredItem && (
                 <DishReviewsSection menuItemId={exploredItem._id || exploredItem.id} />
               )}

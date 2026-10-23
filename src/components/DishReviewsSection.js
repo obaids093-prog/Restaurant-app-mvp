@@ -47,7 +47,7 @@ export default function DishReviewsSection({ menuItemId }) {
       <View style={styles.headerRow}>
         <View style={styles.titleGroup}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: fonts.bold }]}>
-            Patron Reviews
+            Customer Reviews
           </Text>
           <Text style={[styles.reviewCountText, { color: colors.mutedText, fontFamily: fonts.regular }]}>
             {ratingCount > 0
@@ -91,7 +91,7 @@ export default function DishReviewsSection({ menuItemId }) {
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.mutedText, fontFamily: fonts.regular }]}>
-            Loading patron feedback...
+            Loading customer reviews...
           </Text>
         </View>
       )}
@@ -164,7 +164,7 @@ export default function DishReviewsSection({ menuItemId }) {
               )}
               <View style={styles.userNameBlock}>
                 <Text style={[styles.reviewerName, { color: colors.textPrimary, fontFamily: fonts.semiBold }]}>
-                  {rev.user?.name || 'AURA Patron'}
+                  {rev.user?.name || 'Verified Customer'}
                 </Text>
                 <Text style={[styles.reviewDate, { color: colors.mutedText, fontFamily: fonts.regular }]}>
                   {formatDate(rev.createdAt)}
@@ -204,7 +204,7 @@ export default function DishReviewsSection({ menuItemId }) {
               <View style={styles.replyHeaderRow}>
                 <Ionicons name="shield-checkmark" size={13} color={colors.primary} />
                 <Text style={[styles.replyAuthor, { color: colors.primary, fontFamily: fonts.semiBold }]}>
-                  Executive Chef / Manager
+                  Manager
                 </Text>
               </View>
               <Text style={[styles.replyText, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
