@@ -1,11 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StatusBar,
-  Platform,
-  Alert,
-} from 'react-native';
+import { View, Text, StatusBar, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -16,7 +10,7 @@ import { SegmentedControl, BranchChip } from '../../components/ui';
 import { styles, showModalAlert } from './reservationStyles';
 import MyBookingsList from './MyBookingsList';
 import ConfirmBookingModal from './ConfirmSheet';
-import ReservationConfirmedModal from './SuccessSheet';
+import BookingConfirmedSuccess from './BookingConfirmedSuccess';
 import Step1WhenGuests from './Step1WhenGuests';
 import Step2PickTime from './Step2PickTime';
 import Step3YourDetails from './Step3YourDetails';
@@ -55,10 +49,7 @@ export default function ReservationScreen() {
 
   // Dynamic bottom padding for safe area & TabBar
   const scrollContentStyle = useMemo(
-    () => [
-      styles.scrollContent,
-      { paddingBottom: Math.max(insets.bottom, 16) + 90 },
-    ],
+    () => [styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 16) + 90 }],
     [insets.bottom]
   );
 
@@ -90,7 +81,15 @@ export default function ReservationScreen() {
     const dates = [];
     const baseDate = new Date();
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const statuses = ['Available', 'Filling Fast', 'Available', 'Filling Fast', 'Available', 'Available', 'Available'];
+    const statuses = [
+      'Available',
+      'Filling Fast',
+      'Available',
+      'Filling Fast',
+      'Available',
+      'Available',
+      'Available',
+    ];
 
     for (let i = 0; i < 7; i++) {
       const d = new Date(baseDate);
@@ -110,7 +109,10 @@ export default function ReservationScreen() {
   const handleConfirmBooking = useCallback(async () => {
     if (isSubmitting) return;
     if (!validateReservation()) {
-      showModalAlert('Please Check Required Fields', 'Review the highlighted contact details to complete your table reservation.');
+      showModalAlert(
+        'Please Check Required Fields',
+        'Review the highlighted contact details to complete your table reservation.'
+      );
       return;
     }
     setIsSubmitting(true);
@@ -150,7 +152,10 @@ export default function ReservationScreen() {
       setCancellingBookingId(bookingId);
       try {
         await cancelReservation(bookingId);
-        showModalAlert('Reservation Cancelled', 'Your dining table reservation has been cancelled.');
+        showModalAlert(
+          'Reservation Cancelled',
+          'Your dining table reservation has been cancelled.'
+        );
       } catch (err) {
         showModalAlert('Cancellation Error', err.message || 'Could not cancel reservation.');
       } finally {
@@ -237,7 +242,9 @@ export default function ReservationScreen() {
           >
             <View style={styles.headerTopRow}>
               <View style={{ flex: 1, paddingRight: 8 }}>
-                <Text style={[typography.headingLg, { color: colors.textPrimary, fontWeight: '800' }]}>
+                <Text
+                  style={[typography.headingLg, { color: colors.textPrimary, fontWeight: '800' }]}
+                >
                   Your Table Reservations
                 </Text>
                 <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
@@ -249,10 +256,7 @@ export default function ReservationScreen() {
 
             <View style={styles.segmentWrapper}>
               <SegmentedControl
-                segments={[
-                  'New Reservation',
-                  `My Bookings (${displayedBookings.length})`,
-                ]}
+                segments={['New Reservation', `My Bookings (${displayedBookings.length})`]}
                 selectedIndex={activeTab}
                 onChange={(idx) => {
                   setActiveTab(idx);
@@ -293,7 +297,7 @@ export default function ReservationScreen() {
       />
 
       {/* RESERVATION CONFIRMED SUCCESS SHEET */}
-      <ReservationConfirmedModal
+      <BookingConfirmedSuccess
         visible={!!confirmedReservation}
         reservationData={confirmedReservation}
         onViewBookings={() => {

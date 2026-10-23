@@ -1,5 +1,41 @@
 # Project Log
 
+## [2026-10-23] - Feat: Design Refresh V2 - Screen 5: Table Reservation (Booking Confirmed Success)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Design Refresh V2 - Screen 5: Table Reservation (Booking Confirmed Success)
+- **WHAT changed**:
+  - In `src/screens/Reservation/bookingSuccessStyles.js`: Created dedicated stylesheet implementing Screen 5 design tokens (celebratory particle container, ambient coral glow `#FC5834`/`#FF6B4A`, 72px check badge with elevation, interactive `#TBL-XXXXX` copy chip, rounded 20px card, bento specs grid, micro-action pill buttons, and stacked primary/secondary CTAs).
+  - In `src/screens/Reservation/BookingConfirmedSuccess.js`: Built complete celebratory confirmation screen featuring:
+    - Top bar with restaurant icon pill and dismiss 'close' button.
+    - Festive hero area with ambient glow, sparkle icons (`✦`, `✨`), and vibrant checkmark badge.
+    - Confirmation headline ("You are booked!") and delivery notification microcopy.
+    - Interactive Booking ID chip (`#TBL-XXXXX`) with one-tap copy and visual checkmark feedback.
+    - Detailed Table Confirmed Card with branch ambience photo, green `TABLE CONFIRMED` tag, branch name & category.
+    - 2-column + 1-row bento specs grid for Date, Time, and Party Size / Seating area.
+    - Special requests highlight pill with magic sparkles indicator.
+    - Venue location block with live branch address, valet/parking note, and one-tap `Directions` (Maps URL) and `Call Host` (`tel:`) buttons.
+    - Stacked action buttons: "Add to Calendar" (schedule alert), "View My Bookings" (switches to active bookings tab), and "Back to Home".
+  - In `src/screens/Reservation/SuccessSheet.js`: Delegated `ReservationConfirmedModal` bridge export to `BookingConfirmedSuccess` preserving backward compatibility.
+  - In `src/screens/Reservation/ReservationScreen.js`: Wired `BookingConfirmedSuccess` directly for confirmed reservation state.
+- **WHY (the problem or goal)**:
+  - Deliver Screen 5 of Design Refresh V2 based strictly on Stitch HTML/screenshot sources of truth for both light and dark modes, providing a premium, rewarding booking completion experience with actionable next steps.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Extracted dedicated styles and component keeping file sizes strictly <400 lines (`bookingSuccessStyles.js` ~240 lines, `BookingConfirmedSuccess.js` ~320 lines).
+  - Used native `Linking` for directions and dialer without adding external libraries.
+- **HOW TO TEST**:
+  - Complete a table reservation (or trigger `confirmedReservation`).
+  - Verify celebratory hero displays check badge, glow, and booking ID chip.
+  - Tap copy button next to Booking ID -> shows checkmark icon feedback.
+  - Verify reservation specs: Date, Time, Guests & seating area match user selection.
+  - Test Directions and Call Host buttons -> properly trigger map and telephone schemes.
+  - Tap "View My Bookings" -> closes modal and switches directly to "My Bookings" tab.
+  - Tap "Back to Home" or Top close button -> closes modal.
+- **Commit hashes**:
+  - `00bb04c` (feat(reservation): refresh Screen 5 Booking Confirmed Success to design-refresh-v2 specs)
+
+---
+
 ## [2026-10-23] - Fix: Reservation Step 3 Contact Email Placeholder & Pre-Fill Standardization
 
 - **Date**: 2026-10-23
