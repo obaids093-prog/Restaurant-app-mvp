@@ -19,6 +19,7 @@ import MyBookingsList from './MyBookingsList';
 import ConfirmBookingModal from './ConfirmSheet';
 import ReservationConfirmedModal from './SuccessSheet';
 import Step1WhenGuests from './Step1WhenGuests';
+import Step2PickTime from './Step2PickTime';
 
 export default function ReservationScreen() {
   const { user } = useAuth();
@@ -185,6 +186,20 @@ export default function ReservationScreen() {
             onViewBookings={() => setActiveTab(1)}
             bookingsCount={displayedBookings.length}
           />
+        ) : bookingStep === 2 ? (
+          <Step2PickTime
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            upcomingDates={upcomingDates}
+            partySize={partySize}
+            selectedZone={selectedZone}
+            setSelectedZone={setSelectedZone}
+            selectedTimeSlot={selectedTimeSlot}
+            setSelectedTimeSlot={setSelectedTimeSlot}
+            isSlotAvailable={isSlotAvailable}
+            onBack={() => setBookingStep(1)}
+            onNext={() => setBookingStep(3)}
+          />
         ) : (
           <>
             <View
@@ -202,7 +217,7 @@ export default function ReservationScreen() {
                     Reserve an Artisan Table
                   </Text>
                   <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                    Step 2: Select Dining Time Slot & Table
+                    Step 3: Confirm Details & Special Requests
                   </Text>
                 </View>
                 <BranchChip />
@@ -233,7 +248,7 @@ export default function ReservationScreen() {
               setContactPhone={setContactPhone}
               handleOpenReview={handleOpenReview}
               scrollContentStyle={scrollContentStyle}
-              onBack={() => setBookingStep(1)}
+              onBack={() => setBookingStep(2)}
             />
           </>
         )

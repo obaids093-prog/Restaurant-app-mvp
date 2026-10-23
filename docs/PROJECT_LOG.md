@@ -1,5 +1,39 @@
 # Project Log
 
+## [2026-10-23] - Feat: Design Refresh V2 - Screen 3: Table Reservation Step 2 (Pick Time)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Design Refresh V2 - Screen 3: Table Reservation Step 2 (Pick Time)
+- **WHAT changed**:
+  - In `src/screens/Reservation/step2Styles.js`: Created dedicated stylesheet implementing Step 2 design tokens (coral `#FC5834` light, `#FF6B4A` dark, 3-column slots, ambient hero banner, rush alert card, and sticky CTA dock).
+  - In `src/screens/Reservation/TimeSlotGrid.js`: Built modular 3-column dining slot grid separated by service period (☀️ Lunch 12:00 PM – 3:30 PM & 🌙 Dinner 6:00 PM – 10:30 PM), integrating backend collision checking (`isSlotAvailable`), "FULL" strikethrough states, and contextual subtitles ("Table free", "Popular 🔥", "Chef special", "Bar & Table").
+  - In `src/screens/Reservation/Step2PickTime.js`: Assembled Step 2 screen featuring:
+    - Top navigation with back action and 3-segment progress indicator (Step 1 complete, Step 2 active).
+    - Active criteria summary card (`Today, Oct 24 • 2 Guests • Indoor`) with direct "Edit" touchable.
+    - Page title with `2/3` step counter badge and dining duration helper ("1h 30m").
+    - Ambient hero interior photo with live prime table status overlay pill.
+    - Evening rush alert card with shortcut link to try tomorrow's date.
+    - Seating area micro-pills (`Main Dining`, `Outdoor Terrace`, `Quiet Corner`).
+    - Sticky bottom primary CTA ("Next: Your details (${time})") with instant confirmation microcopy.
+  - In `src/screens/Reservation/ReservationScreen.js`: Wired `Step2PickTime` into `bookingStep === 2` with bidirectional navigation to Step 1 and Step 3.
+- **WHY (the problem or goal)**:
+  - Upgrade Table Reservation Step 2 to design-refresh-v2 specifications based on Stitch HTML/screenshot sources of truth, providing clear service periods, live collision indicators, and intuitive flow progression.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Extracted modular components (`TimeSlotGrid`, `step2Styles`, `Step2PickTime`) keeping each file strictly <400 lines (30-340 lines).
+  - Maintained complete backward compatibility with `useReservation` hook and backend table availability.
+- **HOW TO TEST**:
+  - In Reservation Step 1, tap "Next: Pick a time" -> transitions to Step 2 with 2/3 progress indicator.
+  - Verify booking summary card displays correct date, party size, and seating zone; tap "Edit" -> returns to Step 1.
+  - Tap Lunch/Dinner time slots -> selected slot turns solid Coral with "Selected" label; sticky CTA updates time dynamically.
+  - Tap "Try tomorrow" on rush alert -> updates reservation date to tomorrow.
+  - Tap "Next: Your details" -> advances to Step 3.
+- **RISKS or follow-ups**:
+  - None. ESLint passed with 0 errors (78 pre-existing warnings) and all 53 backend tests passed.
+- **Commit hashes**:
+  - Pending commit
+
+---
+
 ## [2026-10-23] - Feat: Design Refresh V2 - Screen 2: Table Reservation Step 1 (When & Guests)
 
 - **Date**: 2026-10-23
