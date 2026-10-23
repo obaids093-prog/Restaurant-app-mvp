@@ -17,11 +17,6 @@
     "android": {
       "package": "com.aura.restaurant",
       "usesCleartextTraffic": true,
-      "splash": {
-        "image": "./assets/icon.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#121212"
-      },
       "adaptiveIcon": {
         "backgroundColor": "#121212",
         "foregroundImage": "./assets/icon.png"
@@ -32,7 +27,14 @@
     },
     "plugins": [
       "expo-font",
-      "expo-splash-screen"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "backgroundColor": "#121212",
+          "imageWidth": 200
+        }
+      ]
     ],
     "extra": {
       "eas": {
