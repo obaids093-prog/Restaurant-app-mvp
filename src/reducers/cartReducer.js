@@ -24,6 +24,8 @@ export const initialCartState = {
   discountAmount: 0,
   discountType: null,
   voucherDetails: null,
+  pointsToRedeem: 0,
+  pointsDiscountAmount: 0,
   orderType: 'dine-in',
 };
 
@@ -163,6 +165,23 @@ export function cartReducer(state, action) {
       };
     }
 
+    case 'SET_POINTS_TO_REDEEM': {
+      const { points, discountAmount } = action.payload || {};
+      return {
+        ...state,
+        pointsToRedeem: typeof points === 'number' ? Math.max(0, points) : 0,
+        pointsDiscountAmount: typeof discountAmount === 'number' ? Math.max(0, discountAmount) : 0,
+      };
+    }
+
+    case 'CLEAR_POINTS': {
+      return {
+        ...state,
+        pointsToRedeem: 0,
+        pointsDiscountAmount: 0,
+      };
+    }
+
     case 'CLEAR_CART': {
       return {
         items: [],
@@ -171,6 +190,8 @@ export function cartReducer(state, action) {
         discountAmount: 0,
         discountType: null,
         voucherDetails: null,
+        pointsToRedeem: 0,
+        pointsDiscountAmount: 0,
       };
     }
 

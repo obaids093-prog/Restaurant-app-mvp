@@ -23,6 +23,8 @@ erDiagram
     MenuItem ||--o{ Review : receives
     Order ||--o{ Review : references
     User ||--o{ Voucher : creates
+    User ||--o{ LoyaltyTransaction : earns
+    Order ||--o{ LoyaltyTransaction : triggers
 
     User {
         ObjectId _id PK
@@ -35,6 +37,9 @@ erDiagram
         string membership
         string avatar
         boolean isActive
+        number loyaltyPoints
+        number lifetimePoints
+        string loyaltyTier
         Date createdAt
         Date updatedAt
     }
@@ -117,6 +122,22 @@ erDiagram
         string branchId
         string branchName
         string branchCity
+        number pointsRedeemed
+        number pointsDiscountAmount
+        number pointsEarned
+        boolean pointsAwarded
+        Date createdAt
+        Date updatedAt
+    }
+
+    LoyaltyTransaction {
+        ObjectId _id PK
+        ObjectId user FK
+        ObjectId order FK
+        string type
+        number points
+        number balanceAfter
+        string description
         Date createdAt
         Date updatedAt
     }
@@ -142,6 +163,9 @@ Stores customer and administrative staff accounts with encrypted credentials and
 | `membership`| `String` | No | `'Member'` | Freeform string | Loyalty tier badge (e.g. `'VIP Emerald Patron'`) |
 | `avatar` | `String` | No | Unsplash URL | Valid URI string | Default profile image URL |
 | `isActive` | `Boolean` | No | `true` | Boolean flag | Account status toggle |
+| `loyaltyPoints` | `Number` | No | `0` | `min: 0` | Current redeemable loyalty points balance |
+| `lifetimePoints` | `Number` | No | `0` | `min: 0` | Total points earned across all orders (drives tier) |
+| `loyaltyTier` | `String` | No | `'Bronze'` | `['Bronze', 'Silver', 'Gold', 'Platinum']` | Calculated tier based on lifetimePoints thresholds |
 | `createdAt`| `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
 | `updatedAt`| `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
 
@@ -264,6 +288,10 @@ Customer food and beverage orders, checkout bill breakdowns, and kitchen fulfill
 | `branchId` | `String` | No | `'lhr_gulberg'` | `trim: true` | Multi-branch routing key |
 | `branchName` | `String` | No | `'AURA • Gulberg III, Lahore'` | `trim: true` | Branch display name |
 | `branchCity` | `String` | No | `'Lahore'` | `trim: true` | Branch location city |
+| `pointsRedeemed` | `Number` | No | `0` | `min: 0` | Loyalty points redeemed for this order |
+| `pointsDiscountAmount` | `Number` | No | `0` | `min: 0` | Rs. discount from redeemed points (1 pt = Rs. 1) |
+| `pointsEarned` | `Number` | No | `0` | `min: 0` | Loyalty points earned from this order |
+| `pointsAwarded` | `Boolean` | No | `false` | Boolean flag | Whether points have been credited to patron |
 | `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
 | `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
 
@@ -322,6 +350,27 @@ Promotional coupons, percentage/fixed discounts, usage counters, and outlet rest
 **Indexes**:
 - Active Code Lookup: `{ code: 1, isActive: 1 }` — Fast validation lookup at cart checkout.
 - Expiration Maintenance: `{ validUntil: 1 }` — Expiry scans and cleanup.
+
+---
+
+### 2.8 Collection: `loyaltytransactions` (Model: `LoyaltyTransaction` in `server/models/LoyaltyTransaction.js`)
+
+Audit log of patron loyalty point transactions (earn, redeem, bonus, adjustment).
+
+| Field | Type | Required | Default | Enum / Constraints | Relations / Validation |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `_id` | `ObjectId` | Auto | Auto | MongoDB ObjectId | Primary Key |
+| `user` | `ObjectId` | Yes | — | References `User` model | FK: `ref: 'User'` |
+| `order` | `ObjectId` | No | `null` | References `Order` model | FK: `ref: 'Order'` |
+| `type` | `String` | Yes | — | `['earn', 'redeem', 'bonus', 'adjustment']` | Transaction category |
+| `points` | `Number` | Yes | — | Integer | Positive for earn/bonus, negative for redeem |
+| `balanceAfter` | `Number` | No | `0` | `min: 0` | Snapshot of user balance after transaction |
+| `description` | `String` | No | `''` | `trim: true` | Human-readable transaction note |
+| `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+| `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+
+**Indexes**:
+- User Transaction Log: `{ user: 1, createdAt: -1 }` — Patron point history sorted by date.
 
 ---
 

@@ -39,6 +39,17 @@ export default function BillSummary({
         </View>
       )}
 
+      {calculations.pointsDiscountAmount > 0 && (
+        <View style={styles.billRow}>
+          <Text style={[styles.billLabel, { color: '#D97706' }]}>
+            Loyalty Points Redeemed
+          </Text>
+          <Text style={[styles.billValue, { color: '#D97706', fontWeight: '700' }]}>
+            - {brand.formatPrice(calculations.pointsDiscountAmount)}
+          </Text>
+        </View>
+      )}
+
       <View style={styles.billRow}>
         <Text style={[styles.billLabel, { color: colors.textSecondary }]}>
           Hospitality Service (5%)

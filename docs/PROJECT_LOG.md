@@ -1,5 +1,41 @@
 # Project Log
 
+## [2026-10-23] - Feat: Patron Loyalty Points & VIP Tiers Engine (Batch 1)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Patron Loyalty Points & VIP Tiers Engine (Batch 1)
+- **WHAT changed**:
+  - In `server/models/LoyaltyTransaction.js`: Created `LoyaltyTransaction` schema for audit-logging point earn, redeem, bonus, and adjustment transactions with user/order references and balance snapshots.
+  - In `server/models/User.js`: Added `loyaltyPoints` (current balance), `lifetimePoints` (total earned), and `loyaltyTier` (Bronze/Silver/Gold/Platinum) fields.
+  - In `server/models/Order.js`: Added `pointsRedeemed`, `pointsDiscountAmount`, `pointsEarned`, and `pointsAwarded` fields for tracking loyalty participation per order.
+  - In `server/services/loyaltyService.js`: Implemented core loyalty business logic: tier calculation with multipliers (Bronze 1.0x, Silver 1.05x, Gold 1.1x, Platinum 1.15x), redemption quoting (1 pt = Rs. 1, min 50 pts, max 50% subtotal), atomic points deduction at checkout, and automatic point crediting + tier upgrades when order status reaches `Served`.
+  - In `server/controllers/loyaltyController.js`: Thin controllers for `getProfile` and `quoteRedemption` endpoints.
+  - In `server/routes/loyaltyRoutes.js` & `server/server.js`: Mounted `/api/loyalty` routes with authenticated access.
+  - In `server/controllers/orderController.js`: Wired `loyaltyService.redeemPoints` into `placeOrder` for checkout deduction, and `loyaltyService.awardPoints` into `updateOrderStatus` when status reaches `Served`.
+  - In `src/hooks/useLoyalty.js`: Created custom hook for patron loyalty profile fetching and redemption quoting.
+  - In `src/reducers/cartReducer.js` & `src/context/CartContext.js`: Added `SET_POINTS_REDEMPTION`, `CLEAR_POINTS_REDEMPTION` actions and `applyPointsRedemption`/`clearPointsRedemption` context helpers.
+  - In `src/screens/Cart/LoyaltySection.js` & `src/screens/Cart/BillSummary.js`: Built loyalty points UI with balance display, instant discount chips, and bill breakdown loyalty savings row.
+  - In `server/tests/loyalty.test.js`: 11 automated tests covering profile fetching, redemption validation, checkout deduction, served order point crediting, and tier upgrades.
+  - In `server/tests/*.test.js`: Increased jest timeout from 30s to 60s across all 3 suites to prevent flaky beforeAll hook timeouts during sequential `--runInBand` execution.
+  - In `docs/DATABASE.md` & `docs/ARCHITECTURE.md`: Documented LoyaltyTransaction schema, updated User/Order fields, ERD, and REST endpoints.
+- **WHY (the problem or goal)**:
+  - Implement a gamified patron loyalty rewards system where customers earn points on every served order, progress through VIP tiers with increasing multipliers, and redeem accumulated points for instant bill discounts at checkout.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Points earned at 1 base pt per Rs. 100 net spend, scaled by tier multiplier. Lifetime points drive automatic tier upgrades (Bronze <500, Silver 500+, Gold 1500+, Platinum 4000+).
+  - Atomic `$inc` operations on User document prevent race conditions during concurrent redemptions.
+  - LoyaltyTransaction audit log enables future point history UI and fraud detection.
+  - Preserved Layer Rules: UI uses `useLoyalty` hook and `CartContext` helpers only; zero direct `apiClient` in screens.
+- **HOW TO TEST**:
+  - Run `npm test` in `server/` to execute all 43 tests (reviews, vouchers, loyalty).
+  - Add items to cart → tap loyalty chip to apply points → verify discount on bill summary.
+  - Place order → manager sets status to Served → verify points credited to patron profile.
+- **RISKS or follow-ups**:
+  - None. Backward-compatible with existing orders (default 0 points).
+- **Commit hashes**:
+  - `TBD`
+
+---
+
 ## [2026-10-23] - Feat: Promotional Coupon & Voucher Engine Architecture (Batch 1)
 
 - **Date**: 2026-10-23

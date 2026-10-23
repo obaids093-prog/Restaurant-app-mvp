@@ -15,6 +15,7 @@ const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const MenuItem = require('../models/MenuItem');
 const voucherService = require('../services/voucherService');
+const loyaltyService = require('../services/loyaltyService');
 const { CANCEL_WINDOW_MINUTES } = require('../config/constants');
 
 // Safe regex string escaper to prevent NoSQL regex injection / ReDoS (S1-A)
@@ -149,7 +150,21 @@ const placeOrder = async (req, res) => {
       discountAmount = Math.round(subtotal * (discountPercent / 100));
     }
 
-    const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+    // Points Redemption (1 Point = Rs. 1, max 50% order subtotal)
+    let pointsDiscountAmount = 0;
+    let pointsToRedeem = 0;
+    if (Number(req.body.pointsToRedeem) > 0) {
+      pointsToRedeem = Math.floor(Number(req.body.pointsToRedeem));
+      try {
+        const quote = await loyaltyService.quoteRedemption(req.user._id, pointsToRedeem, subtotal);
+        pointsDiscountAmount = quote.discountAmount;
+      } catch (err) {
+        return res.status(err.status || 400).json({ message: err.message || 'Cannot redeem loyalty points' });
+      }
+    }
+
+    const totalDiscount = Math.min(subtotal, discountAmount + pointsDiscountAmount);
+    const discountedSubtotal = Math.max(0, subtotal - totalDiscount);
     const serviceCharge = discountedSubtotal * 0.05; // 5% Service Charge
     const salesTax = discountedSubtotal * 0.15;      // 15% Sales Tax
     const finalTotalAmount = discountedSubtotal + serviceCharge + salesTax;
@@ -160,6 +175,8 @@ const placeOrder = async (req, res) => {
       items: verifiedItems,
       subtotal,
       discountAmount,
+      pointsRedeemed: pointsToRedeem,
+      pointsDiscountAmount,
       promoCode: appliedPromoCode,
       serviceCharge,
       salesTax,
@@ -178,6 +195,14 @@ const placeOrder = async (req, res) => {
         await voucherService.recordVoucherUsage(appliedPromoCode);
       } catch (usageErr) {
         console.warn('Failed to record voucher usage:', usageErr.message);
+      }
+    }
+
+    if (pointsToRedeem > 0) {
+      try {
+        await loyaltyService.redeemPoints(req.user._id, pointsToRedeem, newOrder._id, subtotal);
+      } catch (ptsErr) {
+        console.warn('Failed to deduct redeemed points:', ptsErr.message);
       }
     }
 
@@ -312,6 +337,15 @@ const updateOrderStatus = async (req, res) => {
 
     order.status = targetStatus;
     await order.save();
+
+    // If order reached 'Served', award loyalty points to patron!
+    if (targetStatus === 'Served') {
+      try {
+        await loyaltyService.awardOrderPoints(order._id);
+      } catch (awardErr) {
+        console.warn('Failed to award loyalty points:', awardErr.message);
+      }
+    }
 
     res.status(200).json(order);
   } catch (error) {

@@ -17,7 +17,7 @@ The platform is designed with a decoupled client-server architecture consisting 
                            ▼
 ┌────────────────────────────────────────────────────────┐
 │               Express.js REST API Server               │
-│      (Auth, Menu, Orders, Reservations, Tables)        │
+│  (Auth, Menu, Orders, Reservations, Tables, Loyalty)    │
 └──────────────────────────┬─────────────────────────────┘
                            │ Mongoose ODM Driver
                            ▼
@@ -140,6 +140,8 @@ The backend is built with Express.js using a modular controller-route-model arch
 | | `PUT` | `/api/vouchers/:id` | Manager | Updates voucher properties (value, limits, branch, dates). |
 | | `PATCH` | `/api/vouchers/:id/toggle` | Manager | Toggles voucher active/inactive status. |
 | | `DELETE` | `/api/vouchers/:id` | Manager | Permanently removes promotional voucher. |
+| **Loyalty** | `GET` | `/api/loyalty/profile` | Authenticated | Patron loyalty profile (points, tier, lifetime). |
+| | `POST` | `/api/loyalty/quote` | Authenticated | Calculates points redemption discount for a given subtotal. |
 
 ---
 

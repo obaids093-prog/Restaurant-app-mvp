@@ -141,6 +141,10 @@ export const CartProvider = ({ children }) => {
   };
 
   const removePromo = () => dispatch({ type: 'REMOVE_PROMO' });
+  const setPointsRedemption = (points, discountAmount) => {
+    dispatch({ type: 'SET_POINTS_TO_REDEEM', payload: { points, discountAmount } });
+  };
+  const clearPointsRedemption = () => dispatch({ type: 'CLEAR_POINTS' });
   const clearCart = () => dispatch({ type: 'CLEAR_CART' });
 
   return (
@@ -156,6 +160,8 @@ export const CartProvider = ({ children }) => {
         updateNote,
         applyPromo,
         removePromo,
+        setPointsRedemption,
+        clearPointsRedemption,
         clearCart,
       }}
     >
