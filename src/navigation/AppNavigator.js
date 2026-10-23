@@ -17,6 +17,7 @@ import ReservationScreen from '../screens/ReservationScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ManagerDashboardScreen from '../screens/ManagerDashboardScreen';
 import OrderPlacedScreen from '../screens/OrderPlacedScreen';
+import NotificationScreen from '../screens/NotificationScreen';
 
 export const navigationRef = createNavigationContainerRef();
 
@@ -196,6 +197,14 @@ export default function AppNavigator() {
           options={{
             headerShown: false,
             animation: 'fade_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationScreen}
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
           }}
         />
       </Stack.Navigator>

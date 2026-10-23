@@ -91,11 +91,13 @@ export default function PastOrderCard({
   onToggleReceipt,
   onReorder,
   onCancelOrder,
+  onRateOrder,
   colors,
   shadows,
   typography,
 }) {
   const isPending = order.status === 'Pending';
+  const isServed = order.status === 'Served';
   const formattedDate = order.createdAt
     ? new Date(order.createdAt).toLocaleDateString([], {
         month: 'short',
@@ -195,6 +197,24 @@ export default function PastOrderCard({
 
       {/* Action Footer Buttons */}
       <View style={styles.folioActionRow}>
+        {/* Rate Dishes button if Served */}
+        {isServed && onRateOrder && (
+          <TouchableOpacity
+            onPress={() => onRateOrder(order)}
+            style={[
+              styles.reorderBtn,
+              { backgroundColor: colors.surfaceSubtle, borderColor: colors.secondary + '60' },
+            ]}
+            activeOpacity={0.8}
+            accessibilityLabel="Rate dishes in this order"
+          >
+            <Ionicons name="star" size={15} color={colors.secondary} style={{ marginRight: 6 }} />
+            <Text style={[styles.reorderBtnText, { color: colors.textPrimary }]}>
+              Rate Dishes
+            </Text>
+          </TouchableOpacity>
+        )}
+
         {/* Reorder Button */}
         <TouchableOpacity
           onPress={() => onReorder(order)}

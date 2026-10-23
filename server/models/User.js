@@ -14,8 +14,8 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       match: [
-        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-        'Please provide a valid email address',
+        /^[a-zA-Z0-9_.+-]+@gmail\.com$/,
+        'Please provide a valid Gmail address (@gmail.com)',
       ],
     },
     password: {
@@ -45,6 +45,24 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: 'Member',
     },
+    loyaltyPoints: {
+      type: Number,
+      default: 0,
+      min: [0, 'Loyalty points cannot be negative'],
+    },
+    lifetimePoints: {
+      type: Number,
+      default: 0,
+      min: [0, 'Lifetime points cannot be negative'],
+    },
+    loyaltyTier: {
+      type: String,
+      enum: {
+        values: ['Bronze', 'Silver', 'Gold', 'Platinum'],
+        message: '{VALUE} is not a valid loyalty tier',
+      },
+      default: 'Bronze',
+    },
     avatar: {
       type: String,
       default: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&fm=jpg&fit=crop&q=80',
@@ -52,6 +70,10 @@ const userSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    pushTokens: {
+      type: [String],
+      default: [],
     },
   },
   {

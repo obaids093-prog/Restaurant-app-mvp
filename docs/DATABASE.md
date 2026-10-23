@@ -19,6 +19,12 @@ erDiagram
     User ||--o{ Reservation : books
     Table ||--o{ Reservation : hosts
     MenuItem ||--o{ OrderItem : contains
+    User ||--o{ Review : writes
+    MenuItem ||--o{ Review : receives
+    Order ||--o{ Review : references
+    User ||--o{ Voucher : creates
+    User ||--o{ LoyaltyTransaction : earns
+    Order ||--o{ LoyaltyTransaction : triggers
 
     User {
         ObjectId _id PK
@@ -31,6 +37,9 @@ erDiagram
         string membership
         string avatar
         boolean isActive
+        number loyaltyPoints
+        number lifetimePoints
+        string loyaltyTier
         Date createdAt
         Date updatedAt
     }
@@ -58,7 +67,22 @@ erDiagram
         boolean isAvailable
         string prepTime
         number rating
+        number ratingAverage
+        number ratingCount
         string tag
+        Date createdAt
+        Date updatedAt
+    }
+
+    Review {
+        ObjectId _id PK
+        ObjectId user FK
+        ObjectId menuItem FK
+        ObjectId order FK
+        number rating
+        string comment
+        string managerReply
+        Date managerReplyAt
         Date createdAt
         Date updatedAt
     }
@@ -98,6 +122,22 @@ erDiagram
         string branchId
         string branchName
         string branchCity
+        number pointsRedeemed
+        number pointsDiscountAmount
+        number pointsEarned
+        boolean pointsAwarded
+        Date createdAt
+        Date updatedAt
+    }
+
+    LoyaltyTransaction {
+        ObjectId _id PK
+        ObjectId user FK
+        ObjectId order FK
+        string type
+        number points
+        number balanceAfter
+        string description
         Date createdAt
         Date updatedAt
     }
@@ -123,6 +163,10 @@ Stores customer and administrative staff accounts with encrypted credentials and
 | `membership`| `String` | No | `'Member'` | Freeform string | Loyalty tier badge (e.g. `'VIP Emerald Patron'`) |
 | `avatar` | `String` | No | Unsplash URL | Valid URI string | Default profile image URL |
 | `isActive` | `Boolean` | No | `true` | Boolean flag | Account status toggle |
+| `pushTokens` | `[String]` | No | `[]` | Array of strings | Registered Expo device push tokens |
+| `loyaltyPoints` | `Number` | No | `0` | `min: 0` | Current redeemable loyalty points balance |
+| `lifetimePoints` | `Number` | No | `0` | `min: 0` | Total points earned across all orders (drives tier) |
+| `loyaltyTier` | `String` | No | `'Bronze'` | `['Bronze', 'Silver', 'Gold', 'Platinum']` | Calculated tier based on lifetimePoints thresholds |
 | `createdAt`| `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
 | `updatedAt`| `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
 
@@ -146,7 +190,9 @@ Catalog of culinary offerings, pricing, categorization, and kitchen preparation 
 | `isSpecial` | `Boolean` | No | `false` | Boolean flag | Featured/Chef signature item flag |
 | `isAvailable` | `Boolean` | No | `true` | Boolean flag | Real-time 86'd / inventory toggle |
 | `prepTime` | `String` | No | `'15 min'` | `trim: true` | Estimated prep duration |
-| `rating` | `Number` | No | `4.8` | `min: 0`, `max: 5` | Customer review score rating |
+| `rating` | `Number` | No | `0` | `min: 0`, `max: 5` | Backward-compatible display rating |
+| `ratingAverage` | `Number` | No | `0` | `min: 0`, `max: 5` | Recalculated dynamic average rating |
+| `ratingCount` | `Number` | No | `0` | `min: 0` | Total verified reviews count |
 | `tag` | `String` | No | `''` | `trim: true` | Culinary label (e.g., `'A5 Miyazaki'`, `'Wild Caught'`) |
 | `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
 | `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
@@ -232,6 +278,7 @@ Customer food and beverage orders, checkout bill breakdowns, and kitchen fulfill
 | `items` | `[orderItemSchema]` | Yes | — | Array must contain $\ge 1$ item | Custom validation: `items.length > 0` |
 | `subtotal` | `Number` | No | `0` | `min: 0` | Sum of item unit prices $\times$ quantities |
 | `discountAmount`| `Number` | No | `0` | `min: 0` | Promotional coupon / loyalty deductions |
+| `promoCode` | `String` | No | `null` | `trim: true` | Applied promotional coupon code |
 | `serviceCharge` | `Number` | No | `0` | `min: 0` | Hospitality service charge |
 | `salesTax` | `Number` | No | `0` | `min: 0` | Provincial sales tax |
 | `totalAmount` | `Number` | Yes | — | `min: 0` | Net payable balance |
@@ -242,12 +289,144 @@ Customer food and beverage orders, checkout bill breakdowns, and kitchen fulfill
 | `branchId` | `String` | No | `'lhr_gulberg'` | `trim: true` | Multi-branch routing key |
 | `branchName` | `String` | No | `'AURA • Gulberg III, Lahore'` | `trim: true` | Branch display name |
 | `branchCity` | `String` | No | `'Lahore'` | `trim: true` | Branch location city |
+| `pointsRedeemed` | `Number` | No | `0` | `min: 0` | Loyalty points redeemed for this order |
+| `pointsDiscountAmount` | `Number` | No | `0` | `min: 0` | Rs. discount from redeemed points (1 pt = Rs. 1) |
+| `pointsEarned` | `Number` | No | `0` | `min: 0` | Loyalty points earned from this order |
+| `pointsAwarded` | `Boolean` | No | `false` | Boolean flag | Whether points have been credited to patron |
 | `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
 | `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
 
 **Indexes**:
 - User History Index: `{ user: 1, createdAt: -1 }` — High-speed retrieval of customer order receipts sorted chronologically.
 - Kitchen Status Index: `{ status: 1 }` — High-speed live order queue filtering for manager/kitchen displays.
+- Analytics Date-Status Compound Index: `{ createdAt: -1, status: 1 }` — High-performance date range filtering and aggregation across non-cancelled order metrics.
+- Multi-Branch Analytics Compound Index: `{ branchId: 1, createdAt: -1 }` — Filtered branch timeline queries and regional revenue analysis.
+
+---
+
+### 2.6 Collection: `reviews` (Model: `Review` in `server/models/Review.js`)
+
+Patron reviews, 1-to-5 star ratings, and management responses for menu items ordered in served restaurant orders.
+
+| Field | Type | Required | Default | Enum / Constraints | Relations / Validation |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `_id` | `ObjectId` | Auto | Auto | MongoDB ObjectId | Primary Key |
+| `user` | `ObjectId` | Yes | — | References `User` model | FK: `ref: 'User'` |
+| `menuItem` | `ObjectId` | Yes | — | References `MenuItem` model | FK: `ref: 'MenuItem'` |
+| `order` | `ObjectId` | Yes | — | References `Order` model | FK: `ref: 'Order'` |
+| `rating` | `Number` | Yes | — | `min: 1`, `max: 5`, integer | Score from 1 (Poor) to 5 (Outstanding) |
+| `comment` | `String` | No | `''` | `trim: true`, `maxlength: 300` | Optional tasting notes / review text |
+| `managerReply` | `String` | No | `''` | `trim: true`, `maxlength: 300` | Official chef/manager response |
+| `managerReplyAt`| `Date` | No | `null` | Date | Timestamp of manager response |
+| `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+| `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+
+**Indexes**:
+- Unique Review per Order Item: `{ user: 1, order: 1, menuItem: 1 }` (`unique: true`) — Enforces one review per dish per served order.
+- Dish Reviews Sorting: `{ menuItem: 1, createdAt: -1 }` — High-speed paginated retrieval of reviews for a dish.
+
+---
+
+### 2.7 Collection: `vouchers` (Model: `Voucher` in `server/models/Voucher.js`)
+
+Promotional coupons, percentage/fixed discounts, usage counters, and outlet restrictions.
+
+| Field | Type | Required | Default | Enum / Constraints | Relations / Validation |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `_id` | `ObjectId` | Auto | Auto | MongoDB ObjectId | Primary Key |
+| `code` | `String` | Yes | — | `unique: true`, `uppercase: true`, `trim: true` | Voucher redemption code |
+| `description` | `String` | No | `''` | `trim: true` | Promotional copy / privilege summary |
+| `discountType` | `String` | Yes | `'percentage'` | `['percentage', 'fixed']` | Calculation formula |
+| `discountValue` | `Number` | Yes | — | `min: 0` (max 100 if percentage) | Discount magnitude |
+| `minOrderAmount`| `Number` | No | `0` | `min: 0` | Basket subtotal threshold required |
+| `maxDiscountAmount`| `Number` | No | `null` | `min: 0` | Ceiling cap on percentage savings |
+| `validFrom` | `Date` | No | Current Time | Date | Activation timestamp |
+| `validUntil` | `Date` | Yes | — | Date | Expiration timestamp |
+| `usageLimit` | `Number` | No | `null` | `min: 1` | Global redemption cap |
+| `usageCount` | `Number` | No | `0` | `min: 0` | Atomic redemption counter |
+| `isActive` | `Boolean` | No | `true` | Boolean | Administrative toggle |
+| `applicableBranchId`| `String` | No | `'all'` | Branch key or `'all'` | Outlet restriction |
+| `createdBy` | `ObjectId` | No | — | References `User` model | FK: `ref: 'User'` (manager) |
+| `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+| `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+
+**Indexes**:
+- Active Code Lookup: `{ code: 1, isActive: 1 }` — Fast validation lookup at cart checkout.
+- Expiration Maintenance: `{ validUntil: 1 }` — Expiry scans and cleanup.
+
+---
+
+### 2.8 Collection: `loyaltytransactions` (Model: `LoyaltyTransaction` in `server/models/LoyaltyTransaction.js`)
+
+Audit log of patron loyalty point transactions (earn, redeem, bonus, adjustment).
+
+| Field | Type | Required | Default | Enum / Constraints | Relations / Validation |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `_id` | `ObjectId` | Auto | Auto | MongoDB ObjectId | Primary Key |
+| `user` | `ObjectId` | Yes | — | References `User` model | FK: `ref: 'User'` |
+| `order` | `ObjectId` | No | `null` | References `Order` model | FK: `ref: 'Order'` |
+| `type` | `String` | Yes | — | `['earn', 'redeem', 'bonus', 'adjustment']` | Transaction category |
+| `points` | `Number` | Yes | — | Integer | Positive for earn/bonus, negative for redeem |
+| `balanceAfter` | `Number` | No | `0` | `min: 0` | Snapshot of user balance after transaction |
+| `description` | `String` | No | `''` | `trim: true` | Human-readable transaction note |
+| `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+| `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+
+**Indexes**:
+- User Transaction Log: `{ user: 1, createdAt: -1 }` — Patron point history sorted by date.
+
+---
+
+### 2.9 Collection: `notifications` (Model: `Notification` in `server/models/Notification.js`)
+
+In-app alerts and notifications delivered to patrons and managers for order status updates, manager review replies, loyalty points/tier updates, and promotional reminders.
+
+| Field | Type | Required | Default | Enum / Constraints | Relations / Validation |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `_id` | `ObjectId` | Auto | Auto | MongoDB ObjectId | Primary Key |
+| `user` | `ObjectId` | Yes | — | References `User` model | FK: `ref: 'User'` |
+| `type` | `String` | Yes | — | `['order_status', 'review_reply', 'loyalty_tier_up', 'loyalty_points', 'voucher_expiring', 'welcome', 'general']` | Notification classification category |
+| `title` | `String` | Yes | — | `trim: true`, `maxlength: 120` | Notification headline |
+| `body` | `String` | Yes | — | `trim: true`, `maxlength: 300` | Notification body text |
+| `refModel` | `String` | No | `null` | `['Order', 'Review', 'MenuItem', 'Voucher', null]` | Target entity model |
+| `refId` | `ObjectId` | No | `null` | MongoDB ObjectId | Target entity identifier |
+| `isRead` | `Boolean` | No | `false` | Boolean | Read state indicator |
+| `readAt` | `Date` | No | `null` | Date | Timestamp when user opened/marked notification |
+| `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+| `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+
+**Indexes**:
+- User Feed Sorting: `{ user: 1, createdAt: -1 }` — Fast chronological feed retrieval.
+- Unread Query Index: `{ user: 1, isRead: 1 }` — Instant badge count query execution.
+
+### 2.10 Collection: `vouchers` (Model: `Voucher` in `server/models/Voucher.js`)
+
+Promotional privilege vouchers, dynamic discounts, and coupon redemption rules.
+
+| Field | Type | Required | Default | Enum / Constraints | Relations / Validation |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `_id` | `ObjectId` | Auto | Auto | MongoDB ObjectId | Primary Key |
+| `code` | `String` | Yes | — | `unique: true`, `uppercase: true`, `trim: true` | Unique promo code |
+| `description` | `String` | No | `""` | `trim: true`, `maxlength: 300` | Optional description |
+| `discountType` | `String` | Yes | — | `['percentage', 'fixed']` | Calculation strategy |
+| `discountValue` | `Number` | Yes | — | `min: 1` | Percentage or fixed Rs amount |
+| `minOrderAmount` | `Number` | No | `0` | `min: 0` | Minimum order subtotal required |
+| `maxDiscountAmount` | `Number` | No | `null` | `min: 0` | Ceiling discount cap for percentage promos |
+| `validFrom` | `Date` | No | `Date.now` | Date | Effective start date |
+| `validUntil` | `Date` | Yes | — | Date | Expiration date |
+| `usageLimit` | `Number` | No | `null` | `min: 1` | Global usage ceiling |
+| `usageCount` | `Number` | No | `0` | `min: 0` | Times redeemed across system |
+| `perUserLimit` | `Number` | No | `null` | `min: 1` | Maximum redemptions per patron |
+| `isActive` | `Boolean` | No | `true` | Boolean | Operational status flag |
+| `isDemo` | `Boolean` | No | `false` | Boolean | Demo seeded voucher flag |
+| `applicableBranchId`| `String` | No | `'all'` | String | Branch filter or 'all' |
+| `createdBy` | `ObjectId` | No | `null` | References `User` model | FK: `ref: 'User'` |
+| `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+| `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+
+**Indexes**:
+- Code Unique Lookup: `{ code: 1 }` (unique)
+- Customer Active Vouchers Index: `{ isActive: 1, validFrom: 1, validUntil: 1, isDemo: 1 }` — High-efficiency pipeline for `/api/vouchers/active`.
 
 ---
 
@@ -306,3 +485,18 @@ npm run seed -- --reset
 # or
 node seed.js --reset
 ```
+
+### 4.3 Demo Voucher Seeding (`npm run seed:demo`)
+Development-only demo voucher seeder located in `server/seedDemo.js`:
+- **Production Guard**: Immediately aborts if `process.env.NODE_ENV === 'production'`. Never runs in production or at server startup.
+- **Idempotent**: Upserts vouchers by `code` so it can be re-run safely without creating duplicates.
+- **Demo Tagging**: Explicitly tags each created document with `isDemo: true`, allowing clean deactivation by managers or automated omission in production queries.
+- Seeds 4 representative vouchers: `SAVE20`, `FEAST20`, `WELCOME10`, `FLAT500`.
+
+```bash
+# In server/
+npm run seed:demo
+# or
+node seedDemo.js
+```
+

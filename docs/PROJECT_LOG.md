@@ -1,5 +1,490 @@
 # Project Log
 
+## [2026-10-23] - Fix: Deals Row - Real Server-Driven Vouchers Only
+
+- **Date**: 2026-10-23
+- **Title**: Fix: Deals Row - Real Server-Driven Vouchers Only
+- **WHAT changed**:
+  - In `server/models/Voucher.js`: Added `isDemo: Boolean` (default false), `perUserLimit: Number` (default null), and compound active query index `{ isActive: 1, validFrom: 1, validUntil: 1, isDemo: 1 }`.
+  - In `server/services/voucherService.js`: Implemented `getActiveVouchers(userId)` with strict filtering (active, valid dates, usage left, per-user limits, production demo exclusion). Updated `validateVoucher` to enforce user limits, return `validUntil`, and reject demo vouchers in production. Added `deactivateDemoVouchers()`.
+  - In `server/controllers/voucherController.js` and `server/routes/voucherRoutes.js`: Exposed public `GET /api/vouchers/active` and manager `POST /api/vouchers/deactivate-demo`.
+  - In `server/seedDemo.js` & `server/package.json`: Created isolated demo seeder tagged with `isDemo: true` guarded against production; added `"seed:demo"` script.
+  - In `src/screens/Menu/DealsSection.js`: Fully refactored to consume `GET /api/vouchers/active` via `useApi` with `useFocusEffect` refetching; chips built strictly from voucher fields (`buildChipLabel`, `buildChipDetails`); row auto-hides when empty/error; applies deal through server validation and removes rejected vouchers.
+  - In `src/screens/Menu/menuStyles.js` & `src/screens/Menu/MenuScreen.js`: Removed hardcoded `DEALS_FOR_YOU` array and static props.
+  - In `src/screens/Cart/`: Removed hardcoded promo code references and banners in `VoucherSection.js`, `CartEmptyState.js`, and `CartContext.js`.
+  - In `src/screens/Manager/VouchersTab.js` & `VoucherModal.js`: Added `DEMO` badge, header "Deactivate Demo" batch action with confirmation modal, and live customer deals chip preview in the voucher creation/edit modal.
+  - In `server/tests/`: Added unit/integration tests in `vouchers.test.js` and `noHardcodedVouchers.test.js` (all 6 suites, 67/67 tests passing).
+- **WHY (the problem or goal)**:
+  - Eliminate all hardcoded promo codes and guarantee that the customer Deals row renders 100% real, active, valid promotional vouchers sourced dynamically from MongoDB Atlas.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Server is single source of truth; demo vouchers are strictly separated and disabled in production; live preview in manager modal mirrors exact customer chip rendering.
+- **HOW TO TEST**:
+  - Customer Menu: Verify Deals row dynamically shows active vouchers from MongoDB; row hides completely when no vouchers active.
+  - Cart: Validate voucher codes against `/api/vouchers/validate`.
+  - Manager Dashboard: Demo vouchers display DEMO badge; tap "Deactivate Demo" to bulk-deactivate; open VoucherModal to see live chip preview update as fields change.
+- **Commit hashes**:
+  - `91b8cd4` (fix(vouchers): replace hardcoded deals with server-driven /active endpoint)
+
+---
+
+## [2026-10-23] - Feat: Features Batch 2 - Feature 1: Expo Push Notifications & Order Lifecycle Alerts
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Features Batch 2 - Feature 1: Expo Push Notifications & Order Lifecycle Alerts
+- **WHAT changed**:
+  - In `server/models/User.js`: Added `pushTokens: { type: [String], default: [] }` field for storing registered device push tokens.
+  - In `server/services/pushNotificationService.js`: Implemented server service for token validation (`isExpoPushToken`), registration (`$addToSet`), unregistration (`$pull`), and remote push dispatch to Expo's free push gateway (`https://exp.host/--/api/v2/push/send`) with automatic dead-token pruning (`DeviceNotRegistered`).
+  - In `server/controllers/notificationController.js` and `server/routes/notificationRoutes.js`: Exposed `POST /api/notifications/push-token` and `DELETE /api/notifications/push-token` endpoints.
+  - In `server/services/notificationService.js`: Hooked non-blocking Expo push dispatching into `notifyOrderStatus`, `notifyReviewReply`, and `notifyLoyaltyPoints`.
+  - In `server/tests/notifications.test.js`: Added 5 integration tests covering validation, registration, deduplication, unregistration, and push dispatch (63/63 passing tests across full server suite).
+  - In `package.json`: Installed SDK 57 compatible `expo-notifications@~57.0.24`.
+  - In `src/services/pushNotificationService.js`: Created client-side service configuring Android notification channels (`default`, `aura-order-updates`), permission requests, token acquisition, and backend sync/unregistration.
+  - In `src/context/NotificationContext.js`: Automated push token registration on user login, foreground push listeners with instant data refresh, and notification tap response handling.
+  - In `src/context/AuthContext.js`: Added push token unregistration call on user logout.
+  - In `src/components/NotificationBannerToast.js`: Created in-app floating banner toast dropping down on foreground notifications with tap-to-navigate action.
+  - In `App.js`: Mounted `NotificationBannerToast` globally across all screens.
+- **WHY (the problem or goal)**:
+  - Deliver real-time push alerts to dining customers on mobile devices when their order status advances (`Preparing` -> `Ready` -> `Served`), when managers reply to reviews, or when loyalty points are awarded, without requiring paid APNs/FCM setup.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Leveraged Expo Push Service HTTP API (100% free, zero native keys needed), combined with an animated React Native in-app floating banner for instant foreground feedback.
+  - Formatted relative timestamps outside component render to maintain strict React Compiler purity.
+- **HOW TO TEST**:
+  - Sign in as customer -> verify `POST /api/notifications/push-token` syncs token in server console.
+  - When manager advances an order status -> verify push notification triggers and in-app floating banner drops down.
+  - Tap banner -> navigates to `TrackTab`.
+  - Sign out -> verify token is unregistered.
+- **Commit hashes**:
+  - `f6cf386` (feat(notifications): implement expo push notifications, token registration, and order lifecycle alerts)
+
+---
+
+## [2026-10-23] - Feat: Features Batch 1 - Feature 3: Manager Analytics Dashboard & Aggregations
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Features Batch 1 - Feature 3: Manager Analytics Dashboard & Aggregations
+- **WHAT changed**:
+  - In `server/services/analyticsService.js`: Implemented MongoDB aggregation pipelines for date-filtered business analytics (`today`, `7d`, `30d`), calculating net revenue, total order volume, Average Order Value (AOV), order status distribution, top 5 dishes by quantity and revenue, 24-hour hourly rush distribution in PKT (`+05:00`), multi-branch revenue/order breakdown, and repeat customer retention rate.
+  - In `server/controllers/analyticsController.js` and `server/routes/analyticsRoutes.js`: Exposed `GET /api/analytics/summary` protected with `protect` and `managerOnly` authorization.
+  - In `server/models/Order.js`: Added compound indexes `{ createdAt: -1, status: 1 }` and `{ branchId: 1, createdAt: -1 }` for high-throughput aggregation performance.
+  - In `server/tests/analytics.test.js`: Created comprehensive integration test suite verifying metrics calculation, status breakdown, 24-hour PKT buckets, and RBAC authentication (58/58 passing tests across full server suite).
+  - In `src/api/client.js`: Configured development fallback for native physical devices to connect directly to the local dev server over LAN (`192.168.100.6:5000`) instead of older cloud deployments.
+  - In `src/hooks/useManagerAnalytics.js`: Created reactive custom hook supporting time range toggling (`today`, `7d`, `30d`), pull-to-refresh, loading states, and error handling with retry.
+  - In `src/screens/Manager/HourlyBarChart.js`: Built pure View-based responsive 24-hour rush bar chart using theme tokens, peak hour highlight, and time labels.
+  - In `src/screens/Manager/OverviewTab.js`: Redesigned executive overview with range switcher pills, 4 primary KPI cards (Revenue, Orders, AOV, Repeat Rate), status breakdown chips, hourly rush distribution chart, top culinary performers with revenue badges, skeleton loader, and error retry state.
+- **WHY (the problem or goal)**:
+  - Complete Feature 3 of Features Batch 1 to empower restaurant managers with actionable business intelligence, sales metrics, kitchen peak-hour visibility, and regional outlet performance without requiring paid external analytics tools.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Decomposed into modular service, controller, test, hook, chart component, and tab view, keeping every file strictly under 400 lines.
+  - Pure View-based bar chart using theme tokens avoided adding heavy external charting packages.
+- **HOW TO TEST**:
+  - Log in as Manager (`manager@aura.pk` / `manager123`).
+  - On Manager Dashboard "Overview" tab, observe KPI cards (Revenue, Orders, AOV, Repeat Rate).
+  - Tap time range pills: "Today", "7 Days", "30 Days" and verify metrics update.
+  - Inspect 24-hour rush bar chart and top dishes leaderboard.
+  - Pull down to refresh or test offline state with Retry button.
+- **Commit hashes**:
+  - `1b8d70d` (feat(analytics): implement manager business analytics endpoint and overview dashboard)
+
+---
+
+## [2026-10-23] - Feat: Design Refresh V2 - Screen 6: Table Reservation (My Bookings & Reservations)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Design Refresh V2 - Screen 6: Table Reservation (My Bookings & Reservations)
+- **WHAT changed**:
+  - In `src/screens/Reservation/myBookingsStyles.js`: Created dedicated stylesheet implementing Screen 6 design tokens (segmented filter tabs, elevated booking cards, status badges, details bento boxes, perk card, and retry banner).
+  - In `src/screens/Reservation/MyBookingsCard.js`: Built modular booking card component featuring:
+    - Status badges (`Confirmed` with green pulsing dot, `Completed`, `Cancelled`, `No-Show`).
+    - Booking reference (`#TBL-XXXXX`).
+    - Venue ambience thumbnail, date formatted (Today/Tomorrow/Date), time with service label (Lunch/Dinner), party size, and seating area.
+    - Special requests tag with magic sparkles icon.
+    - Venue address and interactive "Get Directions" link with arrow.
+    - Contextual action buttons: `Modify` and error-tinted `Cancel Table` for upcoming reservations; `Rebook Table` for past/cancelled.
+    - "Complimentary Welcome Sip" hospitality perk card for upcoming dining bookings.
+  - In `src/screens/Reservation/MyBookingsList.js`: Upgraded list screen with:
+    - 3-filter segmented tab bar (`Upcoming`, `Past / Done`, `Cancelled`) with live count badges.
+    - Total count badge (`X total`).
+    - Dismissible network refresh error banner with one-tap retry button.
+    - Polished empty state with "Reserve an Artisan Table" rebook CTA.
+- **WHY (the problem or goal)**:
+  - Deliver Screen 6 of Design Refresh V2 based on Stitch HTML/screenshot sources of truth for both light and dark modes, completing the reservation flow with high-fidelity history and booking management.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Decomposed into modular styles and card component (`myBookingsStyles.js` ~220 lines, `MyBookingsCard.js` ~240 lines, `MyBookingsList.js` ~230 lines) all strictly <400 lines.
+- **HOW TO TEST**:
+  - In Reservation screen, switch to "My Bookings" tab.
+  - Verify segmented tabs: "Upcoming", "Past / Done", "Cancelled" with counts.
+  - Test tapping "Cancel Table" -> confirmation alert -> updates status.
+  - Test "Get Directions" -> opens Maps app.
+  - Switch tabs to verify filtering and empty state when a filter has 0 bookings.
+- **Commit hashes**:
+  - `69e4e15` (feat(reservation): refresh Screen 6 My Bookings to design-refresh-v2 specs)
+
+---
+
+## [2026-10-23] - Feat: Design Refresh V2 - Screen 5: Table Reservation (Booking Confirmed Success)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Design Refresh V2 - Screen 5: Table Reservation (Booking Confirmed Success)
+- **WHAT changed**:
+  - In `src/screens/Reservation/bookingSuccessStyles.js`: Created dedicated stylesheet implementing Screen 5 design tokens (celebratory particle container, ambient coral glow `#FC5834`/`#FF6B4A`, 72px check badge with elevation, interactive `#TBL-XXXXX` copy chip, rounded 20px card, bento specs grid, micro-action pill buttons, and stacked primary/secondary CTAs).
+  - In `src/screens/Reservation/BookingConfirmedSuccess.js`: Built complete celebratory confirmation screen featuring:
+    - Top bar with restaurant icon pill and dismiss 'close' button.
+    - Festive hero area with ambient glow, sparkle icons (`✦`, `✨`), and vibrant checkmark badge.
+    - Confirmation headline ("You are booked!") and delivery notification microcopy.
+    - Interactive Booking ID chip (`#TBL-XXXXX`) with one-tap copy and visual checkmark feedback.
+    - Detailed Table Confirmed Card with branch ambience photo, green `TABLE CONFIRMED` tag, branch name & category.
+    - 2-column + 1-row bento specs grid for Date, Time, and Party Size / Seating area.
+    - Special requests highlight pill with magic sparkles indicator.
+    - Venue location block with live branch address, valet/parking note, and one-tap `Directions` (Maps URL) and `Call Host` (`tel:`) buttons.
+    - Stacked action buttons: "Add to Calendar" (schedule alert), "View My Bookings" (switches to active bookings tab), and "Back to Home".
+  - In `src/screens/Reservation/SuccessSheet.js`: Delegated `ReservationConfirmedModal` bridge export to `BookingConfirmedSuccess` preserving backward compatibility.
+  - In `src/screens/Reservation/ReservationScreen.js`: Wired `BookingConfirmedSuccess` directly for confirmed reservation state.
+- **WHY (the problem or goal)**:
+  - Deliver Screen 5 of Design Refresh V2 based strictly on Stitch HTML/screenshot sources of truth for both light and dark modes, providing a premium, rewarding booking completion experience with actionable next steps.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Extracted dedicated styles and component keeping file sizes strictly <400 lines (`bookingSuccessStyles.js` ~240 lines, `BookingConfirmedSuccess.js` ~320 lines).
+  - Used native `Linking` for directions and dialer without adding external libraries.
+- **HOW TO TEST**:
+  - Complete a table reservation (or trigger `confirmedReservation`).
+  - Verify celebratory hero displays check badge, glow, and booking ID chip.
+  - Tap copy button next to Booking ID -> shows checkmark icon feedback.
+  - Verify reservation specs: Date, Time, Guests & seating area match user selection.
+  - Test Directions and Call Host buttons -> properly trigger map and telephone schemes.
+  - Tap "View My Bookings" -> closes modal and switches directly to "My Bookings" tab.
+  - Tap "Back to Home" or Top close button -> closes modal.
+- **Commit hashes**:
+  - `00bb04c` (feat(reservation): refresh Screen 5 Booking Confirmed Success to design-refresh-v2 specs)
+
+---
+
+## [2026-10-23] - Fix: Reservation Step 3 Contact Email Placeholder & Pre-Fill Standardization
+
+- **Date**: 2026-10-23
+- **Title**: Fix: Reservation Step 3 Contact Email Placeholder & Pre-Fill Standardization
+- **WHAT changed**:
+  - In `src/screens/Reservation/Step3YourDetails.js`: Added `isPlaceholderEmail` filter and `useAuth()` hook to pre-fill the customer's real email while filtering out internal phone OTP placeholder domains (`@customer.aura.pk`, `@aurabistro.pk`, `@aurakitchen.pk`).
+  - In `src/screens/Reservation/PrimaryContactCard.js`: Replaced hardcoded dummy email placeholder `guest@aurakitchen.pk` with industry-standard `yourname@gmail.com`, added a clear text button (`close-circle`) when typed, and added receipt helper microcopy.
+- **WHY (the problem or goal)**:
+  - Internal synthetic emails (e.g. `guest@aurakitchen.pk`) should never be displayed as suggestions or placeholders to customers in real-world apps. Matches the Gmail standardization established across the user profile.
+- **HOW TO TEST**:
+  - Open Reservation -> Step 3. If signed in with phone OTP, email field starts clean with `yourname@gmail.com` hint.
+  - If user enters email, clear button allows quick reset.
+- **Commit hashes**:
+  - `97bd4cc` (fix(reservation): replace dummy placeholder email with yourname@gmail.com and filter internal domain)
+
+---
+
+## [2026-10-23] - Feat: Design Refresh V2 - Screen 4: Table Reservation Step 3 (Your Details & Review)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Design Refresh V2 - Screen 4: Table Reservation Step 3 (Your Details & Review)
+- **WHAT changed**:
+  - In `src/screens/Reservation/step3Styles.js`: Created dedicated stylesheet implementing Step 3 design tokens (Coral `#FC5834` light, `#FF6B4A` dark, rounded 16px/20px cards, input fields with focus states, chip groups, and sticky dock).
+  - In `src/screens/Reservation/PrimaryContactCard.js`: Built modular contact information card featuring:
+    - Pre-filled customer name, phone number, and email.
+    - Strict Pakistan (+92) phone number formatting with Pakistan flag icon `🇵🇰` and non-editable `+92` prefix.
+    - Seating preference selection pills (`Standard`, `Window Table`, `Quiet Corner`, `Outdoor Terrace`).
+    - Input validation feedback and seamless field navigation.
+  - In `src/screens/Reservation/SpecialRequestsCard.js`: Built modular dietary & special requests card featuring:
+    - Quick-select chip options (`Birthday 🎂`, `Anniversary 💍`, `Quiet table 🤫`, `High chair 👶`, `Window view 🪟`, `Outdoor 🌿`).
+    - Multi-line freeform notes input (150-char max counter).
+    - Friendly microcopy clarifying special requests are subject to table availability.
+  - In `src/screens/Reservation/Step3YourDetails.js`: Assembled Step 3 screen featuring:
+    - Top navigation with back action to Step 2 and 3-segment progress indicator (Step 1 & 2 complete, Step 3 active).
+    - Summary review card (`Today, Oct 24 • 2 Guests • Indoor • 07:30 PM`) with direct "Edit" touchable returning to Step 1.
+    - Room preview card with branch ambience photo, live Prime Table badge, and instant confirmation guarantee.
+    - Cancellation policy notice ("Free cancellation up to 2 hours before dining time").
+    - Sticky bottom primary CTA ("Confirm Reservation") with security lock icon, disabled state when contact fields are invalid, and loading indicator.
+  - In `src/screens/Reservation/ReservationScreen.js`: Wired `Step3YourDetails` into `bookingStep === 3` with seamless navigation to Step 2 and submission handling.
+- **WHY (the problem or goal)**:
+  - Upgrade Table Reservation Step 3 to design-refresh-v2 specifications based on Stitch HTML/screenshot sources of truth, streamlining contact verification, special occasion tagging, and reservation confirmation with zero friction.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Extracted modular sub-components (`PrimaryContactCard`, `SpecialRequestsCard`, `step3Styles`, `Step3YourDetails`) keeping each file strictly <400 lines (115-240 lines).
+  - Preserved existing reservation state, token auth, and backend API contract with `reservationService`.
+- **HOW TO TEST**:
+  - In Reservation Step 2, select a time slot and tap "Next: Your details" -> transitions to Step 3.
+  - Verify 3-segment progress bar shows all segments filled and "Step 3 of 3" pill badge.
+  - Verify Summary Review card displays correct date, guest count, seating area, and chosen time slot.
+  - Test contact form: pre-fills logged-in user data; verify Pakistan phone prefix (+92).
+  - Tap dietary / occasion chips -> tags toggle on/off and append into special requests.
+  - Tap "Confirm Reservation" -> calls reservation API, submits booking, and advances to confirmation.
+- **RISKS or follow-ups**:
+  - None. ESLint passed with 0 errors (78 pre-existing warnings) and all 53 backend tests passed.
+- **Commit hashes**:
+  - `8909155` (feat(reservation): refresh Step 3 Your Details & Review to design-refresh-v2 specs)
+
+---
+
+## [2026-10-23] - Feat: Design Refresh V2 - Screen 3: Table Reservation Step 2 (Pick Time)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Design Refresh V2 - Screen 3: Table Reservation Step 2 (Pick Time)
+- **WHAT changed**:
+  - In `src/screens/Reservation/step2Styles.js`: Created dedicated stylesheet implementing Step 2 design tokens (coral `#FC5834` light, `#FF6B4A` dark, 3-column slots, ambient hero banner, rush alert card, and sticky CTA dock).
+  - In `src/screens/Reservation/TimeSlotGrid.js`: Built modular 3-column dining slot grid separated by service period (☀️ Lunch 12:00 PM – 3:30 PM & 🌙 Dinner 6:00 PM – 10:30 PM), integrating backend collision checking (`isSlotAvailable`), "FULL" strikethrough states, and contextual subtitles ("Table free", "Popular 🔥", "Chef special", "Bar & Table").
+  - In `src/screens/Reservation/Step2PickTime.js`: Assembled Step 2 screen featuring:
+    - Top navigation with back action and 3-segment progress indicator (Step 1 complete, Step 2 active).
+    - Active criteria summary card (`Today, Oct 24 • 2 Guests • Indoor`) with direct "Edit" touchable.
+    - Page title with `2/3` step counter badge and dining duration helper ("1h 30m").
+    - Ambient hero interior photo with live prime table status overlay pill.
+    - Evening rush alert card with shortcut link to try tomorrow's date.
+    - Seating area micro-pills (`Main Dining`, `Outdoor Terrace`, `Quiet Corner`).
+    - Sticky bottom primary CTA ("Next: Your details (${time})") with instant confirmation microcopy.
+  - In `src/screens/Reservation/ReservationScreen.js`: Wired `Step2PickTime` into `bookingStep === 2` with bidirectional navigation to Step 1 and Step 3.
+- **WHY (the problem or goal)**:
+  - Upgrade Table Reservation Step 2 to design-refresh-v2 specifications based on Stitch HTML/screenshot sources of truth, providing clear service periods, live collision indicators, and intuitive flow progression.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Extracted modular components (`TimeSlotGrid`, `step2Styles`, `Step2PickTime`) keeping each file strictly <400 lines (30-340 lines).
+  - Maintained complete backward compatibility with `useReservation` hook and backend table availability.
+- **HOW TO TEST**:
+  - In Reservation Step 1, tap "Next: Pick a time" -> transitions to Step 2 with 2/3 progress indicator.
+  - Verify booking summary card displays correct date, party size, and seating zone; tap "Edit" -> returns to Step 1.
+  - Tap Lunch/Dinner time slots -> selected slot turns solid Coral with "Selected" label; sticky CTA updates time dynamically.
+  - Tap "Try tomorrow" on rush alert -> updates reservation date to tomorrow.
+  - Tap "Next: Your details" -> advances to Step 3.
+- **RISKS or follow-ups**:
+  - None. ESLint passed with 0 errors (78 pre-existing warnings) and all 53 backend tests passed.
+- **Commit hashes**:
+  - `1027683` (feat(reservation): refresh Step 2 Pick Time to design-refresh-v2 specs)
+
+---
+
+## [2026-10-23] - Feat: Design Refresh V2 - Screen 2: Table Reservation Step 1 (When & Guests)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Design Refresh V2 - Screen 2: Table Reservation Step 1 (When & Guests)
+- **WHAT changed**:
+  - In `src/screens/Reservation/step1Styles.js`: Created dedicated stylesheet implementing Warm Table design tokens (coral `#FC5834` light, `#FF6B4A` dark, rounded 16px/20px cards, progress bar segments, and sticky tray).
+  - In `src/screens/Reservation/DateStripSection.js`: Built 7-day horizontal date carousel with calendar header, dynamic month/year pill, day name/num, and live status dots ("Open", "Prime", "Few left", "Full").
+  - In `src/screens/Reservation/GuestCounterSection.js`: Built tactile guest counter card with circular plus/minus buttons (1-12 guests), auto-configured tables subtitle, and quick-picker chips (`1`, `2`, `4`, `6`, `8+`).
+  - In `src/screens/Reservation/SeatingGridSection.js`: Built 2x2 grid of seating options (`Indoor`, `Patio`, `Family`, `Booth`) with ambience emojis, description subtext, and active checkmark badges.
+  - In `src/screens/Reservation/VenueSnapshotCard.js`: Built ambient venue photo card with dynamic branch name pill, "No booking fee" badge, and trust row (Instant confirmation & Free cancellation).
+  - In `src/screens/Reservation/Step1WhenGuests.js`: Assembled Step 1 screen featuring 3-segment progress indicator, step 1 of 3 pill, top navigation bar, and sticky bottom primary CTA ("Next: Pick a time").
+  - In `src/screens/Reservation/ReservationScreen.js`: Wired `bookingStep` state machine rendering `Step1WhenGuests` at Step 1, with seamless transition to Step 2 and persistent access to My Bookings.
+  - In `src/screens/Reservation/BookTabContent.js`: Added `onBack` handler providing a clean "Back to Step 1" navigation route.
+- **WHY (the problem or goal)**:
+  - Transform Table Reservation Step 1 into a modern multi-step booking experience matching Stitch HTML/screenshot sources of truth, with tactile guest counters, horizontal date carousel, and seating preferences.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Extracted modular sub-components keeping every file strictly <400 lines (each component is 60-180 lines).
+  - Preserved existing reservation state and backend table compatibility.
+- **HOW TO TEST**:
+  - Open app and navigate to Reservations tab -> Step 1 (When & Guests) renders.
+  - Verify 3-segment progress bar with Step 1 active and "Step 1 of 3" pill badge.
+  - Tap dates in 7-day strip -> active date highlights in Coral with white typography.
+  - Use +/- stepper or quick chips to change party size -> count and chips update in real-time.
+  - Select a seating preference -> checkmark badge moves to selected card.
+  - Tap "Next: Pick a time" -> advances to Step 2; tap back -> returns to Step 1 with preserved state.
+- **RISKS or follow-ups**:
+  - None. ESLint passed with 0 errors (78 pre-existing warnings) and all 53 backend tests passed.
+- **Commit hashes**:
+  - `c4e4eaf` (feat(reservation): refresh Step 1 When & Guests to design-refresh-v2 specs)
+
+---
+
+## [2026-10-23] - Feat: Design Refresh V2 - Screen 1: Menu Home Screen
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Design Refresh V2 - Screen 1: Menu Home Screen
+- **WHAT changed**:
+  - In `src/screens/Menu/ChefsPickBanner.js`: Created compact modern Chef's Pick hero banner (~120px) matching Stitch designs, featuring gradient overlay, price tag badge, quick-add button, and dish preview.
+  - In `src/screens/Menu/OrderAgainRow.js`: Redesigned to compact horizontal cards displaying max 3 recent dishes with thumbnail, price, title, and quick "+" add-to-cart button.
+  - In `src/screens/Menu/DealsSection.js`: Refactored voucher / deal cards into compact single-line dashed ticket chips with copy-code feedback.
+  - In `src/screens/Menu/CategoryRow.js`: Redesigned categories into vibrant Coral filled pills (`#FC5834`) with modern typography and smooth horizontal scroll.
+  - In `src/components/MenuItemCard.js`: Updated dish card design with inline quantity stepper (`- qty +`) when item is in cart, subtle border radius, rating pills, and clean price presentation.
+  - In `src/screens/Menu/DishGrid.js`: Integrated floating mini cart bar at bottom with live item count, subtotal, and direct "View Cart" navigation.
+  - In `src/screens/Menu/menuStyles.js`: Unified typography, spacing, and brand coral color tokens (`#FC5834` light, `#FF6B4A` dark) per REDESIGN_BRIEF.md.
+  - In `src/screens/Menu/MenuScreen.js`: Reordered scroll layout: Header Search & Location -> Chef's Pick Banner -> Deals / Vouchers -> Order Again -> Categories -> Dish Grid with Active Filters and Floating Cart Bar.
+- **WHY (the problem or goal)**:
+  - Upgrade the Menu Home screen to design-refresh-v2 specifications based on Stitch HTML/screenshot sources of truth, optimizing layout density, visual hierarchy, and instant add-to-cart interactivity.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Extracted modular components under `src/screens/Menu/` keeping each file <400 lines.
+  - Used existing theme colors and Ionicons without introducing third-party packages or paid assets.
+  - Preserved backward compatibility with CartContext, AuthContext, and backend APIs.
+- **HOW TO TEST**:
+  - Open app to Menu Home screen.
+  - Verify Chef's Pick banner, compact Deals ticket chips, Order Again horizontal row, Category pills, and 2-column Dish Grid.
+  - Tap "+" on any dish: verify inline quantity stepper appears and floating mini cart bar updates with count and price.
+  - Tap mini cart bar: navigates to Cart screen.
+- **RISKS or follow-ups**:
+  - None. ESLint passed with 0 errors (78 pre-existing warnings) and all 53 backend tests passed.
+- **Commit hashes**:
+  - `9bb6ac5` (feat(menu): refresh Menu Home screen to design-refresh-v2 specs)
+
+---
+
+## [2026-10-23] - Feat: Real-Time In-App Notification Center Architecture (Batch 1)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Real-Time In-App Notification Center Architecture (Batch 1)
+- **WHAT changed**:
+  - In `server/models/Notification.js`: Created `Notification` schema with fields `user`, `type` (`order_status`, `review_reply`, `loyalty_tier_up`, `loyalty_points`, `voucher_expiring`, `welcome`, `general`), `title`, `body`, `refModel`, `refId`, `isRead`, and `readAt`, with compound indexes `{ user: 1, createdAt: -1 }` and `{ user: 1, isRead: 1 }`.
+  - In `server/services/notificationService.js`: Implemented notification business logic: `createNotification`, `getUserNotifications` (paginated), `markAsRead`, `markAllRead`, `getUnreadCount`, and event dispatch helpers (`notifyOrderStatus`, `notifyReviewReply`, `notifyLoyaltyPoints`, `notifyTierUpgrade`).
+  - In `server/controllers/notificationController.js`: Thin controllers for notification listing, unread count badge, marking single read, and marking all read.
+  - In `server/routes/notificationRoutes.js` & `server/server.js`: Mounted `/api/notifications` routes protected by authentication middleware.
+  - In `server/controllers/orderController.js`: Wired real-time customer notification dispatch when order status advances (Preparing, Ready, Served, Cancelled).
+  - In `server/services/reviewService.js`: Wired notification dispatch when restaurant manager replies to patron dish reviews.
+  - In `server/services/loyaltyService.js`: Wired notification dispatch when points are credited and VIP tier milestones are achieved.
+  - In `src/hooks/useNotifications.js`: Created custom React hook with 20s auto-polling, pull-to-refresh, load more pagination, and mark-as-read mutations.
+  - In `src/context/NotificationContext.js`: Created app-wide notification provider wrapping the custom hook.
+  - In `App.js`: Integrated `<NotificationProvider>` into root context provider tree.
+  - In `src/components/NotificationBell.js`: Built interactive header bell component with unread counter badge.
+  - In `src/screens/NotificationScreen.js`: Built notification center screen featuring All/Unread filter pills, type-specific icons, relative timestamps, and tap-to-order deep links.
+  - In `src/navigation/AppNavigator.js`: Registered `Notifications` screen in root Native Stack.
+  - In `src/screens/Menu/MenuScreen.js` & `src/screens/Manager/ManagerDashboardScreen.js`: Added `NotificationBell` to customer and executive headers.
+  - In `server/tests/notifications.test.js`: Built 10 automated tests covering RBAC, pagination, unread badge calculation, single & batch mark-read, and automatic event triggers on order status updates and review replies.
+  - In `docs/DATABASE.md` & `docs/ARCHITECTURE.md`: Documented Notification schema, indexes, ERD relations, and REST API endpoints.
+- **WHY (the problem or goal)**:
+  - Deliver real-time status alerts and transactional notifications for order updates, manager replies, and loyalty milestones without requiring external push credentials (which are out-of-scope for Expo Go).
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Used in-app notification center architecture backed by MongoDB with periodic polling in `useNotifications.js`.
+  - Event dispatch helpers are safely wrapped in try-catches in existing controllers so notification delivery failures never block order status progression or review replies.
+  - Layer rules strictly preserved: screens consume `NotificationContext`, zero direct API calls.
+  - All files strictly adhere to modularity standards (<400 lines).
+- **HOW TO TEST**:
+  - Run `npm test` in `server/` to execute all 53 tests across all 4 suites.
+  - Tap notification bell in Menu screen header -> view empty state or notification feed.
+  - Place order -> manager updates status to Preparing -> verify in-app notification arrives for customer.
+  - Tap notification -> marks as read, badge count updates in real-time.
+- **RISKS or follow-ups**:
+  - None. Background polling automatically cleans up when component unmounts.
+- **Commit hashes**:
+  - `7206ec8` (feat(notifications): implement real-time in-app notification center with 53 passing tests)
+
+---
+
+## [2026-10-23] - Feat: Patron Loyalty Points & VIP Tiers Engine (Batch 1)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Patron Loyalty Points & VIP Tiers Engine (Batch 1)
+- **WHAT changed**:
+  - In `server/models/LoyaltyTransaction.js`: Created `LoyaltyTransaction` schema for audit-logging point earn, redeem, bonus, and adjustment transactions with user/order references and balance snapshots.
+  - In `server/models/User.js`: Added `loyaltyPoints` (current balance), `lifetimePoints` (total earned), and `loyaltyTier` (Bronze/Silver/Gold/Platinum) fields.
+  - In `server/models/Order.js`: Added `pointsRedeemed`, `pointsDiscountAmount`, `pointsEarned`, and `pointsAwarded` fields for tracking loyalty participation per order.
+  - In `server/services/loyaltyService.js`: Implemented core loyalty business logic: tier calculation with multipliers (Bronze 1.0x, Silver 1.05x, Gold 1.1x, Platinum 1.15x), redemption quoting (1 pt = Rs. 1, min 50 pts, max 50% subtotal), atomic points deduction at checkout, and automatic point crediting + tier upgrades when order status reaches `Served`.
+  - In `server/controllers/loyaltyController.js`: Thin controllers for `getProfile` and `quoteRedemption` endpoints.
+  - In `server/routes/loyaltyRoutes.js` & `server/server.js`: Mounted `/api/loyalty` routes with authenticated access.
+  - In `server/controllers/orderController.js`: Wired `loyaltyService.redeemPoints` into `placeOrder` for checkout deduction, and `loyaltyService.awardPoints` into `updateOrderStatus` when status reaches `Served`.
+  - In `src/hooks/useLoyalty.js`: Created custom hook for patron loyalty profile fetching and redemption quoting.
+  - In `src/reducers/cartReducer.js` & `src/context/CartContext.js`: Added `SET_POINTS_REDEMPTION`, `CLEAR_POINTS_REDEMPTION` actions and `applyPointsRedemption`/`clearPointsRedemption` context helpers.
+  - In `src/screens/Cart/LoyaltySection.js` & `src/screens/Cart/BillSummary.js`: Built loyalty points UI with balance display, instant discount chips, and bill breakdown loyalty savings row.
+  - In `server/tests/loyalty.test.js`: 11 automated tests covering profile fetching, redemption validation, checkout deduction, served order point crediting, and tier upgrades.
+  - In `server/tests/*.test.js`: Increased jest timeout from 30s to 60s across all 3 suites to prevent flaky beforeAll hook timeouts during sequential `--runInBand` execution.
+  - In `docs/DATABASE.md` & `docs/ARCHITECTURE.md`: Documented LoyaltyTransaction schema, updated User/Order fields, ERD, and REST endpoints.
+- **WHY (the problem or goal)**:
+  - Implement a gamified patron loyalty rewards system where customers earn points on every served order, progress through VIP tiers with increasing multipliers, and redeem accumulated points for instant bill discounts at checkout.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Points earned at 1 base pt per Rs. 100 net spend, scaled by tier multiplier. Lifetime points drive automatic tier upgrades (Bronze <500, Silver 500+, Gold 1500+, Platinum 4000+).
+  - Atomic `$inc` operations on User document prevent race conditions during concurrent redemptions.
+  - LoyaltyTransaction audit log enables future point history UI and fraud detection.
+  - Preserved Layer Rules: UI uses `useLoyalty` hook and `CartContext` helpers only; zero direct `apiClient` in screens.
+- **HOW TO TEST**:
+  - Run `npm test` in `server/` to execute all 43 tests (reviews, vouchers, loyalty).
+  - Add items to cart → tap loyalty chip to apply points → verify discount on bill summary.
+  - Place order → manager sets status to Served → verify points credited to patron profile.
+- **RISKS or follow-ups**:
+  - None. Backward-compatible with existing orders (default 0 points).
+- **Commit hashes**:
+  - `d54725f` (feat(loyalty): implement patron loyalty points, VIP tiers, and redemption engine with 43 passing tests)
+
+---
+
+## [2026-10-23] - Feat: Promotional Coupon & Voucher Engine Architecture (Batch 1)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Promotional Coupon & Voucher Engine Architecture (Batch 1)
+- **WHAT changed**:
+  - In `server/models/Voucher.js`: Created `Voucher` schema supporting percentage & fixed discounts, minimum spend, max discount cap, expiration date, usage limits, atomic redemption counters, branch restrictions, and indexes (`{ code, isActive }`, `{ validUntil }`).
+  - In `server/models/Order.js`: Added `promoCode` field to track applied voucher on order documents.
+  - In `server/services/voucherService.js`: Implemented core voucher business logic: `validateVoucher` (with active, expiry, usage limit, outlet, and minimum order checks), `recordVoucherUsage`, and manager CRUD operations (`createVoucher`, `getAllVouchers`, `updateVoucher`, `toggleVoucher`, `deleteVoucher`).
+  - In `server/controllers/voucherController.js`: Thin controllers for public validation endpoint and manager management actions.
+  - In `server/routes/voucherRoutes.js` & `server/server.js`: Mounted `/api/vouchers` routes with role-based access control.
+  - In `server/controllers/orderController.js`: Wired `voucherService.validateVoucher` and atomic `recordVoucherUsage` into `placeOrder`, replacing hardcoded client promo checks with server validation and fallback support.
+  - In `src/reducers/cartReducer.js`: Updated `initialCartState`, `APPLY_PROMO`, `REMOVE_PROMO`, and `CLEAR_CART` to support server-validated voucher payloads (`discountAmount`, `discountType`, `voucherDetails`).
+  - In `src/context/CartContext.js`: Updated `applyPromo` to asynchronously validate voucher codes via `POST /api/vouchers/validate` using `apiClient`, supporting dynamic subtotal and fallback.
+  - In `src/screens/Cart/CartScreen.js`, `VoucherSection.js`, `BillSummary.js`, and `OrderSummaryScreen.js`: Updated financial calculations and UI labels to support both percentage discounts and fixed amount voucher redemptions.
+  - In `src/hooks/useVouchers.js`: Created custom hook for manager voucher listing, creation, editing, active toggles, and deletion.
+  - In `src/screens/Manager/VouchersTab.js` & `src/screens/Manager/VoucherModal.js`: Built Manager Dashboard vouchers tab with status filters, detailed voucher cards, and a modal for creating/editing vouchers.
+  - In `src/screens/Manager/ManagerDashboardScreen.js`: Added "Vouchers" tab to manager scroller and render hierarchy.
+  - In `server/tests/vouchers.test.js`: Built test suite with 18 automated tests covering validation conditions, checkout discount calculation, atomic usage counting, and manager CRUD RBAC.
+  - In `docs/DATABASE.md` & `docs/ARCHITECTURE.md`: Documented Voucher schema, indexes, ERD relationship, and REST endpoints.
+- **WHY (the problem or goal)**:
+  - Replace client-side hardcoded promo codes with an enterprise, server-validated promotional coupon and voucher engine with usage limits, expiration dates, branch gating, and a dedicated manager administration interface.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Enforced single source of truth for discounts in `voucherService.js`.
+  - Maintained backward compatibility for existing promo codes while migrating checkout calculation to dynamic server vouchers.
+  - Preserved Layer Rules by encapsulating manager voucher API interactions in `useVouchers.js` hook and customer cart validation in `CartContext.js`.
+  - Kept all new files strictly under the 400-line modular design limit.
+- **HOW TO TEST**:
+  - Run `npm test` in `server/` to execute all 32 tests (`reviews.test.js` and `vouchers.test.js`).
+  - Add items to tray in Cart -> enter voucher (e.g. `WELCOME10`) -> verify discount applied.
+  - Open Manager Dashboard -> switch to "Vouchers" tab -> create new voucher -> toggle active status -> edit -> delete.
+- **RISKS or follow-ups**:
+  - None. Both legacy promo codes and database vouchers are supported seamlessly.
+- **Commit hashes**:
+  - `c6fa071` (feat(vouchers): implement server-validated coupon and voucher engine with manager controls)
+
+---
+
+## [2026-10-23] - Fix: Extended API Timeout for Cloud Cold-Starts & Strict @gmail.com Signup Enforcement
+
+- **Date**: 2026-10-23
+- **Title**: Fix: Extended API Timeout for Cloud Cold-Starts & Strict @gmail.com Signup Enforcement
+- **WHAT changed**:
+  - In `src/api/client.js`: Increased fetch timeout from 15s to 45s to prevent Render free-tier cold-start abort errors.
+  - In `server/controllers/authController.js`: Added strict `.endsWith('@gmail.com')` check to both `register` and `applyEmailUpdate` functions.
+  - In `server/models/User.js`: Updated Mongoose schema regex for `email` to `/^[a-zA-Z0-9_.+-]+@gmail\.com$/`.
+  - In `src/screens/Login/LoginScreen.js`: Enforced `@gmail.com` check in signup validation with friendly error feedback.
+  - In `src/screens/ProfileScreen.js`: Enforced `@gmail.com` check when saving profile email.
+- **WHY (the problem or goal)**:
+  - Fix "Cannot reach server. Check your Wi-Fi and try again" warning triggered when Render cloud backend is waking up from idle.
+  - Enforce user requirement that only authentic `@gmail.com` addresses are accepted for registration and profile updates.
+- **HOW TO TEST**:
+  - Attempt signup with `user@yahoo.com` or `test@outlook.com`: verify rejection with clear message.
+  - Attempt signup with `valid.user@gmail.com`: verify successful registration.
+  - Launch app on cold start: verify requests wait up to 45s and successfully fetch menu without aborting.
+- **Commit hashes**:
+  - `2de3a21` (fix: extend API client timeout to 45s for Render cold-starts and restrict signups to @gmail.com only)
+
+---
+
+## [2026-10-23] - Feat: Verified Patron Dish Reviews & Executive Ratings Architecture (Batch 1)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Verified Patron Dish Reviews & Executive Ratings Architecture (Batch 1)
+- **WHAT changed**:
+  - In `server/models/MenuItem.js`: Added `ratingAverage` and `ratingCount` fields with default values.
+  - In `server/models/Review.js`: Created `Review` schema enforcing one review per dish per served order (`{ user, order, menuItem }` compound unique index), rating validation (1–5 integer), 300-char comment length, manager reply fields, and optimized compound index `{ menuItem, createdAt: -1 }`.
+  - In `server/services/reviewService.js`: Implemented atomic rating recalculation (`syncDishRating`), order verification (must be `Served` and belong to patron), paginated reviews retrieval, user review retrieval, 24-hour update window, manager reply posting, and review deletion.
+  - In `server/controllers/reviewController.js`: Implemented thin controllers for `createReview`, `getMenuItemReviews`, `getAllReviews`, `getMyReviews`, `updateReview`, `replyReview`, and `deleteReview`.
+  - In `server/routes/reviewRoutes.js` & `server/routes/menuRoutes.js`: Exposed `/api/reviews` endpoints and `/api/menu/:id/reviews`.
+  - In `server/server.js`: Mounted review router and exported `app` for testing.
+  - In `src/hooks/useDishReviews.js`: Created custom hook for paginated dish review browsing with reload/fetchMore support.
+  - In `src/hooks/useSubmitReview.js`: Created custom hook managing review submission lifecycle and status.
+  - In `src/hooks/useManagerReviews.js`: Created custom hook managing manager review queue and executive reply actions.
+  - In `src/components/DishReviewsSection.js` & `src/components/dishReviewsSectionStyles.js`: Added verified patron review feed and score breakdown inside Menu dish exploration modal.
+  - In `src/components/RateOrderModal.js` & `src/components/rateOrderModalStyles.js`: Created modular rating modal with dish selector, 1-to-5 star picker, and optional feedback notes.
+  - In `src/screens/OrderTracking/OrderTrackingScreen.js` & `src/screens/OrderTracking/PastOrderCard.js`: Added "Rate Dishes" button on served orders triggering the rating modal.
+  - In `src/screens/Menu/DishGrid.js`, `TopRatedRow.js`, `src/components/MenuItemCard.js`, and `src/context/MenuContext.js`: Updated dish cards and grid to display dynamic average ratings and "New" badge for unrated items.
+  - In `src/screens/Manager/ManagerDashboardScreen.js`, `ReviewsTab.js`, `ReviewReplyModal.js`, and `reviewsTabStyles.js`: Added executive Reviews tab in Manager Dashboard.
+  - In `docs/DATABASE.md` & `docs/ARCHITECTURE.md`: Documented new Review model, updated MenuItem attributes, and REST endpoints.
+- **WHY (the problem or goal)**:
+  - Enable an authentic, verified dining feedback loop where only patrons who have ordered and received a dish can submit ratings and tasting notes, while giving managers a direct channel to respond to customer experiences.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Enforced verification at the database level by requiring an associated `Order` in `Served` status and ensuring the dish was part of that order.
+  - Computed ratings atomically via MongoDB aggregation to avoid drift.
+  - Structured frontend components strictly adhering to Layer Rules (Contexts/Hooks only, zero direct `apiClient` calls in UI) and file length limits (< 400 lines).
+- **HOW TO TEST**:
+  - Open Order Tracking -> locate a "Served" order -> tap "Rate Dishes".
+  - Select dish -> pick 1–5 stars -> write feedback -> submit.
+  - Check Menu screen -> verify dish average rating updates and shows in modal.
+  - Open Manager Dashboard -> switch to "Reviews" tab -> verify review appears -> post an executive reply.
+- **RISKS or follow-ups**:
+  - None. Backward-compatible with existing menu dishes and unrated items.
+- **Commit hashes**:
+  - `aefd64c` (feat(reviews): implement verified dish reviews, ratings aggregation, and manager responses)
+
+---
+
 ## [2026-10-22] - Build: Configure EAS Updates and App Version Runtime Policy
 
 - **Date**: 2026-10-22

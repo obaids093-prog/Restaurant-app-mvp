@@ -33,6 +33,7 @@ export default function BookTabContent({
   setContactPhone,
   handleOpenReview,
   scrollContentStyle,
+  onBack,
 }) {
   const { colors, typography, radius } = useTheme();
 
@@ -77,6 +78,17 @@ export default function BookTabContent({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
+      {onBack && (
+        <TouchableOpacity
+          onPress={onBack}
+          style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 6 }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="arrow-back" size={20} color={colors.primary} />
+          <Text style={[typography.button, { color: colors.primary }]}>Back to Step 1 (When & Guests)</Text>
+        </TouchableOpacity>
+      )}
+
       <DateRow
         upcomingDates={upcomingDates}
         selectedDate={selectedDate}

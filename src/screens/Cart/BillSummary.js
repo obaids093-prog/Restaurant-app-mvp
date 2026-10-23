@@ -28,13 +28,24 @@ export default function BillSummary({
         </Text>
       </View>
 
-      {discountPercent > 0 && (
+      {calculations.discountAmount > 0 && (
         <View style={styles.billRow}>
           <Text style={[styles.billLabel, { color: colors.ready }]}>
-            Privilege Savings ({discountPercent}%)
+            Privilege Savings{discountPercent > 0 ? ` (${discountPercent}%)` : ''}
           </Text>
           <Text style={[styles.billValue, { color: colors.ready, fontWeight: '700' }]}>
             - {brand.formatPrice(calculations.discountAmount)}
+          </Text>
+        </View>
+      )}
+
+      {calculations.pointsDiscountAmount > 0 && (
+        <View style={styles.billRow}>
+          <Text style={[styles.billLabel, { color: '#D97706' }]}>
+            Loyalty Points Redeemed
+          </Text>
+          <Text style={[styles.billValue, { color: '#D97706', fontWeight: '700' }]}>
+            - {brand.formatPrice(calculations.pointsDiscountAmount)}
           </Text>
         </View>
       )}

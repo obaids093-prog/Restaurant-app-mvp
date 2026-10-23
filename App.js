@@ -16,7 +16,9 @@ import { MenuProvider } from './src/context/MenuContext';
 import { CartProvider } from './src/context/CartContext';
 import { OrdersProvider } from './src/context/OrdersContext';
 import { BranchProvider } from './src/context/BranchContext';
+import { NotificationProvider } from './src/context/NotificationContext';
 import { BranchPickerModal } from './src/components/ui';
+import { NotificationBannerToast } from './src/components/NotificationBannerToast';
 import AppNavigator from './src/navigation/AppNavigator';
 
 function MainApp({ fontsLoaded }) {
@@ -42,6 +44,7 @@ function MainApp({ fontsLoaded }) {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <AppNavigator />
       <BranchPickerModal />
+      <NotificationBannerToast />
     </>
   );
 }
@@ -63,7 +66,9 @@ export default function App() {
             <MenuProvider>
               <CartProvider>
                 <OrdersProvider>
-                  <MainApp fontsLoaded={fontsLoaded} />
+                  <NotificationProvider>
+                    <MainApp fontsLoaded={fontsLoaded} />
+                  </NotificationProvider>
                 </OrdersProvider>
               </CartProvider>
             </MenuProvider>

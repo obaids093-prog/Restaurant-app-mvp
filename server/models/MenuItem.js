@@ -46,9 +46,20 @@ const menuItemSchema = new mongoose.Schema(
     },
     rating: {
       type: Number,
-      default: 4.8,
+      default: 0,
       min: [0, 'Rating cannot be below 0'],
       max: [5, 'Rating cannot exceed 5'],
+    },
+    ratingAverage: {
+      type: Number,
+      default: 0,
+      min: [0, 'Rating cannot be below 0'],
+      max: [5, 'Rating cannot exceed 5'],
+    },
+    ratingCount: {
+      type: Number,
+      default: 0,
+      min: [0, 'Rating count cannot be negative'],
     },
     tag: {
       type: String,

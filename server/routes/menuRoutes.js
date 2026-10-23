@@ -20,12 +20,15 @@ const {
   updateMenuItem,
   deleteMenuItem,
 } = require('../controllers/menuController');
+const { getMenuItemReviews } = require('../controllers/reviewController');
 const { protect, managerOnly } = require('../middleware/auth');
 
 router
   .route('/')
   .get(getMenuItems)
   .post(protect, managerOnly, createMenuItem);
+
+router.get('/:id/reviews', getMenuItemReviews);
 
 router
   .route('/:id')

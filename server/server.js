@@ -26,20 +26,22 @@ const connectDB = require('./config/db');
 dotenv.config();
 
 // Validate required environment variables before initializing services
-const requiredEnv = ['MONGO_URI', 'JWT_SECRET'];
-const missingEnv = requiredEnv.filter((key) => !process.env[key] || !process.env[key].trim());
+if (process.env.NODE_ENV !== 'test') {
+  const requiredEnv = ['MONGO_URI', 'JWT_SECRET'];
+  const missingEnv = requiredEnv.filter((key) => !process.env[key] || !process.env[key].trim());
 
-if (missingEnv.length > 0) {
-  console.error('\n❌ FATAL CONFIGURATION ERROR: Missing required environment variable(s):');
-  missingEnv.forEach((key) => {
-    console.error(`   - ${key} is required but not set.`);
-  });
-  console.error('Please configure them in your environment or server/.env (see server/.env.example).\n');
-  process.exit(1);
+  if (missingEnv.length > 0) {
+    console.error('\n❌ FATAL CONFIGURATION ERROR: Missing required environment variable(s):');
+    missingEnv.forEach((key) => {
+      console.error(`   - ${key} is required but not set.`);
+    });
+    console.error('Please configure them in your environment or server/.env (see server/.env.example).\n');
+    process.exit(1);
+  }
+
+  // Connect to MongoDB
+  connectDB();
 }
-
-// Connect to MongoDB
-connectDB();
 
 const app = express();
 
@@ -157,6 +159,11 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/reservations', require('./routes/reservationRoutes'));
 app.use('/api/tables', require('./routes/tableRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/vouchers', require('./routes/voucherRoutes'));
+app.use('/api/loyalty', require('./routes/loyaltyRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
 
 // ── 404 Handler ─────────────────────────────────────────────
 app.use((req, res) => {
@@ -172,6 +179,10 @@ app.use((err, req, res, next) => {
 
 // ── Start Server ─────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;

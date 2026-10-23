@@ -138,6 +138,8 @@ export default function LoginScreen({ navigation }) {
         newErrors.email = 'Email address is required.';
       } else if (!emailRegex.test(vals.email.trim())) {
         newErrors.email = 'Please enter a valid email address.';
+      } else if (mode === 'signup' && !vals.email.trim().toLowerCase().endsWith('@gmail.com')) {
+        newErrors.email = 'Only Gmail accounts (@gmail.com) are accepted.';
       }
 
       validatePasswordFields(vals, mode === 'signup', newErrors);

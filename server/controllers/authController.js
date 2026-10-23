@@ -50,8 +50,8 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Password must contain at least one digit' });
     }
 
-    if (!EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 100) {
-      return res.status(400).json({ message: 'Please provide a valid email address' });
+    if (!EMAIL_REGEX.test(cleanEmail) || !cleanEmail.endsWith('@gmail.com') || cleanEmail.length > 100) {
+      return res.status(400).json({ message: 'Only Google Mail (@gmail.com) addresses are permitted for registration' });
     }
 
     // Check if user already exists
@@ -177,8 +177,8 @@ const applyEmailUpdate = async (user, email) => {
   const cleanEmail = email.toLowerCase().trim();
   if (cleanEmail === user.email) return null;
 
-  if (!EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 100) {
-    return { status: 400, message: 'Please provide a valid email address' };
+  if (!EMAIL_REGEX.test(cleanEmail) || !cleanEmail.endsWith('@gmail.com') || cleanEmail.length > 100) {
+    return { status: 400, message: 'Only Google Mail (@gmail.com) addresses are permitted' };
   }
 
   const existingUser = await User.findOne({

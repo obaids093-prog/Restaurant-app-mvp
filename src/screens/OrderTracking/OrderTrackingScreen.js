@@ -21,6 +21,7 @@ import { showTrackingAlert, getOrderListTitle, reorderDishes } from './trackingH
 import ActiveOrderHero from './ActiveOrderHero';
 import PastOrderCard from './PastOrderCard';
 import TrackingEmptyState from './TrackingEmptyState';
+import RateOrderModal from '../../components/RateOrderModal';
 
 export { ACTIVE_STATUSES, CANCEL_WINDOW_MINUTES };
 
@@ -40,6 +41,9 @@ export default function OrderTrackingScreen({ route, navigation }) {
 
   // Expanded receipt details toggle
   const [expandedReceiptId, setExpandedReceiptId] = useState(null);
+
+  // Rating modal for Served orders
+  const [ratingOrder, setRatingOrder] = useState(null);
 
   // Active orders (Pending, Preparing, Ready only) sorted by most recent
   const activeOrders = useMemo(() => {
@@ -410,6 +414,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
                 }
                 onReorder={handleReorder}
                 onCancelOrder={handleCancelOrder}
+                onRateOrder={(orderToRate) => setRatingOrder(orderToRate)}
                 colors={colors}
                 shadows={shadows}
                 typography={typography}
@@ -418,6 +423,16 @@ export default function OrderTrackingScreen({ route, navigation }) {
           </View>
         )}
       </ScrollView>
+
+      {/* Rate Your Order Prompt Modal Sheet */}
+      <RateOrderModal
+        visible={Boolean(ratingOrder)}
+        order={ratingOrder}
+        onClose={() => setRatingOrder(null)}
+        onReviewSubmitted={() => {
+          if (fetchOrders) fetchOrders();
+        }}
+      />
     </View>
   );
 }

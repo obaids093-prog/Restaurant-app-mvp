@@ -13,7 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../../context/CartContext';
 import { useMenu } from '../../context/MenuContext';
 import { useTheme } from '../../context/ThemeContext';
-import { PROMO_CODES } from '../../reducers/cartReducer';
 import { styles, SERVICE_CHARGE_RATE, SALES_TAX_RATE } from './cartStyles';
 import CartEmptyState from './CartEmptyState';
 import CartItemCard from './CartItemCard';
@@ -74,7 +73,18 @@ export default function CartScreen({ navigation }) {
       0
     );
 
-    const discountAmount = subtotal * (cartState.discountPercent / 100);
+    let discountAmount = 0;
+    if (cartState.discountAmount > 0 && cartState.discountType === 'fixed') {
+      discountAmount = Math.min(subtotal, cartState.discountAmount);
+    } else if (cartState.discountPercent > 0) {
+      discountAmount = subtotal * (cartState.discountPercent / 100);
+      if (cartState.voucherDetails?.maxDiscountAmount) {
+        discountAmount = Math.min(discountAmount, cartState.voucherDetails.maxDiscountAmount);
+      }
+    } else if (cartState.discountAmount > 0) {
+      discountAmount = Math.min(subtotal, cartState.discountAmount);
+    }
+
     const discountedSubtotal = Math.max(0, subtotal - discountAmount);
 
     const serviceCharge = discountedSubtotal * SERVICE_CHARGE_RATE;
@@ -89,10 +99,17 @@ export default function CartScreen({ navigation }) {
       salesTax,
       grandTotal,
     };
-  }, [cartState.items, cartState.discountPercent, getItemPrice]);
+  }, [
+    cartState.items,
+    cartState.discountPercent,
+    cartState.discountAmount,
+    cartState.discountType,
+    cartState.voucherDetails,
+    getItemPrice,
+  ]);
 
   // Handle promo code submission
-  const handleApplyPromo = (codeToApply) => {
+  const handleApplyPromo = async (codeToApply) => {
     const code = (codeToApply || promoInput).trim();
     setPromoError('');
     if (!code) {
@@ -101,12 +118,15 @@ export default function CartScreen({ navigation }) {
     }
 
     try {
-      applyPromo(code);
+      const data = await applyPromo(code, calculations.subtotal);
       setPromoInput('');
-      const disc = PROMO_CODES[code.toUpperCase()] || 10;
+      const discText =
+        data?.discountType === 'percentage'
+          ? `${data.discountValue}%`
+          : `Rs. ${data?.discountAmount || data?.discountValue || ''}`;
       Alert.alert(
         'Voucher Applied',
-        `Privilege voucher ${code.toUpperCase()} activated (${disc}% savings).`
+        `Privilege voucher ${code.toUpperCase()} activated (${discText} savings).`
       );
     } catch (err) {
       setPromoError(err.message);
@@ -270,6 +290,8 @@ export default function CartScreen({ navigation }) {
               shadows={shadows}
               promoCode={cartState.promoCode}
               discountPercent={cartState.discountPercent}
+              discountAmount={calculations.discountAmount}
+              discountType={cartState.discountType}
               promoInput={promoInput}
               promoError={promoError}
               onPromoInputChange={(val) => {

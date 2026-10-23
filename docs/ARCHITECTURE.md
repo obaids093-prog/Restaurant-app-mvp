@@ -17,7 +17,7 @@ The platform is designed with a decoupled client-server architecture consisting 
                            ▼
 ┌────────────────────────────────────────────────────────┐
 │               Express.js REST API Server               │
-│      (Auth, Menu, Orders, Reservations, Tables)        │
+│  (Auth, Menu, Orders, Reservations, Tables, Loyalty)    │
 └──────────────────────────┬─────────────────────────────┘
                            │ Mongoose ODM Driver
                            ▼
@@ -64,7 +64,7 @@ All screens exceeding ~600 lines have been decomposed into focused sub-module fo
 | :--- | :--- | :--- |
 | **Menu** | `src/screens/Menu/` | `menuStyles.js`, `HeroCarousel`, `CategoryRow`, `OrderAgainRow`, `DealsSection`, `TopRatedRow`, `FilterSheet`, `DishGrid`, `MenuScreen`, `index.js` |
 | **Reservation** | `src/screens/Reservation/` | `reservationStyles.js`, `DateRow`, `PartyStepper`, `ZonePicker`, `SlotGrid`, `BookingForm`, `BookTabContent`, `ConfirmSheet`, `SuccessSheet`, `MyBookingsList`, `ReservationScreen`, `index.js` |
-| **Manager** | `src/screens/Manager/` | `managerStyles.js`, `OrderItemCard`, `ReservationCard`, `MenuItemCard`, `OverviewTab`, `OrdersTab`, `ReservationsTab`, `MenuStockTab`, `TeamTab`, `AddDishModal`, `EditDishModal`, `ManagerDashboardScreen`, `index.js` |
+| **Manager** | `src/screens/Manager/` | `managerStyles.js`, `OrderItemCard`, `ReservationCard`, `MenuItemCard`, `OverviewTab`, `HourlyBarChart`, `OrdersTab`, `ReservationsTab`, `MenuStockTab`, `TeamTab`, `ReviewsTab`, `ReviewReplyModal`, `reviewsTabStyles.js`, `VouchersTab`, `VoucherModal`, `AddDishModal`, `EditDishModal`, `ManagerDashboardScreen`, `index.js` |
 | **Login** | `src/screens/Login/` | `loginStyles.js`, `BrandCanopy`, `EmailPasswordForm`, `PhoneOtpStep`, `NameEntryStep`, `GuestBrowseFooter`, `LoginScreen`, `index.js` |
 | **Cart** | `src/screens/Cart/` | `cartStyles.js`, `EmptyClocheIllustration`, `CartEmptyState`, `CartItemCard`, `VoucherSection`, `BillSummary`, `FloatingCartFooter`, `CartScreen`, `index.js` |
 | **OrderTracking** | `src/screens/OrderTracking/` | `trackingStyles.js`, `trackingHelpers.js`, `ActiveOrderHero`, `PastOrderCard`, `TrackingEmptyState`, `OrderTrackingScreen`, `index.js` |
@@ -90,6 +90,7 @@ Root Stack Navigator
 │   └── Profile (Stitch variant 2 profile, dietary preferences, edit info)
 ├── OrderSummary (Checkout fulfillment, dine-in/takeaway, payment settlement)
 ├── OrderPlaced (Success confirmation, cloche animations, receipt)
+├── Notifications (In-app notification center, filter pills, deep link to order tracking)
 └── ManagerDashboard (Executive overview, live KPI cards, order & table management)
 ```
 
@@ -127,6 +128,30 @@ The backend is built with Express.js using a modular controller-route-model arch
 | | `GET` | `/api/orders` | Manager/Staff | Fetches all active kitchen orders (filterable by branch). |
 | | `PATCH` | `/api/orders/:id/status` | Manager/Staff | Updates status (Pending ➔ Preparing ➔ Ready ➔ Served). |
 | | `PATCH` | `/api/orders/:id/cancel` | Authenticated | Cancels order while in Pending state. |
+| **Reviews** | `GET` | `/api/menu/:id/reviews` | Public | Paginated verified reviews and rating stats for a dish. |
+| | `POST` | `/api/reviews` | Authenticated | Submits rating and tasting notes for dish from a served order. |
+| | `GET` | `/api/reviews` | Manager | Paginated patron reviews across all dishes. |
+| | `GET` | `/api/reviews/my` | Authenticated | Current user's submitted dish reviews. |
+| | `PATCH` | `/api/reviews/:id` | Authenticated | Updates review rating/comment (owner only, within 24h). |
+| | `PATCH` | `/api/reviews/:id/reply` | Manager | Official executive chef / manager reply to review. |
+| | `DELETE` | `/api/reviews/:id` | Authenticated/Manager | Deletes review and recalculates dish rating aggregates. |
+| **Vouchers** | `GET` | `/api/vouchers/active` | Public | Returns only currently active, non-expired, usage-left vouchers for the customer Deals row (excludes demo vouchers in production). |
+| | `POST` | `/api/vouchers/validate` | Public | Validates voucher code against subtotal, branch, and user limits; calculates discount. |
+| | `GET` | `/api/vouchers` | Manager | Paginated list of vouchers with optional active/inactive filter. |
+| | `POST` | `/api/vouchers` | Manager | Creates new percentage or fixed discount promotional voucher. |
+| | `PUT` | `/api/vouchers/:id` | Manager | Updates voucher properties (value, limits, branch, dates). |
+| | `PATCH` | `/api/vouchers/:id/toggle` | Manager | Toggles voucher active/inactive status. |
+| | `DELETE` | `/api/vouchers/:id` | Manager | Permanently removes promotional voucher. |
+| | `POST` | `/api/vouchers/deactivate-demo` | Manager | Deactivates all seeded demo vouchers (`isDemo: true`). |
+| **Loyalty** | `GET` | `/api/loyalty/profile` | Authenticated | Patron loyalty profile (points, tier, lifetime). |
+| | `POST` | `/api/loyalty/quote` | Authenticated | Calculates points redemption discount for a given subtotal. |
+| **Notifications** | `GET` | `/api/notifications` | Authenticated | Paginated feed of user alerts with unread counter. |
+| | `GET` | `/api/notifications/unread-count` | Authenticated | High-speed unread badge count for header polling. |
+| | `PATCH` | `/api/notifications/read-all` | Authenticated | Marks all unread user notifications as read. |
+| | `PATCH` | `/api/notifications/:id/read` | Authenticated | Marks single user notification as read. |
+| | `POST` | `/api/notifications/push-token` | Authenticated | Registers an active Expo device push token (`$addToSet`). |
+| | `DELETE` | `/api/notifications/push-token` | Authenticated | Unregisters device push token on user logout (`$pull`). |
+| **Analytics** | `GET` | `/api/analytics/summary` | Manager | Aggregated business KPIs, sales volume, AOV, PKT hourly rush buckets, top dishes, branch breakdown, and repeat customer rate. |
 
 ---
 

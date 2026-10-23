@@ -23,4 +23,20 @@ module.exports = [
       'no-constant-condition': 'warn',
     },
   },
+  {
+    files: ['tests/**', '**/*.test.js'],
+    languageOptions: {
+      globals: {
+        describe: true,
+        it: true,
+        test: true,
+        expect: true,
+        beforeAll: true,
+        afterAll: true,
+        beforeEach: true,
+        afterEach: true,
+        jest: true,
+      },
+    },
+  },
 ];

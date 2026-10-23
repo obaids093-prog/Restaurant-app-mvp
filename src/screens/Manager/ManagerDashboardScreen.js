@@ -27,8 +27,11 @@ import OrdersTab from './OrdersTab';
 import ReservationsTab from './ReservationsTab';
 import MenuStockTab from './MenuStockTab';
 import TeamTab from './TeamTab';
+import ReviewsTab from './ReviewsTab';
+import VouchersTab from './VouchersTab';
 import AddDishModal from './AddDishModal';
 import EditDishModal from './EditDishModal';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function ManagerDashboardScreen({ navigation }) {
   const { user, logout } = useAuth();
@@ -39,7 +42,7 @@ export default function ManagerDashboardScreen({ navigation }) {
   const { menuItems, updatePrice, updateMenuItem, toggleAvailability, addMenuItem, isLoading: menuLoading, error: menuError, fetchMenu } = useMenu();
   const { reservationsList, refetchReservations, error: resError } = useReservation(user);
 
-  // Active Tab: 'overview' | 'orders' | 'reservations' | 'menu' | 'team'
+  // Active Tab: 'overview' | 'orders' | 'reservations' | 'menu' | 'team' | 'reviews'
   const [activeTab, setActiveTab] = useState('overview');
 
   // Orders Filter
@@ -483,6 +486,7 @@ export default function ManagerDashboardScreen({ navigation }) {
 
           {/* Quick Nav / Exit Actions */}
           <View style={styles.headerActions}>
+            <NotificationBell iconColor="#FFFFFF" style={{ marginRight: 4 }} />
             <TouchableOpacity
               onPress={() => navigation.navigate('CustomerApp')}
               style={styles.switchViewBtn}
@@ -523,6 +527,8 @@ export default function ManagerDashboardScreen({ navigation }) {
             { id: 'reservations', label: `Bookings (${pendingBookings.length})`, icon: 'calendar-outline' },
             { id: 'menu', label: `Menu (${(menuItems || []).length})`, icon: 'restaurant-outline' },
             { id: 'team', label: `Team (${staffList.length})`, icon: 'people-outline' },
+            { id: 'reviews', label: 'Reviews', icon: 'star-outline' },
+            { id: 'vouchers', label: 'Vouchers', icon: 'pricetag-outline' },
           ].map((tab) => {
             const isSelected = activeTab === tab.id;
             return (
@@ -659,6 +665,26 @@ export default function ManagerDashboardScreen({ navigation }) {
             typography={typography}
             radius={radius}
             shadows={shadows}
+          />
+        )}
+
+        {activeTab === 'reviews' && (
+          <ReviewsTab
+            colors={colors}
+            fonts={fonts}
+            radius={radius}
+            shadows={shadows}
+            insets={insets}
+          />
+        )}
+
+        {activeTab === 'vouchers' && (
+          <VouchersTab
+            colors={colors}
+            fonts={fonts}
+            radius={radius}
+            shadows={shadows}
+            insets={insets}
           />
         )}
       </ScrollView>

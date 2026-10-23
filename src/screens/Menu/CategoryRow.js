@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, ScrollView } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { CategoryChip } from '../../components/ui';
-import { styles, CATEGORIES, CATEGORY_ICONS } from './menuStyles';
+import { CATEGORIES, CATEGORY_ICONS } from './menuStyles';
 
 export default function CategoryRow({
   categories = CATEGORIES,
@@ -10,33 +9,82 @@ export default function CategoryRow({
   onSelectCategory,
   categoryIcons = CATEGORY_ICONS,
   colors,
+  fonts,
+  radius,
 }) {
   return (
-    <View style={styles.categorySection}>
+    <View style={styles.container}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryScrollContent}
+        contentContainerStyle={styles.scrollContent}
       >
         {categories.map((cat) => {
           const isActive = selectedCategory === cat;
+          const iconName = categoryIcons[cat] || 'restaurant';
+
           return (
-            <CategoryChip
+            <TouchableOpacity
               key={cat}
-              label={cat}
-              active={isActive}
+              activeOpacity={0.8}
               onPress={() => onSelectCategory(cat)}
-              icon={
-                <Ionicons
-                  name={categoryIcons[cat] || 'restaurant'}
-                  size={22}
-                  color={isActive ? colors.onPrimary : colors.mutedText}
-                />
-              }
-            />
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: isActive ? colors.primary : colors.surface,
+                  borderColor: isActive ? colors.primary : colors.subtleBorder,
+                  borderRadius: radius?.full || 20,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={`Category ${cat}`}
+            >
+              <Ionicons
+                name={iconName}
+                size={16}
+                color={isActive ? '#FFFFFF' : colors.textPrimary}
+                style={styles.chipIcon}
+              />
+              <Text
+                style={[
+                  styles.chipLabel,
+                  {
+                    color: isActive ? '#FFFFFF' : colors.textPrimary,
+                    fontFamily: isActive ? fonts.bold : fonts.medium,
+                  },
+                ]}
+              >
+                {cat}
+              </Text>
+            </TouchableOpacity>
           );
         })}
       </ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 16,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    height: 40,
+  },
+  chipIcon: {
+    marginRight: 6,
+  },
+  chipLabel: {
+    fontSize: 13,
+  },
+});

@@ -95,15 +95,28 @@ export default function TopRatedRow({
                   },
                 ]}
               >
-                <Ionicons name="star" size={10} color={colors.secondary} />
-                <Text
-                  style={[
-                    styles.topRatedScoreText,
-                    { color: colors.textPrimary, fontFamily: fonts.bold },
-                  ]}
-                >
-                  {dish.rating}
-                </Text>
+                {Number(dish.ratingCount) > 0 && Number(dish.ratingAverage) > 0 ? (
+                  <>
+                    <Ionicons name="star" size={10} color={colors.secondary} />
+                    <Text
+                      style={[
+                        styles.topRatedScoreText,
+                        { color: colors.textPrimary, fontFamily: fonts.bold },
+                      ]}
+                    >
+                      {Number(dish.ratingAverage).toFixed(1)}
+                    </Text>
+                  </>
+                ) : (
+                  <Text
+                    style={[
+                      styles.topRatedScoreText,
+                      { color: colors.primary, fontFamily: fonts.bold, fontSize: 10 },
+                    ]}
+                  >
+                    New
+                  </Text>
+                )}
               </View>
             </View>
 

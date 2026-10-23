@@ -56,6 +56,30 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    promoCode: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    pointsRedeemed: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    pointsDiscountAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    pointsEarned: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    pointsAwarded: {
+      type: Boolean,
+      default: false,
+    },
     serviceCharge: {
       type: Number,
       default: 0,
@@ -116,5 +140,7 @@ const orderSchema = new mongoose.Schema(
 // F-24: Query optimization indexes
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
+orderSchema.index({ createdAt: -1, status: 1 });
+orderSchema.index({ branchId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Order', orderSchema);

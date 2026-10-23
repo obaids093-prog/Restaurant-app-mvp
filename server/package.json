@@ -7,9 +7,11 @@
     "start": "node server.js",
     "dev": "node node_modules/nodemon/bin/nodemon.js server.js",
     "seed": "node seed.js",
+    "seed:demo": "node seedDemo.js",
     "lint": "node node_modules/eslint/bin/eslint.js .",
     "format": "node node_modules/prettier/bin/prettier.cjs --write \"**/*.{js,json}\"",
-    "check": "npm run lint && node node_modules/prettier/bin/prettier.cjs --check \"**/*.{js,json}\""
+    "check": "npm run lint && node node_modules/prettier/bin/prettier.cjs --check \"**/*.{js,json}\"",
+    "test": "node node_modules/jest/bin/jest.js --runInBand --forceExit"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -25,7 +27,10 @@
   },
   "devDependencies": {
     "eslint": "^10.12.0",
+    "jest": "^30.5.2",
+    "mongodb-memory-server": "^11.3.0",
     "nodemon": "^3.1.0",
-    "prettier": "^3.9.10"
+    "prettier": "^3.9.10",
+    "supertest": "^7.3.1"
   }
 }

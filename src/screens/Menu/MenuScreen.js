@@ -25,6 +25,7 @@ import { useCart } from '../../context/CartContext';
 import { useMenu } from '../../context/MenuContext';
 import { useOrders } from '../../context/OrdersContext';
 import MenuItemCard from '../../components/MenuItemCard';
+import NotificationBell from '../../components/NotificationBell';
 import { EmptyState, BranchChip } from '../../components/ui';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useApi } from '../../hooks/useApi';
@@ -37,16 +38,14 @@ import {
   CATEGORY_ICONS,
   SORT_OPTIONS,
   PRICE_FILTERS,
-  DEALS_FOR_YOU,
   FAVOURITES_KEY,
   filterAndSortDishes,
   resolveReorderItems,
 } from './menuStyles';
-import HeroCarousel from './HeroCarousel';
+import ChefsPickBanner from './ChefsPickBanner';
 import CategoryRow from './CategoryRow';
 import OrderAgainRow from './OrderAgainRow';
 import DealsSection from './DealsSection';
-import TopRatedRow from './TopRatedRow';
 import DishGrid from './DishGrid';
 import FilterSheet from './FilterSheet';
 
@@ -54,7 +53,7 @@ export default function MenuScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { colors, isDark, fonts, typography, radius, shadows } = useTheme();
   const { user } = useAuth();
-  const { addItem, totalItemCount, cartState, applyPromo } = useCart();
+  const { addItem, decrement, totalItemCount, cartState, applyPromo } = useCart();
   const { menuItems: contextMenuItems, syncMenuItems } = useMenu();
   const { orders } = useOrders();
 
@@ -100,9 +99,6 @@ export default function MenuScreen({ navigation }) {
   // Filter Sheet Modal
   const [isFilterSheetVisible, setIsFilterSheetVisible] = useState(false);
   const filterSheetAnim = useRef(new Animated.Value(0)).current;
-
-  // Hero carousel active index
-  const [heroIndex, setHeroIndex] = useState(0);
 
   // Explore Dish Modal state
   const [exploredItem, setExploredItem] = useState(null);
@@ -300,14 +296,6 @@ export default function MenuScreen({ navigation }) {
     return menuItems.slice(0, 4);
   }, [menuItems]);
 
-  // Top rated items for horizontal list
-  const topRatedItems = useMemo(() => {
-    return [...menuItems]
-      .filter((m) => (m.rating || 0) >= 4.7)
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-      .slice(0, 6);
-  }, [menuItems]);
-
   // Stable Add to Cart handler
   const handleAddToCart = useCallback(
     (item) => {
@@ -370,22 +358,19 @@ export default function MenuScreen({ navigation }) {
     [menuItems, addItem]
   );
 
-  // Apply promo deal
+  // Apply promo deal — async, throws on rejection for DealsSection to handle
   const handleApplyDeal = useCallback(
-    (code) => {
-      try {
-        applyPromo(code);
-        Alert.alert(
-          'Promotion Applied',
-          `Voucher code "${code}" is now active on your tray!`,
-          [
-            { text: 'View Tray', onPress: () => navigation.navigate('Cart') },
-            { text: 'Continue Ordering', style: 'cancel' },
-          ]
-        );
-      } catch (err) {
-        Alert.alert('Promo Notice', err.message);
-      }
+    async (code) => {
+      const result = await applyPromo(code);
+      Alert.alert(
+        'Promotion Applied',
+        `Voucher code "${code}" is now active on your tray!`,
+        [
+          { text: 'View Tray', onPress: () => navigation.navigate('Cart') },
+          { text: 'Continue Ordering', style: 'cancel' },
+        ]
+      );
+      return result;
     },
     [applyPromo, navigation]
   );
@@ -462,12 +447,21 @@ export default function MenuScreen({ navigation }) {
   // Memoised 2-column Grid Item
   const renderItem = useCallback(
     ({ item }) => {
-      const isFav = favouriteIds.includes(item.id);
+      const itemId = item.id || item._id;
+      const isFav = favouriteIds.includes(itemId);
+      const cartItem = (cartState?.items || []).find(
+        (i) => (i.id || i._id) === itemId
+      );
+      const cartQuantity = cartItem ? cartItem.quantity : 0;
+
       return (
         <MenuItemCard
           item={item}
           isFavourite={isFav}
+          quantity={cartQuantity}
           onAddToCart={handleAddToCart}
+          onIncrement={(dish) => addItem(dish)}
+          onDecrement={(dish) => decrement(dish.id || dish._id)}
           onToggleFavourite={handleToggleFavourite}
           onExplore={(dish) => setExploredItem(dish)}
           colors={colors}
@@ -478,7 +472,7 @@ export default function MenuScreen({ navigation }) {
         />
       );
     },
-    [favouriteIds, handleAddToCart, handleToggleFavourite, colors, shadows, fonts, typography, radius]
+    [favouriteIds, cartState?.items, handleAddToCart, addItem, decrement, handleToggleFavourite, colors, shadows, fonts, typography, radius]
   );
 
   const keyExtractor = useCallback((item) => item.id || item._id, []);
@@ -573,64 +567,75 @@ export default function MenuScreen({ navigation }) {
   // ─── EXTENSIVE HEADER COMPONENT ───────────────────────────────────────────
   const listHeaderComponent = (
     <View style={styles.headerContainer}>
-      {/* Top Bar: Time-of-day Greeting & Profile Initials */}
+      {/* Top Bar: Time-of-day Greeting & Heart/Filter/Bell Action Buttons */}
       <View style={[styles.greetingRow, { paddingTop: insets.top + 8 }]}>
         <View style={styles.greetingTextColumn}>
           <Text
             style={[
               styles.greetingSubtitle,
-              { color: colors.mutedText, fontFamily: fonts.semiBold },
+              { color: colors.mutedText, fontFamily: fonts.medium },
             ]}
           >
-            {brand.tagline.toUpperCase()}
+            {getGreeting()}
           </Text>
           <Text
             style={[
               styles.greetingTitle,
               { color: colors.textPrimary, fontFamily: fonts.bold },
             ]}
+            numberOfLines={1}
           >
-            {getGreeting()}, {customerFirstName}
+            {user?.name || customerFirstName}
           </Text>
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <BranchChip compact />
+
+          {/* Favourites Heart Toggle Button */}
           <TouchableOpacity
-            onPress={() => navigation.navigate('Profile')}
+            onPress={() => setFavouritesOnly(!favouritesOnly)}
             style={[
-              styles.profileAvatarBadge,
+              styles.headerActionBtn,
               {
-                backgroundColor: colors.surfaceSubtle,
+                backgroundColor: favouritesOnly
+                  ? colors.cancelledTint || '#FEE2E2'
+                  : colors.surface,
+                borderColor: favouritesOnly
+                  ? colors.cancelled
+                  : colors.subtleBorder,
+              },
+            ]}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Toggle Favourites filter"
+          >
+            <Ionicons
+              name={favouritesOnly ? 'heart' : 'heart-outline'}
+              size={20}
+              color={favouritesOnly ? colors.cancelled : colors.textPrimary}
+            />
+          </TouchableOpacity>
+
+          {/* Filter Sheet Trigger Button */}
+          <TouchableOpacity
+            onPress={openFilterSheet}
+            style={[
+              styles.headerActionBtn,
+              {
+                backgroundColor: colors.surface,
                 borderColor: colors.subtleBorder,
               },
             ]}
             activeOpacity={0.8}
-            accessibilityLabel="Open Profile"
+            accessibilityRole="button"
+            accessibilityLabel="Open Filters"
           >
-            <View
-              style={[
-                styles.avatarCircle,
-                { backgroundColor: colors.primary },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.avatarInitials,
-                  { color: colors.onPrimary, fontFamily: fonts.bold },
-                ]}
-              >
-                {user?.name
-                  ? user.name
-                      .split(' ')
-                      .map((n) => n[0])
-                      .slice(0, 2)
-                      .join('')
-                      .toUpperCase()
-                  : 'AP'}
-              </Text>
-            </View>
+            <Ionicons name="options-outline" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
+
+          {/* Notification Bell */}
+          <NotificationBell />
         </View>
       </View>
 
@@ -698,23 +703,10 @@ export default function MenuScreen({ navigation }) {
         </TouchableOpacity>
       )}
 
-      {/* Hero Carousel */}
-      <HeroCarousel
-        chefPicks={chefPicks}
-        searchQuery={searchQuery}
-        heroIndex={heroIndex}
-        setHeroIndex={setHeroIndex}
-        onExploreItem={(pick) => setExploredItem(pick)}
-        colors={colors}
-        fonts={fonts}
-        shadows={shadows}
-      />
-
-      {/* Overlapping Search Bar */}
+      {/* Search Bar */}
       <View
         style={[
           styles.searchBarWrapper,
-          !searchQuery && chefPicks.length > 0 && styles.overlappingSearchBar,
           {
             backgroundColor: colors.surface,
             borderColor: colors.subtleBorder,
@@ -738,7 +730,7 @@ export default function MenuScreen({ navigation }) {
               fontFamily: fonts.regular,
             },
           ]}
-          placeholder="Search exquisite dishes, pairings..."
+          placeholder="Search dishes..."
           placeholderTextColor={colors.mutedText}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -754,113 +746,92 @@ export default function MenuScreen({ navigation }) {
             <Ionicons name="close-circle" size={18} color={colors.mutedText} />
           </TouchableOpacity>
         )}
-
-        {/* Filter Sheet Trigger Icon */}
-        <TouchableOpacity
-          onPress={openFilterSheet}
-          style={[
-            styles.searchActionBtn,
-            styles.searchDividerBtn,
-            {
-              backgroundColor: colors.surfaceSubtle,
-              borderColor: colors.subtleBorder,
-            },
-          ]}
-          activeOpacity={0.8}
-          accessibilityLabel="Open Filter Sheet"
-        >
-          <Ionicons name="options-outline" size={18} color={colors.textPrimary} />
-        </TouchableOpacity>
-
-        {/* Favourites Only Filter Icon */}
-        <TouchableOpacity
-          onPress={() => setFavouritesOnly(!favouritesOnly)}
-          style={[
-            styles.searchActionBtn,
-            {
-              backgroundColor: favouritesOnly
-                ? colors.cancelledTint
-                : colors.surfaceSubtle,
-              borderColor: favouritesOnly
-                ? colors.cancelled
-                : colors.subtleBorder,
-            },
-          ]}
-          activeOpacity={0.8}
-          accessibilityLabel="Toggle Favourites"
-        >
-          <Ionicons
-            name={favouritesOnly ? 'heart' : 'heart-outline'}
-            size={18}
-            color={favouritesOnly ? colors.cancelled : colors.mutedText}
-          />
-        </TouchableOpacity>
       </View>
 
-      {/* Category Row */}
+      {/* Pinned Category Chips with Icons */}
       <CategoryRow
         categories={CATEGORIES}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         categoryIcons={CATEGORY_ICONS}
         colors={colors}
+        fonts={fonts}
+        radius={radius}
       />
 
-      {/* Order Again Row */}
+      {/* Compact Chef's Pick Banner (~120px) */}
+      <ChefsPickBanner
+        featuredDish={chefPicks[0] || menuItems[0]}
+        searchQuery={searchQuery}
+        selectedCategory={selectedCategory}
+        onExploreItem={(pick) => setExploredItem(pick)}
+        onOrderNow={(pick) => handleAddToCart(pick)}
+        colors={colors}
+        fonts={fonts}
+        shadows={shadows}
+        radius={radius}
+      />
+
+      {/* Order Again Row (only when past orders exist, max 3) */}
       <OrderAgainRow
         pastOrders={pastOrders}
         selectedCategory={selectedCategory}
         searchQuery={searchQuery}
         onReorder={handleReorder}
+        navigation={navigation}
         colors={colors}
         fonts={fonts}
         shadows={shadows}
+        radius={radius}
       />
 
-      {/* Deals for You Promo Cards */}
+      {/* Deals Row (only when real vouchers exist, ticket chips on one line) */}
       <DealsSection
-        deals={DEALS_FOR_YOU}
         selectedCategory={selectedCategory}
         searchQuery={searchQuery}
         appliedPromo={cartState?.promoCode}
         onApplyDeal={handleApplyDeal}
         colors={colors}
         fonts={fonts}
+        radius={radius}
       />
 
-      {/* Top Rated Row */}
-      <TopRatedRow
-        topRatedItems={topRatedItems}
-        selectedCategory={selectedCategory}
-        searchQuery={searchQuery}
-        onExploreItem={(dish) => setExploredItem(dish)}
-        onAddToCart={handleAddToCart}
-        colors={colors}
-        fonts={fonts}
-        shadows={shadows}
-      />
-
-      {/* Grid Section Title */}
+      {/* "Popular now" Grid Section Header */}
       <View style={styles.gridSectionHeader}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text
             style={[
               styles.gridSectionTitle,
               { color: colors.textPrimary, fontFamily: fonts.bold },
             ]}
           >
-            {favouritesOnly ? 'Your Favourites' : 'Artisan Repertoire'}
+            {favouritesOnly
+              ? 'Your Favourites'
+              : selectedCategory === 'All'
+              ? 'Popular now'
+              : selectedCategory}
           </Text>
-          <Text
-            style={[
-              styles.gridSectionSubtitle,
-              { color: colors.mutedText, fontFamily: fonts.regular },
-            ]}
-          >
-            Showing {displayedItems.length} {selectedCategory === 'All' ? 'creations' : selectedCategory.toLowerCase()}
-          </Text>
+          {searchQuery ? (
+            <Text
+              style={[
+                styles.gridSectionSubtitle,
+                { color: colors.mutedText, fontFamily: fonts.regular },
+              ]}
+              numberOfLines={1}
+            >
+              Search results for "{searchQuery}"
+            </Text>
+          ) : null}
         </View>
 
+        <Text
+          style={[
+            styles.gridSectionSubtitle,
+            { color: colors.mutedText, fontFamily: fonts.medium },
+          ]}
+        >
+          {displayedItems.length} {displayedItems.length === 1 ? 'curated dish' : 'curated dishes'}
+        </Text>
         {/* Active Filter Reset Pill */}
         {(selectedSort !== 'default' || selectedPriceRange !== 'all' || availableOnly || specialsOnly) && (
           <TouchableOpacity
