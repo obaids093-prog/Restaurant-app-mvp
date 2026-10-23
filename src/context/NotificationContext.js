@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import * as Notifications from 'expo-notifications';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAuth } from './AuthContext';
 import {
+  getNotificationsModule,
   registerForPushNotificationsAsync,
   syncPushTokenWithBackend,
 } from '../services/pushNotificationService';
@@ -43,41 +43,51 @@ export function NotificationProvider({ children }) {
 
   // Set up listeners for foreground push notifications & user responses
   useEffect(() => {
+    const Notifications = getNotificationsModule();
+    if (!Notifications) {
+      // In Expo Go or environment without native push module, skip native listeners gracefully
+      return;
+    }
+
     try {
       // Listener for foreground notifications
-      notificationListener.current = Notifications.addNotificationReceivedListener(
-        (notification) => {
-          const content = notification?.request?.content || {};
-          setActiveBannerNotification({
-            title: content.title || 'AURA Alert',
-            body: content.body || '',
-            data: content.data || {},
-          });
+      if (Notifications.addNotificationReceivedListener) {
+        notificationListener.current = Notifications.addNotificationReceivedListener(
+          (notification) => {
+            const content = notification?.request?.content || {};
+            setActiveBannerNotification({
+              title: content.title || 'AURA Alert',
+              body: content.body || '',
+              data: content.data || {},
+            });
 
-          // Refresh in-app notifications and unread badge count
-          if (notificationState?.refreshNotifications) {
-            notificationState.refreshNotifications();
-          }
-          if (notificationState?.fetchUnreadCount) {
-            notificationState.fetchUnreadCount();
-          }
-        }
-      );
-
-      // Listener for when a user taps/interacts with a notification banner
-      responseListener.current = Notifications.addNotificationResponseReceivedListener(
-        (response) => {
-          const data = response?.notification?.request?.content?.data || {};
-
-          if (navigationRef.isReady()) {
-            if (data.type === 'order_status' || data.orderId) {
-              navigationRef.navigate('TrackTab');
-            } else {
-              navigationRef.navigate('Notifications');
+            // Refresh in-app notifications and unread badge count
+            if (notificationState?.refreshNotifications) {
+              notificationState.refreshNotifications();
+            }
+            if (notificationState?.fetchUnreadCount) {
+              notificationState.fetchUnreadCount();
             }
           }
-        }
-      );
+        );
+      }
+
+      // Listener for when a user taps/interacts with a notification banner
+      if (Notifications.addNotificationResponseReceivedListener) {
+        responseListener.current = Notifications.addNotificationResponseReceivedListener(
+          (response) => {
+            const data = response?.notification?.request?.content?.data || {};
+
+            if (navigationRef.isReady()) {
+              if (data.type === 'order_status' || data.orderId) {
+                navigationRef.navigate('TrackTab');
+              } else {
+                navigationRef.navigate('Notifications');
+              }
+            }
+          }
+        );
+      }
     } catch (err) {
       console.warn(
         '[NotificationProvider] Failed to register notification listeners:',
