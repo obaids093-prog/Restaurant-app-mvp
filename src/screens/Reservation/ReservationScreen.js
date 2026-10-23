@@ -43,7 +43,6 @@ export default function ReservationScreen() {
     specialRequests,
     setSpecialRequests,
     reservationsList,
-    tablesList: _tablesList,
     validationErrors,
     isSlotAvailable,
     validateReservation,
@@ -51,7 +50,6 @@ export default function ReservationScreen() {
     cancelReservation,
     isLoading,
     error,
-    loadTables: _loadTables,
     refetchReservations,
   } = useReservation(user);
 
@@ -162,13 +160,10 @@ export default function ReservationScreen() {
     [cancelReservation]
   );
 
-  return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-
-      {/* ACTIVE TAB CONTENT */}
-      {activeTab === 0 ? (
-        bookingStep === 1 ? (
+  const renderBookingStepContent = () => {
+    switch (bookingStep) {
+      case 1:
+        return (
           <Step1WhenGuests
             upcomingDates={upcomingDates}
             selectedDate={selectedDate}
@@ -181,7 +176,9 @@ export default function ReservationScreen() {
             onViewBookings={() => setActiveTab(1)}
             bookingsCount={displayedBookings.length}
           />
-        ) : bookingStep === 2 ? (
+        );
+      case 2:
+        return (
           <Step2PickTime
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
@@ -195,7 +192,10 @@ export default function ReservationScreen() {
             onBack={() => setBookingStep(1)}
             onNext={() => setBookingStep(3)}
           />
-        ) : (
+        );
+      case 3:
+      default:
+        return (
           <Step3YourDetails
             selectedDate={selectedDate}
             upcomingDates={upcomingDates}
@@ -213,7 +213,17 @@ export default function ReservationScreen() {
             onBack={() => setBookingStep(2)}
             onSubmit={handleConfirmBooking}
           />
-        )
+        );
+    }
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+
+      {/* ACTIVE TAB CONTENT */}
+      {activeTab === 0 ? (
+        renderBookingStepContent()
       ) : (
         <>
           <View
