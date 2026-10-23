@@ -18,7 +18,7 @@
   - Attempt signup with `valid.user@gmail.com`: verify successful registration.
   - Launch app on cold start: verify requests wait up to 45s and successfully fetch menu without aborting.
 - **Commit hashes**:
-  - Pending commit.
+  - `2de3a21` (fix: extend API client timeout to 45s for Render cold-starts and restrict signups to @gmail.com only)
 
 ---
 
