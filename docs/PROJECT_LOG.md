@@ -32,7 +32,7 @@
 - **RISKS or follow-ups**:
   - None. Backward-compatible with existing orders (default 0 points).
 - **Commit hashes**:
-  - `TBD`
+  - `d54725f` (feat(loyalty): implement patron loyalty points, VIP tiers, and redemption engine with 43 passing tests)
 
 ---
 
