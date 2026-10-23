@@ -31,6 +31,7 @@ import ReviewsTab from './ReviewsTab';
 import VouchersTab from './VouchersTab';
 import AddDishModal from './AddDishModal';
 import EditDishModal from './EditDishModal';
+import NotificationBell from '../../components/NotificationBell';
 
 export default function ManagerDashboardScreen({ navigation }) {
   const { user, logout } = useAuth();
@@ -485,6 +486,7 @@ export default function ManagerDashboardScreen({ navigation }) {
 
           {/* Quick Nav / Exit Actions */}
           <View style={styles.headerActions}>
+            <NotificationBell iconColor="#FFFFFF" style={{ marginRight: 4 }} />
             <TouchableOpacity
               onPress={() => navigation.navigate('CustomerApp')}
               style={styles.switchViewBtn}

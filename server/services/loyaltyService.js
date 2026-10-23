@@ -265,6 +265,21 @@ async function awardOrderPoints(orderId) {
   order.pointsAwarded = true;
   await order.save();
 
+  // Dispatch notifications for points earned and potential tier upgrade
+  try {
+    const notificationService = require('./notificationService');
+    await notificationService.notifyLoyaltyPoints(
+      user._id,
+      totalPointsEarned,
+      updatedUser.loyaltyPoints
+    );
+    if (currentTier !== newTier) {
+      await notificationService.notifyTierUpgrade(user._id, newTier);
+    }
+  } catch (notifErr) {
+    console.warn('Failed to dispatch loyalty notification:', notifErr.message);
+  }
+
   return {
     pointsEarned: totalPointsEarned,
     newBalance: updatedUser.loyaltyPoints,

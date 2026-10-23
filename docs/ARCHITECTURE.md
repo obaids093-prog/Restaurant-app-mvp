@@ -90,6 +90,7 @@ Root Stack Navigator
 │   └── Profile (Stitch variant 2 profile, dietary preferences, edit info)
 ├── OrderSummary (Checkout fulfillment, dine-in/takeaway, payment settlement)
 ├── OrderPlaced (Success confirmation, cloche animations, receipt)
+├── Notifications (In-app notification center, filter pills, deep link to order tracking)
 └── ManagerDashboard (Executive overview, live KPI cards, order & table management)
 ```
 
@@ -142,6 +143,10 @@ The backend is built with Express.js using a modular controller-route-model arch
 | | `DELETE` | `/api/vouchers/:id` | Manager | Permanently removes promotional voucher. |
 | **Loyalty** | `GET` | `/api/loyalty/profile` | Authenticated | Patron loyalty profile (points, tier, lifetime). |
 | | `POST` | `/api/loyalty/quote` | Authenticated | Calculates points redemption discount for a given subtotal. |
+| **Notifications** | `GET` | `/api/notifications` | Authenticated | Paginated feed of user alerts with unread counter. |
+| | `GET` | `/api/notifications/unread-count` | Authenticated | High-speed unread badge count for header polling. |
+| | `PATCH` | `/api/notifications/read-all` | Authenticated | Marks all unread user notifications as read. |
+| | `PATCH` | `/api/notifications/:id/read` | Authenticated | Marks single user notification as read. |
 
 ---
 

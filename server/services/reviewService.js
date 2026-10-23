@@ -217,6 +217,13 @@ async function replyReview(reviewId, managerReplyText) {
   review.managerReplyAt = new Date();
   await review.save();
 
+  try {
+    const notificationService = require('./notificationService');
+    await notificationService.notifyReviewReply(review);
+  } catch (notifErr) {
+    console.warn('Failed to notify review reply:', notifErr.message);
+  }
+
   return Review.findById(review._id)
     .populate('user', 'name avatar')
     .populate('menuItem', 'name image');

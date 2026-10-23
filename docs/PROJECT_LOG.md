@@ -1,5 +1,45 @@
 # Project Log
 
+## [2026-10-23] - Feat: Real-Time In-App Notification Center Architecture (Batch 1)
+
+- **Date**: 2026-10-23
+- **Title**: Feat: Real-Time In-App Notification Center Architecture (Batch 1)
+- **WHAT changed**:
+  - In `server/models/Notification.js`: Created `Notification` schema with fields `user`, `type` (`order_status`, `review_reply`, `loyalty_tier_up`, `loyalty_points`, `voucher_expiring`, `welcome`, `general`), `title`, `body`, `refModel`, `refId`, `isRead`, and `readAt`, with compound indexes `{ user: 1, createdAt: -1 }` and `{ user: 1, isRead: 1 }`.
+  - In `server/services/notificationService.js`: Implemented notification business logic: `createNotification`, `getUserNotifications` (paginated), `markAsRead`, `markAllRead`, `getUnreadCount`, and event dispatch helpers (`notifyOrderStatus`, `notifyReviewReply`, `notifyLoyaltyPoints`, `notifyTierUpgrade`).
+  - In `server/controllers/notificationController.js`: Thin controllers for notification listing, unread count badge, marking single read, and marking all read.
+  - In `server/routes/notificationRoutes.js` & `server/server.js`: Mounted `/api/notifications` routes protected by authentication middleware.
+  - In `server/controllers/orderController.js`: Wired real-time customer notification dispatch when order status advances (Preparing, Ready, Served, Cancelled).
+  - In `server/services/reviewService.js`: Wired notification dispatch when restaurant manager replies to patron dish reviews.
+  - In `server/services/loyaltyService.js`: Wired notification dispatch when points are credited and VIP tier milestones are achieved.
+  - In `src/hooks/useNotifications.js`: Created custom React hook with 20s auto-polling, pull-to-refresh, load more pagination, and mark-as-read mutations.
+  - In `src/context/NotificationContext.js`: Created app-wide notification provider wrapping the custom hook.
+  - In `App.js`: Integrated `<NotificationProvider>` into root context provider tree.
+  - In `src/components/NotificationBell.js`: Built interactive header bell component with unread counter badge.
+  - In `src/screens/NotificationScreen.js`: Built notification center screen featuring All/Unread filter pills, type-specific icons, relative timestamps, and tap-to-order deep links.
+  - In `src/navigation/AppNavigator.js`: Registered `Notifications` screen in root Native Stack.
+  - In `src/screens/Menu/MenuScreen.js` & `src/screens/Manager/ManagerDashboardScreen.js`: Added `NotificationBell` to customer and executive headers.
+  - In `server/tests/notifications.test.js`: Built 10 automated tests covering RBAC, pagination, unread badge calculation, single & batch mark-read, and automatic event triggers on order status updates and review replies.
+  - In `docs/DATABASE.md` & `docs/ARCHITECTURE.md`: Documented Notification schema, indexes, ERD relations, and REST API endpoints.
+- **WHY (the problem or goal)**:
+  - Deliver real-time status alerts and transactional notifications for order updates, manager replies, and loyalty milestones without requiring external push credentials (which are out-of-scope for Expo Go).
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Used in-app notification center architecture backed by MongoDB with periodic polling in `useNotifications.js`.
+  - Event dispatch helpers are safely wrapped in try-catches in existing controllers so notification delivery failures never block order status progression or review replies.
+  - Layer rules strictly preserved: screens consume `NotificationContext`, zero direct API calls.
+  - All files strictly adhere to modularity standards (<400 lines).
+- **HOW TO TEST**:
+  - Run `npm test` in `server/` to execute all 53 tests across all 4 suites.
+  - Tap notification bell in Menu screen header -> view empty state or notification feed.
+  - Place order -> manager updates status to Preparing -> verify in-app notification arrives for customer.
+  - Tap notification -> marks as read, badge count updates in real-time.
+- **RISKS or follow-ups**:
+  - None. Background polling automatically cleans up when component unmounts.
+- **Commit hashes**:
+  - `7206ec8` (feat(notifications): implement real-time in-app notification center with 53 passing tests)
+
+---
+
 ## [2026-10-23] - Feat: Patron Loyalty Points & VIP Tiers Engine (Batch 1)
 
 - **Date**: 2026-10-23

@@ -374,6 +374,30 @@ Audit log of patron loyalty point transactions (earn, redeem, bonus, adjustment)
 
 ---
 
+### 2.9 Collection: `notifications` (Model: `Notification` in `server/models/Notification.js`)
+
+In-app alerts and notifications delivered to patrons and managers for order status updates, manager review replies, loyalty points/tier updates, and promotional reminders.
+
+| Field | Type | Required | Default | Enum / Constraints | Relations / Validation |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `_id` | `ObjectId` | Auto | Auto | MongoDB ObjectId | Primary Key |
+| `user` | `ObjectId` | Yes | — | References `User` model | FK: `ref: 'User'` |
+| `type` | `String` | Yes | — | `['order_status', 'review_reply', 'loyalty_tier_up', 'loyalty_points', 'voucher_expiring', 'welcome', 'general']` | Notification classification category |
+| `title` | `String` | Yes | — | `trim: true`, `maxlength: 120` | Notification headline |
+| `body` | `String` | Yes | — | `trim: true`, `maxlength: 300` | Notification body text |
+| `refModel` | `String` | No | `null` | `['Order', 'Review', 'MenuItem', 'Voucher', null]` | Target entity model |
+| `refId` | `ObjectId` | No | `null` | MongoDB ObjectId | Target entity identifier |
+| `isRead` | `Boolean` | No | `false` | Boolean | Read state indicator |
+| `readAt` | `Date` | No | `null` | Date | Timestamp when user opened/marked notification |
+| `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+| `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
+
+**Indexes**:
+- User Feed Sorting: `{ user: 1, createdAt: -1 }` — Fast chronological feed retrieval.
+- Unread Query Index: `{ user: 1, isRead: 1 }` — Instant badge count query execution.
+
+---
+
 ## 3. Business Rules Enforced in the Database
 
 1. **Email Uniqueness & Case Normalization**:

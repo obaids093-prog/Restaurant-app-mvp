@@ -25,6 +25,7 @@ import { useCart } from '../../context/CartContext';
 import { useMenu } from '../../context/MenuContext';
 import { useOrders } from '../../context/OrdersContext';
 import MenuItemCard from '../../components/MenuItemCard';
+import NotificationBell from '../../components/NotificationBell';
 import { EmptyState, BranchChip } from '../../components/ui';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useApi } from '../../hooks/useApi';
@@ -594,8 +595,9 @@ export default function MenuScreen({ navigation }) {
           </Text>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <BranchChip compact />
+          <NotificationBell />
           <TouchableOpacity
             onPress={() => navigation.navigate('Profile')}
             style={[

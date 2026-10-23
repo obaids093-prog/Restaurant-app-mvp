@@ -16,6 +16,7 @@ const Order = require('../models/Order');
 const MenuItem = require('../models/MenuItem');
 const voucherService = require('../services/voucherService');
 const loyaltyService = require('../services/loyaltyService');
+const notificationService = require('../services/notificationService');
 const { CANCEL_WINDOW_MINUTES } = require('../config/constants');
 
 // Safe regex string escaper to prevent NoSQL regex injection / ReDoS (S1-A)
@@ -314,6 +315,13 @@ const updateOrderStatus = async (req, res) => {
       }
       order.status = 'Cancelled';
       await order.save();
+
+      try {
+        await notificationService.notifyOrderStatus(order);
+      } catch (notifErr) {
+        console.warn('Failed to notify order status:', notifErr.message);
+      }
+
       return res.status(200).json(order);
     }
 
@@ -337,6 +345,13 @@ const updateOrderStatus = async (req, res) => {
 
     order.status = targetStatus;
     await order.save();
+
+    // Notify customer about order progress in real-time
+    try {
+      await notificationService.notifyOrderStatus(order);
+    } catch (notifErr) {
+      console.warn('Failed to notify order status:', notifErr.message);
+    }
 
     // If order reached 'Served', award loyalty points to patron!
     if (targetStatus === 'Served') {
