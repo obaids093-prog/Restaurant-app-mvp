@@ -70,10 +70,17 @@ export default function DealsSection({
     refetch,
   } = useApi('/api/vouchers/active');
 
+  const extractVouchers = (res) => {
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.data)) return res.data;
+    return [];
+  };
+
   // Sync fetched vouchers into state
   useEffect(() => {
-    if (activeVouchers && Array.isArray(activeVouchers)) {
-      setDeals(activeVouchers);
+    if (activeVouchers) {
+      const list = extractVouchers(activeVouchers);
+      setDeals(list);
       setLoaded(true);
     } else if (activeVouchers === null && !loading && !error) {
       setDeals([]);
@@ -87,8 +94,8 @@ export default function DealsSection({
       let mounted = true;
       refetch()
         .then((freshData) => {
-          if (mounted && freshData && Array.isArray(freshData)) {
-            setDeals(freshData);
+          if (mounted && freshData) {
+            setDeals(extractVouchers(freshData));
             setLoaded(true);
           }
         })
