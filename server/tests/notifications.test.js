@@ -378,4 +378,34 @@ describe('Feature 4: In-App Notification System', () => {
     // With 0 valid tokens registered at this point, sent should be 0 and no error thrown
     expect(result.sent).toBe(0);
   });
+
+  it('16. Customer self-cancellation dispatches an order_status cancellation notification', async () => {
+    // Place a fresh order as patron
+    const placeRes = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${patronToken}`)
+      .send({
+        items: [{ menuItem: testDish._id, quantity: 1 }],
+        orderType: 'Dine-in',
+      });
+    expect(placeRes.status).toBe(201);
+    const orderId = placeRes.body._id;
+
+    // Customer cancels own order (status is Pending, within cancel window)
+    const cancelRes = await request(app)
+      .patch(`/api/orders/${orderId}/status`)
+      .set('Authorization', `Bearer ${patronToken}`)
+      .send({ status: 'Cancelled' });
+    expect(cancelRes.status).toBe(200);
+    expect(cancelRes.body.status).toBe('Cancelled');
+
+    // Verify a cancellation notification was created for the patron
+    const cancelNotif = await Notification.findOne({
+      user: patronUser._id,
+      type: 'order_status',
+      refId: orderId,
+    });
+    expect(cancelNotif).toBeTruthy();
+    expect(cancelNotif.title).toContain('Cancelled');
+  });
 });

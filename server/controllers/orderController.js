@@ -304,6 +304,13 @@ const updateOrderStatus = async (req, res) => {
       // Refund any redeemed loyalty points atomically
       await loyaltyService.refundOrderPoints(cancelled._id);
 
+      // Notify the customer about their cancellation (same as manager path)
+      try {
+        await notificationService.notifyOrderStatus(cancelled);
+      } catch (notifErr) {
+        console.warn('Failed to notify order cancellation:', notifErr.message);
+      }
+
       return res.status(200).json(cancelled);
     }
 
