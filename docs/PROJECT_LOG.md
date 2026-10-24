@@ -1,5 +1,36 @@
 # Project Log
 
+## [2026-10-24] - Docs: Feature Verification Audit of Batch 1 and Feature Document
+
+- **Date**: 2026-10-24
+- **Title**: Docs: Feature Verification Audit of Batch 1 and Feature Document
+- **WHAT changed**:
+  - Executed full verification suite on branch `features-batch-1`:
+    - Ran all 53 Jest tests across all 4 suites (`notifications.test.js`, `vouchers.test.js`, `reviews.test.js`, `loyalty.test.js`): 53/53 passed (100%).
+    - Ran `node --check` across all 34 server files: 0 syntax errors.
+    - Ran ESLint: 0 errors, 78 warnings.
+    - Ran Android production bundle export (`expo export --platform android`): 0 errors, 2.9 MB bundle built in 15.1s.
+    - Conducted full repo search for fixed vouchers (`WELCOME10`, `FEAST20`, `AURA30`, `CHEF15`) and hardcoded rating numbers.
+  - Audited all 11 features in Part 1 of `AURA_Restaurant_App_Features_and_Roadmap.docx` (`APP_FEATURES_AND_ROADMAP.md`).
+  - Answered 9 technical questions regarding cancel window, email domain restriction, token storage, loyalty mechanics, push notification capabilities, Render photo persistence, notification event hooks, Render environment, and test counts.
+  - Documented complete findings, risk table, and top 10 prioritized customer-facing bugs/gaps in `docs/FEATURE_AUDIT.md`.
+- **WHY (the problem or goal)**:
+  - Verify Batch 1 features empirically, compare actual code behavior against written document claims, and identify real bugs, architectural discrepancies, and production risks before deploying.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Followed read-only audit protocol without adding features or modifying code when all checks passed.
+  - Verified atomic MongoDB operations for loyalty, traced phone OTP validation conflicts, and evaluated ephemeral disk storage on Render.
+- **HOW TO TEST**:
+  - Review `docs/FEATURE_AUDIT.md` for full breakdown and reproduction paths.
+  - Run `npm test` inside `server/` to verify 53/53 tests pass.
+- **RISKS or follow-ups**:
+  - Phone OTP registration fails due to Mongoose schema regex collision (`@customer.aura.pk` vs `@gmail.com`).
+  - Loyalty points are not refunded upon order cancellation.
+  - Uploaded dish images on Render free tier vanish upon container restart.
+- **Commit hashes**:
+  - `558f2e3` (docs: feature audit)
+
+---
+
 ## [2026-10-24] - Refactor: Replace Obscure Jargon with Plain English Across Entire App
 
 - **Date**: 2026-10-24
