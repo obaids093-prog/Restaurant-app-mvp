@@ -622,4 +622,5 @@ module.exports = {
   sendPhoneOtp,
   verifyPhoneOtp,
   normalizePakPhone,
+  _otpStore: otpStore,
 };
