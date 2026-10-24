@@ -118,4 +118,52 @@ describe('Feature: Phone OTP & Gmail Auth Rule Enforcement', () => {
       expect(res.body.user.email).toBe('phone.test.user@gmail.com');
     });
   });
+
+  describe('Staff Account Creation (POST /api/auth/staff)', () => {
+    let mgrToken;
+
+    beforeAll(async () => {
+      const jwt = require('jsonwebtoken');
+      const mgr = await User.create({
+        name: 'Staff Test Manager',
+        email: 'staff.mgr.test@gmail.com',
+        password: 'Password123',
+        role: 'manager',
+      });
+      mgrToken = jwt.sign({ id: mgr._id, role: 'manager' }, process.env.JWT_SECRET);
+    });
+
+    afterAll(async () => {
+      await User.deleteMany({ email: { $in: ['staff.mgr.test@gmail.com', 'new.staff@gmail.com'] } });
+    });
+
+    it('returns clean 400 when attempting to create staff with a non-gmail address', async () => {
+      const res = await request(app)
+        .post('/api/auth/staff')
+        .set('Authorization', `Bearer ${mgrToken}`)
+        .send({
+          name: 'Chef Asad',
+          email: 'asad@restaurant.pk',
+          password: 'Password123',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/@gmail\.com/i);
+    });
+
+    it('creates staff account when a valid @gmail.com address is provided', async () => {
+      const res = await request(app)
+        .post('/api/auth/staff')
+        .set('Authorization', `Bearer ${mgrToken}`)
+        .send({
+          name: 'Chef Asad',
+          email: 'new.staff@gmail.com',
+          password: 'Password123',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.user.email).toBe('new.staff@gmail.com');
+      expect(res.body.user.role).toBe('manager');
+    });
+  });
 });
