@@ -340,4 +340,29 @@ describe('Feature 1: Ratings and Reviews Endpoints', () => {
       expect(dish.ratingAverage).toBe(0);
     });
   });
+
+  describe('Menu Item Rating Defaults (POST /api/menu)', () => {
+    it('newly created dish starts with ratingAverage 0, ratingCount 0, and rating 0', async () => {
+      const res = await request(app)
+        .post('/api/menu')
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({
+          name: 'Freshly Added Dish',
+          description: 'A brand new test dish without reviews yet',
+          price: 1200,
+          category: 'Mains',
+          image: 'https://images.unsplash.com/photo-new-dish',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.ratingAverage).toBe(0);
+      expect(res.body.ratingCount).toBe(0);
+      expect(res.body.rating).toBe(0);
+
+      if (res.body._id) {
+        await MenuItem.findByIdAndDelete(res.body._id);
+      }
+    });
+  });
 });
+
