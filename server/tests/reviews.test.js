@@ -202,6 +202,32 @@ describe('Feature 1: Ratings and Reviews Endpoints', () => {
       expect(res.body.message).toMatch(/own orders/i);
     });
 
+    it('rejects review for a dish that is not part of the order', async () => {
+      const unrelatedDish = await MenuItem.create({
+        name: 'Unrelated Dish For Test',
+        description: 'Not in customer order',
+        price: 999,
+        category: 'Starters',
+        image: 'https://images.unsplash.com/photo-unrelated',
+      });
+
+      const res = await request(app)
+        .post('/api/reviews')
+        .set('Authorization', `Bearer ${customerToken}`)
+        .send({
+          orderId: servedOrder._id.toString(),
+          menuItemId: unrelatedDish._id.toString(),
+          rating: 4,
+          comment: 'Did not order this dish',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('The specified dish was not part of this order');
+
+      await MenuItem.findByIdAndDelete(unrelatedDish._id);
+    });
+
     it('rejects invalid rating values (< 1 or > 5 or non-integer)', async () => {
       // Create a fresh served order for otherCustomer
       const otherOrder = await Order.create({
