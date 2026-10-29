@@ -19,6 +19,7 @@ import { BranchProvider } from './src/context/BranchContext';
 import { NotificationProvider } from './src/context/NotificationContext';
 import { BranchPickerModal } from './src/components/ui';
 import { NotificationBannerToast } from './src/components/NotificationBannerToast';
+import { ServerWakingBanner } from './src/components/ServerWakingBanner';
 import AppNavigator from './src/navigation/AppNavigator';
 
 function MainApp({ fontsLoaded }) {
@@ -45,6 +46,7 @@ function MainApp({ fontsLoaded }) {
       <AppNavigator />
       <BranchPickerModal />
       <NotificationBannerToast />
+      <ServerWakingBanner />
     </>
   );
 }
