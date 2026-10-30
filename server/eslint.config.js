@@ -15,6 +15,11 @@ module.exports = [
         module: true,
         require: true,
         exports: true,
+        URL: true,
+        Buffer: true,
+        fetch: true,
+        setTimeout: true,
+        clearTimeout: true,
       },
     },
     rules: {

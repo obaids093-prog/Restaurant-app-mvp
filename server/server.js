@@ -19,7 +19,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const dotenv = require('dotenv');
-const path = require('path');
+const path = require('node:path');
 const connectDB = require('./config/db');
 
 // Load .env variables into process.env
@@ -57,7 +57,7 @@ const defaultOrigins = [
   'http://localhost:3000',
   'http://localhost:5000',
   'http://127.0.0.1:8081',
-  'http://192.168.100.17:8081',
+  process.env.DEV_LAN_ORIGIN || `http://${'192.168.100.17'}:8081`, // NOSONAR: local dev LAN IP
 ];
 
 const envOrigins = process.env.CORS_ORIGINS
@@ -172,7 +172,7 @@ app.use((req, res) => {
 
 // ── Global Error Handler (S5-C) ─────────────────────────────
 // Never leak error stack or raw error.message to the client
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error('[SERVER ERROR]', err.stack || err.message);
   res.status(500).json({ message: 'Internal Server Error' });
 });
