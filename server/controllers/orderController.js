@@ -19,6 +19,7 @@ const loyaltyService = require('../services/loyaltyService');
 const notificationService = require('../services/notificationService');
 const riderTrackingService = require('../services/riderTrackingService');
 const receiptService = require('../services/receiptService');
+const inventoryService = require('../services/inventoryService');
 const { CANCEL_WINDOW_MINUTES } = require('../config/constants');
 
 // Safe regex string escaper to prevent NoSQL regex injection / ReDoS (S1-A)
@@ -212,6 +213,13 @@ const placeOrder = async (req, res) => {
       } catch (ptsErr) {
         console.warn('Failed to deduct redeemed points:', ptsErr.message);
       }
+    }
+
+    // Deplete dish portions and auto sold-out if stock reaches 0
+    try {
+      await inventoryService.depleteOrderIngredients(newOrder);
+    } catch (invErr) {
+      console.warn('Inventory depletion error:', invErr.message);
     }
 
     res.status(201).json(newOrder);

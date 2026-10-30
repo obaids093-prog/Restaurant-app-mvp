@@ -142,6 +142,7 @@ To transform AURA from an academic MVP to an enterprise-grade food & dining appl
 - **1-Tap Social Login**: "Sign in with Google" and "Sign in with Apple".
 - **Biometric Security**: FaceID / Fingerprint unlocking for instant access without retyping passwords.
 
-### 10. Ingredient-Level Inventory & Auto-Stock Management (Priority: MEDIUM)
-- **Stock Depletion**: Deduct raw ingredients automatically when orders are cooked (e.g. 1 Burger = 1 Bun, 1 Patty, 20g Cheese).
-- **Auto Sold-Out**: Automatically switch menu items to "Sold Out" in the customer app when key ingredients reach zero.
+### 10. Ingredient-Level Inventory & Auto-Stock Management (Priority: MEDIUM) — [COMPLETED]
+- **Automatic Stock Depletion**: `inventoryService.js` automatically decrements available portions (`stockCount`) and recipe raw ingredients (`Ingredient` schema) whenever a customer order is placed or cooked.
+- **Auto Sold-Out Protection**: When a dish's portion count reaches zero, the system automatically flips `isAvailable = false`, preventing customers from ordering sold-out dishes and avoiding kitchen stockouts.
+- **Replenishment & Oversight**: Dedicated inventory endpoints (`GET /api/inventory`, `POST /api/inventory/replenish`) and live inventory metrics badges in Manager `MenuStockTab`.

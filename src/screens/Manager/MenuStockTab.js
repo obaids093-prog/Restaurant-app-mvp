@@ -43,7 +43,52 @@ export default function MenuStockTab({
         </TouchableOpacity>
       </View>
 
-      <View style={{ marginTop: 12 }}>
+      {/* Inventory & Auto-Stock Indicators */}
+      <View
+        style={{
+          flexDirection: 'row',
+          gap: 10,
+          marginVertical: 10,
+        }}
+      >
+        <View
+          style={{
+            flex: 1,
+            padding: 10,
+            borderRadius: 10,
+            backgroundColor: `${colors.ready || '#10B981'}15`,
+            borderWidth: 1,
+            borderColor: `${colors.ready || '#10B981'}30`,
+          }}
+        >
+          <Text style={{ fontSize: 10, textTransform: 'uppercase', color: colors.ready || '#10B981', fontWeight: '700' }}>
+            Active / In Stock
+          </Text>
+          <Text style={{ fontSize: 18, fontWeight: '800', color: colors.textPrimary, marginTop: 2 }}>
+            {menuItems.filter((m) => m.isAvailable !== false).length}
+          </Text>
+        </View>
+
+        <View
+          style={{
+            flex: 1,
+            padding: 10,
+            borderRadius: 10,
+            backgroundColor: '#EF444415',
+            borderWidth: 1,
+            borderColor: '#EF444430',
+          }}
+        >
+          <Text style={{ fontSize: 10, textTransform: 'uppercase', color: '#EF4444', fontWeight: '700' }}>
+            Auto Sold-Out
+          </Text>
+          <Text style={{ fontSize: 18, fontWeight: '800', color: '#EF4444', marginTop: 2 }}>
+            {menuItems.filter((m) => m.isAvailable === false).length}
+          </Text>
+        </View>
+      </View>
+
+      <View style={{ marginTop: 6 }}>
         {menuItems.map((dish) => (
           <MenuItemCard
             key={dish.id || dish._id}

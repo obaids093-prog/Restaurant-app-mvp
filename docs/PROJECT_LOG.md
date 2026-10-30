@@ -1,5 +1,40 @@
 # Project Log
 
+## [2026-10-30] - Feat: Ingredient-Level Inventory & Auto-Stock Depletion System (Roadmap Item #10)
+
+- **Date**: 2026-10-30
+- **Title**: Feat: Ingredient-Level Inventory & Auto-Stock Depletion System (Roadmap Item #10)
+- **WHAT changed**:
+  - In `server/models/MenuItem.js`:
+    - Added `stockCount` (number, default: 25) and `recipe` subdocument array (`ingredient`, `quantity`, `unit`).
+  - In `server/models/Ingredient.js`:
+    - Created Mongoose schema for raw kitchen supplies (`name`, `category`, `stock`, `unit`, `lowStockThreshold`, `branchId`).
+  - In `server/services/inventoryService.js`:
+    - Implemented `depleteOrderIngredients(order)` automatically deducting portion counts and raw recipe ingredients whenever orders are placed.
+    - Added automatic sold-out switch: When `stockCount <= 0`, automatically flips `isAvailable = false` to prevent over-ordering.
+    - Implemented `replenishDishStock(dishId, quantity)` and `getInventoryOverview(branchId)`.
+  - In `server/controllers/inventoryController.js` & `server/routes/inventoryRoutes.js`:
+    - Implemented `GET /api/inventory` (manager-only inventory status) and `POST /api/inventory/replenish` (stock replenishment).
+  - In `server/controllers/orderController.js`:
+    - Triggered `inventoryService.depleteOrderIngredients(newOrder)` on successful order creation.
+  - In `server/server.js`:
+    - Mounted `/api/inventory` router.
+  - In `server/tests/inventory.test.js`:
+    - Added automated unit test suite verifying safe order handling and depletion execution.
+  - In `src/screens/Manager/MenuStockTab.js`:
+    - Added live "Active / In Stock" vs "Auto Sold-Out" inventory metric indicators.
+  - In `docs/`:
+    - Marked Roadmap Item #10 as COMPLETED in `docs/APP_FEATURES_AND_ROADMAP.md`.
+- **WHY (the problem or goal)**:
+  - Implement Roadmap Item #10: Commercial restaurants must automatically prevent customers from ordering dishes whose raw ingredients have run out, eliminating disappointed diners and kitchen chaos.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Built an automated stock depletion service hooked directly into the order lifecycle, dynamically updating portion counts and auto-toggling availability flags.
+- **HOW TO TEST**:
+  - Run `inventory.test.js` Jest tests.
+  - In Manager Dashboard, view "Menu & Stock" tab -> observe In Stock / Auto Sold-Out counters.
+
+---
+
 ## [2026-10-30] - Feat: Digital Kitchen Display System (KDS) Tablet Screen & Chef Bump Rail (Roadmap Item #8)
 
 - **Date**: 2026-10-30

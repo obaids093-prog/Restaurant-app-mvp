@@ -39,6 +39,18 @@ const menuItemSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    stockCount: {
+      type: Number,
+      default: 25,
+      min: [0, 'Stock cannot be negative'],
+    },
+    recipe: [
+      {
+        ingredient: { type: String, trim: true },
+        quantity: { type: Number, default: 1 },
+        unit: { type: String, default: 'pcs' },
+      },
+    ],
     prepTime: {
       type: String,
       default: '15 min',
