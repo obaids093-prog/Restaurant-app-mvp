@@ -127,8 +127,10 @@ To transform AURA from an academic MVP to an enterprise-grade food & dining appl
 - **Auto-Locked Table & Deep Links**: Backend verification (`POST /api/tables/verify-qr`) parses custom URI deep links (`aura://table?branch=...&table=...`), JSON standee tags, and manual table identifiers with zero paid dependencies.
 - **Dine-In Menu Routing**: Seamless one-tap transition from physical table scan directly into `MenuScreen` pre-loaded with seated table context. Accessible from both Menu header and Reservation screen.
 
-### 7. Automated SMS & WhatsApp Order Updates (Priority: MEDIUM)
-- **WhatsApp Cloud API / Twilio**: Automatically send order confirmation, preparation alerts, and digital PDF receipts directly to the customer's WhatsApp or SMS.
+### 7. Automated SMS & WhatsApp Order Updates & Digital Receipts (Priority: MEDIUM) — [COMPLETED]
+- **WhatsApp Share Deep Links & E-Receipts**: Backend receipt service (`receiptService.js`) generates formatted WhatsApp messages with emojis, guest details, course breakdown, tax breakdown, and live tracking links (`GET /api/orders/:id/receipt`).
+- **Interactive Share Sheet Modal**: `DigitalReceiptModal` displays a restaurant crest, itemized folio, 1-tap WhatsApp dispatch (`https://wa.me/?text=...`), native SMS link (`sms:?body=...`), and clipboard copy with animated toast.
+- **Order Placement & Tracking Integration**: Direct triggers from both `OrderPlacedScreen` and `OrderTrackingScreen` / `PastOrderCard`.
 
 ### 8. Digital Kitchen Display System (KDS) Tablet App (Priority: MEDIUM)
 - **Chefs' Tablet View**: Dedicated horizontal landscape mode designed for 10-inch kitchen tablets mounted in the kitchen.

@@ -1,5 +1,36 @@
 # Project Log
 
+## [2026-10-30] - Feat: Automated WhatsApp & SMS Order Updates & Digital Receipt Share Sheet (Roadmap Item #7)
+
+- **Date**: 2026-10-30
+- **Title**: Feat: Automated WhatsApp & SMS Order Updates & Digital Receipt Share Sheet (Roadmap Item #7)
+- **WHAT changed**:
+  - In `server/services/receiptService.js`:
+    - Created digital receipt formatting service with `formatWhatsAppReceipt`, `formatSmsReceipt`, and `generateWhatsAppShareUrl`.
+    - Formats customer greeting, branch, ticket identifier, course line items with portions, subtotal, voucher discounts, taxes, and live deep link.
+  - In `server/controllers/orderController.js` & `server/routes/orderRoutes.js`:
+    - Implemented `getOrderReceipt` (`GET /api/orders/:id/receipt`) returning compiled WhatsApp markdown and SMS strings.
+  - In `server/tests/receipt.test.js`:
+    - Added automated unit tests verifying WhatsApp receipt generation, SMS character constraint formatting, and wa.me share link encoding.
+  - In `src/components/DigitalReceipt/`:
+    - Created `DigitalReceiptModal.js`: Interactive dining receipt modal with restaurant crest, folio breakdown, 1-tap WhatsApp sharing (`https://wa.me/?text=...`), SMS link (`sms:?body=...`), and clipboard copy with animated toast.
+    - Created `digitalReceiptStyles.js` and `index.js`.
+  - In `src/screens/OrderPlacedScreen.js`:
+    - Added "View & Share Digital Receipt" action button with WhatsApp badge launching `DigitalReceiptModal`.
+  - In `src/screens/OrderTracking/PastOrderCard.js`:
+    - Added direct "Share Receipt via WhatsApp" button inside the expanded folio receipt breakdown.
+  - In `docs/`:
+    - Marked Roadmap Item #7 as COMPLETED in `docs/APP_FEATURES_AND_ROADMAP.md`.
+- **WHY (the problem or goal)**:
+  - Implement Roadmap Item #7: Customers want easy digital receipts they can store, verify, or send to friends/colleagues on WhatsApp without paper waste.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Used native `Linking.openURL('https://wa.me/?text=...')` deep links and `expo-clipboard` with zero paid SMS gateway fees, providing instant customer communication and receipt sharing.
+- **HOW TO TEST**:
+  - Run `receipt.test.js` Jest test suite.
+  - In app, complete an order -> tap "View & Share Digital Receipt" on Order Placed screen -> view itemized receipt and tap WhatsApp or Copy.
+
+---
+
 ## [2026-10-30] - Feat: Online Payment Gateways with JazzCash, EasyPaisa, Card 3D-Secure & Tokenization (Roadmap Item #1)
 
 - **Date**: 2026-10-30

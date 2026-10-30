@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -14,9 +14,11 @@ import { useTheme } from '../context/ThemeContext';
 import { brand } from '../config/brand';
 import { getOptimizedImageUrl } from '../utils/imageUrl';
 import { LinearGradient } from '../utils/SafeLinearGradient';
+import { DigitalReceiptModal } from '../components/DigitalReceipt';
 
 export default function OrderPlacedScreen({ route, navigation }) {
   const { colors, isDark, shadows, typography } = useTheme();
+  const [isReceiptModalVisible, setIsReceiptModalVisible] = useState(false);
   const {
     order = {},
     orderType = 'Dine-in',
@@ -373,6 +375,24 @@ export default function OrderPlacedScreen({ route, navigation }) {
             </LinearGradient>
           </TouchableOpacity>
 
+          {/* Digital Receipt & WhatsApp Share Button */}
+          <TouchableOpacity
+            onPress={() => setIsReceiptModalVisible(true)}
+            style={[
+              styles.secondaryMenuBtn,
+              { backgroundColor: colors.card, borderColor: colors.cardBorder, marginBottom: 10 },
+            ]}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="View and Share Digital Receipt"
+          >
+            <Ionicons name="receipt-outline" size={18} color={colors.primary} />
+            <Text style={[styles.secondaryBtnText, { color: colors.primary, fontWeight: '700' }]}>
+              View & Share Digital Receipt
+            </Text>
+            <Ionicons name="logo-whatsapp" size={16} color="#25D366" style={{ marginLeft: 6 }} />
+          </TouchableOpacity>
+
           {/* Secondary CTA: Return to Menu */}
           <TouchableOpacity
             onPress={() => navigation.navigate('CustomerApp', { screen: 'Menu' })}
@@ -397,6 +417,14 @@ export default function OrderPlacedScreen({ route, navigation }) {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Digital Receipt Modal */}
+      <DigitalReceiptModal
+        visible={isReceiptModalVisible}
+        order={{ ...order, items: orderItems, totalAmount }}
+        receiptNumber={receiptNumber}
+        onClose={() => setIsReceiptModalVisible(false)}
+      />
     </View>
   );
 }

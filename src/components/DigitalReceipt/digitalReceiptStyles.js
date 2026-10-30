@@ -1,0 +1,176 @@
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  receiptContainer: {
+    width: '100%',
+    maxWidth: 440,
+    maxHeight: '90%',
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  scrollBody: {
+    padding: 20,
+  },
+  receiptHeader: {
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingBottom: 16,
+    marginBottom: 16,
+  },
+  brandTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 2,
+    marginBottom: 4,
+  },
+  branchSubtitle: {
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  ticketBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 12,
+    fontWeight: '700',
+    overflow: 'hidden',
+  },
+  infoSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  infoCol: {
+    gap: 3,
+  },
+  infoLabel: {
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  infoValue: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  itemsSection: {
+    marginBottom: 16,
+  },
+  sectionHeading: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  itemName: {
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+  },
+  itemPrice: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  calculationSection: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    paddingTop: 12,
+    marginBottom: 16,
+    gap: 6,
+  },
+  calcRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  calcLabel: {
+    fontSize: 12,
+  },
+  calcValue: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 1.5,
+    borderTopColor: 'rgba(255,255,255,0.15)',
+    paddingTop: 10,
+    marginTop: 6,
+  },
+  totalLabel: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  totalValue: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  actionsBar: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+  },
+  whatsappBtn: {
+    flex: 1.2,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: '#25D366',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  copyBtn: {
+    flex: 1,
+    height: 46,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  btnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  closeBtn: {
+    height: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  toastBar: {
+    backgroundColor: '#10B981',
+    padding: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  toastText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+});

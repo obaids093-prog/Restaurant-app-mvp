@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { brand } from '../../config/brand';
 import { styles } from './trackingStyles';
@@ -81,6 +81,35 @@ function ReceiptBreakdown({ order, colors, typography }) {
         <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700', flex: 1 }]}>Total</Text>
         <Text style={[typography.body, { color: colors.primary, fontWeight: '800' }]}>{brand.formatPrice(rTotal)}</Text>
       </View>
+      <TouchableOpacity
+        onPress={() => {
+          const lines = [
+            `✨ *AURA Artisanal Dining* ✨`,
+            `🧾 *Order Receipt: #${String(order.id || order._id).slice(-4).toUpperCase()}*`,
+            `👤 *Guest:* ${order.customerName || 'Valued Guest'}`,
+            `🍽 *Service:* ${order.orderType || order.type || 'Dine-in'}`,
+            `💰 *Grand Total: Rs. ${Number(rTotal).toLocaleString()}*`,
+            `📲 Track / View in App: aura://track`,
+          ];
+          const url = `https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`;
+          Linking.openURL(url).catch(() => {});
+        }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginTop: 10,
+          paddingVertical: 7,
+          backgroundColor: '#25D36618',
+          borderRadius: 8,
+          gap: 6,
+        }}
+      >
+        <Ionicons name="logo-whatsapp" size={14} color="#25D366" />
+        <Text style={{ fontSize: 12, fontWeight: '700', color: '#25D366' }}>
+          Share Receipt via WhatsApp
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }

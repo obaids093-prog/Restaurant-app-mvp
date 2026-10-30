@@ -18,6 +18,7 @@ const voucherService = require('../services/voucherService');
 const loyaltyService = require('../services/loyaltyService');
 const notificationService = require('../services/notificationService');
 const riderTrackingService = require('../services/riderTrackingService');
+const receiptService = require('../services/receiptService');
 const { CANCEL_WINDOW_MINUTES } = require('../config/constants');
 
 // Safe regex string escaper to prevent NoSQL regex injection / ReDoS (S1-A)
@@ -406,10 +407,43 @@ const getRiderTracking = async (req, res) => {
   }
 };
 
+// @desc    Get formatted WhatsApp and SMS digital receipt for an order
+// @route   GET /api/orders/:id/receipt
+// @access  Public or Protected
+const getOrderReceipt = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let order = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      order = await Order.findById(id).lean();
+    }
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    const whatsAppText = receiptService.formatWhatsAppReceipt(order);
+    const smsText = receiptService.formatSmsReceipt(order);
+    const whatsAppUrl = receiptService.generateWhatsAppShareUrl(order.user?.phone, whatsAppText);
+
+    res.status(200).json({
+      orderId: order._id,
+      ticketId: String(order._id).slice(-6).toUpperCase(),
+      whatsAppText,
+      smsText,
+      whatsAppUrl,
+      order,
+    });
+  } catch (error) {
+    console.error('Error generating order receipt:', error);
+    res.status(500).json({ message: 'Server error generating digital receipt' });
+  }
+};
+
 module.exports = {
   placeOrder,
   getMyOrders,
   getAllOrders,
   updateOrderStatus,
   getRiderTracking,
+  getOrderReceipt,
 };
