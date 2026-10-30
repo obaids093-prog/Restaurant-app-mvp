@@ -1,5 +1,52 @@
 # Project Log
 
+## [2026-10-30] - Feat: Live GPS Rider Tracking with Simulated Telemetry, Animated Map & Delivery Milestones (Roadmap Item #5)
+
+- **Date**: 2026-10-30
+- **Title**: Feat: Live GPS Rider Tracking with Simulated Telemetry, Animated Map & Delivery Milestones (Roadmap Item #5)
+- **WHAT changed**:
+  - In `server/services/riderTrackingService.js`:
+    - Created GPS rider tracking service with GPS coordinates for branch locations (Lahore Gulberg & Islamabad Blue Area) and default delivery zones.
+    - Implemented Bezier curve waypoint interpolation (`generateWaypoints`) generating 7 smooth intermediate route points with lateral road offsets.
+    - Implemented Haversine great-circle distance calculation (`calculateDistanceKm`).
+    - Implemented `getOrderRiderTracking(orderId)` generating dynamic telemetry, current rider GPS coordinates, distance remaining, moving speed (km/h), bearing heading, delivery milestones, dynamic ETA countdown, and route waypoints tailored to order lifecycle (`Pending`, `Preparing`, `Ready`, `Served`).
+  - In `server/models/Order.js`:
+    - Added `'Delivery'` to `orderType` enum.
+    - Added fields: `deliveryAddress` (string), `deliveryCoordinates` ({ latitude, longitude }), `rider` subdocument (`name`, `phone`, `vehicle`, `rating`, `photo`, `status`), `estimatedDeliveryMinutes` (number).
+  - In `server/controllers/orderController.js` & `server/routes/orderRoutes.js`:
+    - Added `getRiderTracking` controller returning authenticated order tracking telemetry.
+    - Added `GET /api/orders/:id/rider-tracking` protected route.
+    - Updated `placeOrder` to persist `deliveryAddress` and compute default coordinates when `orderType === 'Delivery'`.
+  - In `server/tests/riderTracking.test.js`:
+    - Added 20 automated tests validating waypoint generation, Haversine distance, branch coordinates, status progression snapshots, and custom destination handling.
+  - In `src/hooks/useRiderTracking.js`:
+    - Created lightweight React hook with 4-second polling interval, exponential backoff handling, and cleanup on unmount.
+  - In `src/screens/RiderTracking/`:
+    - Created `LiveMapCanvas.js`: View-based animated radar canvas with road grid lines, pulsing restaurant beacon, customer destination pin, animated rider bike ping with heading rotation, speed indicator, and route trail.
+    - Created `DeliveryMilestones.js`: Dynamic ETA banner, destination address card, and 4-step progress stepper (Order Placed ➔ In Kitchen ➔ Rider Dispatched ➔ Arrived).
+    - Created `RiderInfoCard.js`: Assigned rider profile (photo, name, vehicle plate, star rating) with direct native Phone Call (`Linking.openURL('tel:...')`) and SMS actions.
+    - Created `riderTrackingStyles.js`, `RiderTrackingScreen.js`, `index.js`, and root re-export bridge `src/screens/RiderTrackingScreen.js`.
+  - In `src/navigation/AppNavigator.js`:
+    - Registered `RiderTracking` in the root Native Stack with `slide_from_right` animation.
+  - In `src/screens/OrderTracking/`:
+    - Added "Track Live Rider" CTA button to `ActiveOrderHero.js`, added corresponding button styles to `trackingStyles.js`, and wired navigation handler in `OrderTrackingScreen.js`.
+  - In `docs/`:
+    - Updated `docs/DATABASE.md` (Order ER entity and field dictionary).
+    - Updated `docs/ARCHITECTURE.md` (Screen module table, navigation hierarchy, endpoints table).
+    - Updated `docs/APP_FEATURES_AND_ROADMAP.md` (Marked Item #5 as completed).
+- **WHY (the problem or goal)**:
+  - Implement Roadmap Item #5 from `APP_FEATURES_AND_ROADMAP.md`: Customers placing delivery orders need real-time visibility into their dispatch driver's location, ETA countdown, and route progress with zero paid third-party map dependencies.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Used zero-cost simulated telemetry service computing Bezier curves and Haversine distance, coupled with React Native animated Views for the radar map canvas — avoiding expensive Google Maps/Mapbox API billing while delivering a smooth, high-fidelity customer tracking experience.
+- **HOW TO TEST**:
+  - Run server tests: `npm test` in `server/` -> 119/119 passing across 11 suites.
+  - Run Expo lint: `npm run lint` -> 0 errors.
+  - From Order Tracking screen, open an active delivery order -> click "Track Live Rider" -> view live animated radar map, milestones, and rider card.
+- **Commit hashes**:
+  - `bc01797` (feat(tracking): implement live GPS rider tracking with animated map, telemetry, and delivery milestones)
+
+---
+
 ## [2026-10-30] - Feat: Cloud Object Storage for Uploaded Dish Photos with Local Disk Fallback (Audit Bug #3)
 
 - **Date**: 2026-10-30

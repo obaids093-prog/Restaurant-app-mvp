@@ -17,6 +17,7 @@ const MenuItem = require('../models/MenuItem');
 const voucherService = require('../services/voucherService');
 const loyaltyService = require('../services/loyaltyService');
 const notificationService = require('../services/notificationService');
+const riderTrackingService = require('../services/riderTrackingService');
 const { CANCEL_WINDOW_MINUTES } = require('../config/constants');
 
 // Safe regex string escaper to prevent NoSQL regex injection / ReDoS (S1-A)
@@ -184,6 +185,7 @@ const placeOrder = async (req, res) => {
       totalAmount: Math.round(finalTotalAmount * 100) / 100,
       orderType: finalOrderType,
       tableNumber: typeof tableNumber === 'string' ? tableNumber.trim().slice(0, 80) : '',
+      deliveryAddress: typeof req.body.deliveryAddress === 'string' ? req.body.deliveryAddress.trim().slice(0, 250) : '',
       status: 'Pending',
       notes: typeof notes === 'string' ? notes.trim().slice(0, 500) : '',
       branchId: branchId || 'lhr_gulberg',
@@ -382,9 +384,28 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
+// ── Get Rider Telemetry & Route Waypoints ─────────────────────
+// GET /api/orders/:id/rider-tracking
+// Protected: Authenticated Customer or Manager
+const getRiderTracking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tracking = await riderTrackingService.getOrderRiderTracking(id);
+    if (!tracking) {
+      return res.status(404).json({ message: 'Order not found for rider tracking' });
+    }
+
+    res.status(200).json(tracking);
+  } catch (error) {
+    console.error('Error fetching rider tracking:', error);
+    res.status(500).json({ message: 'Server error retrieving rider telemetry' });
+  }
+};
+
 module.exports = {
   placeOrder,
   getMyOrders,
   getAllOrders,
   updateOrderStatus,
+  getRiderTracking,
 };

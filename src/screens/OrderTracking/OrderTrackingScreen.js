@@ -198,6 +198,13 @@ export default function OrderTrackingScreen({ route, navigation }) {
     reorderDishes({ order, menuItems, addItem, navigation });
   };
 
+  const handleTrackRider = (order) => {
+    const target = order || activeOrder;
+    if (target) {
+      navigation.navigate('RiderTracking', { orderId: target.id || target._id });
+    }
+  };
+
   const navigateToMenu = () => {
     navigation.navigate('CustomerApp', { screen: 'Menu' });
   };
@@ -374,6 +381,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
             cancelRemaining={cancelRemaining}
             isCancelling={isCancelling}
             onCancelOrder={handleCancelOrder}
+            onTrackRider={handleTrackRider}
             colors={colors}
             shadows={shadows}
             typography={typography}

@@ -104,6 +104,18 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 4,
   },
+  trackRiderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 14,
+    marginTop: 14,
+  },
+  trackRiderBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
   cancelBtn: {
     flexDirection: 'row',
     alignItems: 'center',

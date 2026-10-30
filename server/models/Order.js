@@ -99,13 +99,42 @@ const orderSchema = new mongoose.Schema(
     },
     orderType: {
       type: String,
-      enum: ['Dine-in', 'Takeaway', 'Dine-In Table', 'Curbside', 'Priority'],
+      enum: ['Dine-in', 'Takeaway', 'Dine-In Table', 'Curbside', 'Priority', 'Delivery'],
       default: 'Dine-in',
     },
     tableNumber: {
       type: String,
       default: '',
       trim: true,
+    },
+    deliveryAddress: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    deliveryCoordinates: {
+      latitude: { type: Number, default: 31.5204 },
+      longitude: { type: Number, default: 74.3587 },
+    },
+    rider: {
+      name: { type: String, default: 'Hamza Khan' },
+      phone: { type: String, default: '+92 300 8472910' },
+      vehicle: { type: String, default: 'Honda CG 125 • LEK-4921' },
+      rating: { type: Number, default: 4.9 },
+      photo: {
+        type: String,
+        default: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80',
+      },
+      status: {
+        type: String,
+        enum: ['assigned', 'at_restaurant', 'picked_up', 'on_the_way', 'arrived'],
+        default: 'on_the_way',
+      },
+    },
+    estimatedDeliveryMinutes: {
+      type: Number,
+      default: 25,
+      min: 0,
     },
     status: {
       type: String,

@@ -15,6 +15,7 @@ const {
   getMyOrders,
   getAllOrders,
   updateOrderStatus,
+  getRiderTracking,
 } = require('../controllers/orderController');
 const { protect, managerOnly } = require('../middleware/auth');
 
@@ -25,5 +26,6 @@ router
 
 router.get('/my', protect, getMyOrders);
 router.patch('/:id/status', protect, updateOrderStatus);
+router.get('/:id/rider-tracking', protect, getRiderTracking);
 
 module.exports = router;

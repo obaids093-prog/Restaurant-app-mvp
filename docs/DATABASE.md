@@ -122,6 +122,10 @@ erDiagram
         string branchId
         string branchName
         string branchCity
+        string deliveryAddress
+        object deliveryCoordinates
+        object rider
+        number estimatedDeliveryMinutes
         number pointsRedeemed
         number pointsDiscountAmount
         number pointsEarned
@@ -283,13 +287,17 @@ Customer food and beverage orders, checkout bill breakdowns, and kitchen fulfill
 | `serviceCharge` | `Number` | No | `0` | `min: 0` | Hospitality service charge |
 | `salesTax` | `Number` | No | `0` | `min: 0` | Provincial sales tax |
 | `totalAmount` | `Number` | Yes | — | `min: 0` | Net payable balance |
-| `orderType` | `String` | No | `'Dine-in'` | `['Dine-in', 'Takeaway', 'Dine-In Table', 'Curbside', 'Priority']` | Order delivery/fulfillment channel |
+| `orderType` | `String` | No | `'Dine-in'` | `['Dine-in', 'Takeaway', 'Dine-In Table', 'Curbside', 'Priority', 'Delivery']` | Order delivery/fulfillment channel |
 | `tableNumber` | `String` | No | `''` | `trim: true` | Assigned dining table |
 | `status` | `String` | No | `'Pending'` | `['Pending', 'Preparing', 'Ready', 'Served', 'Cancelled']` | Kitchen order lifecycle |
 | `notes` | `String` | No | `''` | `trim: true` | Special prep / allergy instructions |
 | `branchId` | `String` | No | `'lhr_gulberg'` | `trim: true` | Multi-branch routing key |
 | `branchName` | `String` | No | `'AURA • Gulberg III, Lahore'` | `trim: true` | Branch display name |
 | `branchCity` | `String` | No | `'Lahore'` | `trim: true` | Branch location city |
+| `deliveryAddress` | `String` | No | `''` | `trim: true` | Street destination for Delivery orders |
+| `deliveryCoordinates` | `Object` | No | `{ latitude: null, longitude: null }` | `{ latitude: Number, longitude: Number }` | GPS coordinates for delivery destination |
+| `rider` | `Object` | No | Subdocument | `name`, `phone`, `vehicle`, `rating`, `photo`, `status` | Assigned delivery dispatch driver profile |
+| `estimatedDeliveryMinutes` | `Number` | No | `35` | `min: 5`, `max: 180` | Dynamic calculated delivery ETA |
 | `pointsRedeemed` | `Number` | No | `0` | `min: 0` | Loyalty points redeemed for this order |
 | `pointsDiscountAmount` | `Number` | No | `0` | `min: 0` | Rs. discount from redeemed points (1 pt = Rs. 1) |
 | `pointsEarned` | `Number` | No | `0` | `min: 0` | Loyalty points earned from this order |

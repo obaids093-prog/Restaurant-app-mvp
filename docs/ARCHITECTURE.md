@@ -69,6 +69,7 @@ All screens exceeding ~600 lines have been decomposed into focused sub-module fo
 | **Login** | `src/screens/Login/` | `loginStyles.js`, `BrandCanopy`, `EmailPasswordForm`, `PhoneOtpStep`, `NameEntryStep`, `GuestBrowseFooter`, `LoginScreen`, `index.js` |
 | **Cart** | `src/screens/Cart/` | `cartStyles.js`, `EmptyClocheIllustration`, `CartEmptyState`, `CartItemCard`, `VoucherSection`, `BillSummary`, `FloatingCartFooter`, `CartScreen`, `index.js` |
 | **OrderTracking** | `src/screens/OrderTracking/` | `trackingStyles.js`, `trackingHelpers.js`, `ActiveOrderHero`, `PastOrderCard`, `TrackingEmptyState`, `OrderTrackingScreen`, `index.js` |
+| **RiderTracking** | `src/screens/RiderTracking/` | `riderTrackingStyles.js`, `LiveMapCanvas`, `DeliveryMilestones`, `RiderInfoCard`, `RiderTrackingScreen`, `index.js` |
 
 Root bridge files (`src/screens/CartScreen.js`, `src/screens/OrderTrackingScreen.js`, etc.) each contain a single `export { default } from './Folder/Screen'` so all navigator imports remain unchanged.
 
@@ -91,6 +92,7 @@ Root Stack Navigator
 │   └── Profile (Stitch variant 2 profile, dietary preferences, edit info)
 ├── OrderSummary (Checkout fulfillment, dine-in/takeaway, payment settlement)
 ├── OrderPlaced (Success confirmation, cloche animations, receipt)
+├── RiderTracking (Live GPS animated map, telemetry polling, delivery milestones, rider profile)
 ├── Notifications (In-app notification center, filter pills, deep link to order tracking)
 └── ManagerDashboard (Executive overview, live KPI cards, order & table management)
 ```
@@ -130,6 +132,7 @@ The backend is built with Express.js using a modular controller-route-model arch
 | | `GET` | `/api/orders` | Manager/Staff | Fetches all active kitchen orders (filterable by branch). |
 | | `PATCH` | `/api/orders/:id/status` | Manager/Staff | Updates status (Pending ➔ Preparing ➔ Ready ➔ Served). |
 | | `PATCH` | `/api/orders/:id/cancel` | Authenticated | Cancels order while in Pending state. |
+| | `GET` | `/api/orders/:id/rider-tracking` | Authenticated | Live GPS rider telemetry, Bezier-interpolated route waypoints, speed, dynamic ETA. |
 | **Reviews** | `GET` | `/api/menu/:id/reviews` | Public | Paginated verified reviews and rating stats for a dish. |
 | | `POST` | `/api/reviews` | Authenticated | Submits rating and tasting notes for dish from a served order. |
 | | `GET` | `/api/reviews` | Manager | Paginated patron reviews across all dishes. |

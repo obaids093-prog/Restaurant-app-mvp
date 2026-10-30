@@ -116,9 +116,10 @@ To transform AURA from an academic MVP to an enterprise-grade food & dining appl
 ### 4. Native Remote Push Notifications (Priority: HIGH)
 - **EAS Push Credentials**: Configure Apple APNs and Google FCM credentials in EAS build profiles for background push alerts when the app is closed.
 
-### 5. Live GPS Rider Tracking on Map (Priority: HIGH)
-- **Interactive Map**: Google Maps / Mapbox screen showing restaurant location, customer address, and animated delivery rider bike icon.
-- **Dynamic ETA**: Live Estimated Time of Arrival calculated dynamically based on real-time traffic and distance.
+### 5. Live GPS Rider Tracking on Map (Priority: HIGH) — [COMPLETED]
+- **Interactive Map**: Zero-dependency animated SVG/View radar canvas with road grid, pulsing restaurant origin beacon, destination customer pin, live bike rider ping, and breadcrumb route trajectory.
+- **Dynamic Telemetry & ETA**: Backend telemetry service (`riderTrackingService.js`) with Bezier waypoint interpolation, Haversine distance, speed calculations, dynamic ETA countdown, and 4-second client polling hook (`useRiderTracking`).
+- **Milestone & Rider Card**: 4-step progress stepper (Order Placed ➔ In Kitchen ➔ Rider Dispatched ➔ Arrived), destination address card, and rider profile card with direct Call/SMS actions.
 
 ### 6. Table QR-Code Dine-In Ordering (Priority: MEDIUM-HIGH)
 - **Camera QR Scanner**: Customers sitting at a restaurant table scan a physical acrylic QR standee on the table.
