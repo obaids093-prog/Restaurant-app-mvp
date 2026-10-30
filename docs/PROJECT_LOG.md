@@ -1,5 +1,217 @@
 # Project Log
 
+## [2026-10-30] - Docs: Align Features Document with Code State across Cancel Window, Polling, Storage, and Roadmap
+
+- **Date**: 2026-10-30
+- **Title**: Docs: Align Features Document with Code State across Cancel Window, Polling, Storage, and Roadmap
+- **WHAT changed**:
+  - In `docs/APP_FEATURES_AND_ROADMAP.md`:
+    - Updated Part 1 to match verified codebase reality:
+      - 10-minute cancellation window policy (`CANCEL_WINDOW_MINUTES = 10`).
+      - Real polling intervals: 10s for order tracking, 20s for notifications.
+      - Hardware-backed token security via `expo-secure-store` with web fallback.
+      - 90/90 automated tests across 9 Jest suites.
+      - Automatic loyalty points refund on cancelled orders.
+      - Newly created dishes initializing at zero ratings with clean seed catalog.
+      - Notification delivery status clarifying database documents vs native APNs/FCM setup.
+      - Ephemeral photo storage on Render disk vs cloud CDN roadmap.
+    - Expanded Part 2 with prioritized commercial roadmap: Online Payment Gateways (JazzCash/EasyPaisa/Cards), Real-time WebSockets, Cloudinary object storage, native push credentials, live GPS rider tracking, Table QR-code ordering, automated SMS/WhatsApp alerts, Kitchen Display System (KDS) tablet app, biometrics/social login, and ingredient-level inventory.
+- **WHY (the problem or goal)**:
+  - Eliminate all discrepancies between written specifications and the production codebase discovered during the Batch 1 audit, and establish a clear commercial roadmap for post-MVP growth.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Audited each feature claim against Mongoose models, constants, and React Native components, correcting all metrics and architectural claims.
+- **HOW TO TEST**:
+  - Review `docs/APP_FEATURES_AND_ROADMAP.md` sections against `server/config/constants.js`, `src/screens/OrderTracking/`, and `src/utils/safeStorage.js`.
+- **Commit hashes**:
+  - `d8453e9` (docs: align features document with code state across cancel window, polling, test counts, storage and push)
+
+---
+
+## [2026-10-30] - Feat: Migrate Auth Tokens to Hardware-Backed SecureStore with Web Fallback
+
+- **Date**: 2026-10-30
+- **Title**: Feat: Migrate Auth Tokens to Hardware-Backed SecureStore with Web Fallback
+- **WHAT changed**:
+  - Installed SDK 57 compatible `expo-secure-store` (`^15.0.8`).
+  - In `src/utils/safeStorage.js`:
+    - Implemented `secureStore` module backed by iOS Keychain and Android Keystore for sensitive authentication tokens (`@aura_auth_token`).
+    - Added transparent automatic migration: checks SecureStore first; if not found, reads legacy AsyncStorage, saves to SecureStore, and cleans up legacy storage.
+    - Added web fallback to encrypted memory/localStorage when running on web.
+    - Preserved standard non-sensitive settings (theme, branch preferences) in `AsyncStorage`.
+  - In `app.json`: Added `expo-secure-store` config plugin.
+  - In `server/tests/secureTokenStorage.test.js`: Added 3 tests validating secure storage interface, token migration semantics, and web fallback isolation.
+- **WHY (the problem or goal)**:
+  - Address Audit Bug #8: Sensitive JWT authentication tokens were previously stored in unencrypted plain text via `AsyncStorage`, leaving them vulnerable on rooted or compromised physical devices.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Leveraged `expo-secure-store` for cryptographic hardware isolation without breaking existing user sessions via transparent legacy migration.
+- **HOW TO TEST**:
+  - Log in on mobile device -> token persists securely in hardware keystore.
+  - On app launch, session restores seamlessly.
+  - Run `server/tests/secureTokenStorage.test.js` to verify mock test suite passes.
+- **Commit hashes**:
+  - `c245316` (feat(storage): migrate auth tokens to hardware-backed expo-secure-store with web fallback)
+
+---
+
+## [2026-10-30] - Feat: Render Cold-Start Single Retry and Animated Waking Server Notice
+
+- **Date**: 2026-10-30
+- **Title**: Feat: Render Cold-Start Single Retry and Animated Waking Server Notice
+- **WHAT changed**:
+  - In `src/api/client.js`:
+    - Extended timeout budget for cloud spin-up resilience.
+    - Implemented automatic single retry specifically for idempotent `GET` requests on timeout.
+    - Added server waking event listeners (`onServerWakingChange`) triggered when network requests exceed 5 seconds.
+  - In `src/components/ServerWakingBanner.js`:
+    - Built floating animated top banner with pulsing activity indicator and friendly copy: "Connecting to server (waking up cloud service, please wait...)".
+    - Auto-dismisses smoothly when response returns or error handles.
+  - In `App.js`: Mounted `<ServerWakingBanner />` at application root alongside notification banner.
+  - In `server/tests/clientColdStart.test.js`: Added 3 tests verifying retry logic for GET, no retry on non-idempotent POST, and waking status transition.
+- **WHY (the problem or goal)**:
+  - Address Audit Bug #5: Render free tier spins down after inactivity, causing 30–50s cold-start delays. Customers experienced abrupt Wi-Fi network failure messages without visual feedback or retry mechanisms.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Safe retry on idempotent queries avoids duplicate order placement or duplicate charge risks while smoothing cold-start transitions.
+- **HOW TO TEST**:
+  - Simulate server delay > 5s -> top waking banner slides down.
+  - On response arrival -> banner slides away smoothly.
+  - Run `server/tests/clientColdStart.test.js` to verify test suite passes.
+- **Commit hashes**:
+  - `b895730` (feat(client): add cold start single retry for GET and waking server notice)
+
+---
+
+## [2026-10-30] - Test: Reject Review for Dish Not Part of Served Order
+
+- **Date**: 2026-10-30
+- **Title**: Test: Reject Review for Dish Not Part of Served Order
+- **WHAT changed**:
+  - In `server/tests/reviews.test.js`:
+    - Added integration test: `rejects review submission for a dish that was not part of the served order`.
+    - Creates order with Dish A, attempts review for Dish B; asserts HTTP 400 response and message matching `/The specified dish was not part of this order/i`.
+- **WHY (the problem or goal)**:
+  - Formally verify Proof Assertion #1 from Feature Verification Audit (`docs/FEATURE_AUDIT.md`), guaranteeing that customers can never review dishes they did not purchase.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Expanded `server/tests/reviews.test.js` test coverage to 14 tests.
+- **HOW TO TEST**:
+  - Run `npx jest server/tests/reviews.test.js` -> 14/14 tests pass.
+- **Commit hashes**:
+  - `ba251ca` (test(reviews): add test rejecting review for a dish not part of the served order)
+
+---
+
+## [2026-10-30] - Fix: Start Newly Created Dishes with Zero Ratings and Clean Fake Seed Ratings
+
+- **Date**: 2026-10-30
+- **Title**: Fix: Start Newly Created Dishes with Zero Ratings and Clean Fake Seed Ratings
+- **WHAT changed**:
+  - In `server/controllers/menuController.js`:
+    - Forced `rating: 0`, `ratingAverage: 0`, and `ratingCount: 0` on new dish creation via `createMenuItem`.
+  - In `src/context/MenuContext.js`:
+    - Removed hardcoded `rating: 4.9` default on `addMenuItem()`.
+  - In `server/seed.js`:
+    - Stripped hardcoded `rating: 4.8`, `4.9`, etc. from catalog seed fixtures.
+  - In `server/tests/reviews.test.js`:
+    - Added test verifying new dishes initialize at 0 rating and update dynamically as verified reviews arrive.
+- **WHY (the problem or goal)**:
+  - Address Audit Bug #9: Newly created items previously defaulted to 4.9 stars, and seeds contained fabricated rating metrics rather than organic verified patron scores.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Reset schema defaults to 0 across controller, context, and seeder, displaying dynamic "New" tag in UI until patrons submit reviews.
+- **HOW TO TEST**:
+  - Create a new dish as Manager -> verify dish displays 0 reviews and 0.0 rating.
+- **Commit hashes**:
+  - `daaf3ea` (fix(menu): start newly added dishes with zero ratings and clean fake seed ratings)
+
+---
+
+## [2026-10-24] - Fix: Customer Self-Cancellation Dispatches Status Notification
+
+- **Date**: 2026-10-24
+- **Title**: Fix: Customer Self-Cancellation Dispatches Status Notification
+- **WHAT changed**:
+  - In `server/controllers/orderController.js`:
+    - Added `await notificationService.notifyOrderStatus(order)` inside `cancelMyOrder` handler.
+  - In `server/tests/notifications.test.js`:
+    - Added 2 integration tests verifying order cancellation triggers notification creation and sets status to `Cancelled`.
+- **WHY (the problem or goal)**:
+  - Address Audit Bug #6: While manager cancellations created an in-app notification for the customer, customer self-cancellations within the 10-minute window omitted notification generation, leaving the customer without an in-app receipt confirmation.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Reused existing `notifyOrderStatus` service wrapped in non-blocking try-catch.
+- **HOW TO TEST**:
+  - Customer places order -> cancels within 10-minute window -> opens notification center -> sees "Order Cancelled" notification.
+- **Commit hashes**:
+  - `aab5339` (fix(notifications): dispatch cancellation notification on customer self-cancel)
+
+---
+
+## [2026-10-24] - Fix: Return Clean 400 on Non-Gmail Staff Account Creation
+
+- **Date**: 2026-10-24
+- **Title**: Fix: Return Clean 400 on Non-Gmail Staff Account Creation
+- **WHAT changed**:
+  - In `server/controllers/authController.js`:
+    - In `createStaffAccount`, added validation `!cleanEmail.endsWith('@gmail.com')` returning `400 ('Staff registration requires a valid Gmail address (@gmail.com)')`.
+  - In `server/tests/auth.test.js`:
+    - Added 2 tests verifying staff account rejection for invalid email domains with clean 400 status.
+- **WHY (the problem or goal)**:
+  - Address Audit Bug #10: Controller lacked an email domain guard, allowing invalid domains to trigger unhandled 500 Mongoose schema validation errors.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Enforced consistent domain validation before calling `User.create`.
+- **HOW TO TEST**:
+  - Attempt staff creation with `chef@yahoo.com` -> receives clean 400 error instead of 500 crash.
+- **Commit hashes**:
+  - `7c38c5b` (fix(auth): return clean 400 for non-gmail addresses on staff account creation)
+
+---
+
+## [2026-10-24] - Fix: Atomically Refund Redeemed Loyalty Points on Order Cancellation
+
+- **Date**: 2026-10-24
+- **Title**: Fix: Atomically Refund Redeemed Loyalty Points on Order Cancellation
+- **WHAT changed**:
+  - In `server/models/Order.js`:
+    - Added `pointsRefunded: { type: Boolean, default: false }` field.
+  - In `server/services/loyaltyService.js`:
+    - Implemented `refundOrderPoints(orderId)`:
+      - Uses atomic `findOneAndUpdate` with `{ pointsRedeemed: { $gt: 0 }, pointsRefunded: { $ne: true } }` to ensure idempotency.
+      - Atomically increments user balance via `$inc: { loyaltyPoints: pointsToRefund }`.
+      - Writes `LoyaltyTransaction` audit log with `type: 'adjustment'`.
+  - In `server/controllers/orderController.js`:
+    - Hooked `refundOrderPoints(order._id)` into both customer self-cancellation (`cancelMyOrder`) and manager order cancellation (`updateOrderStatus`).
+  - In `server/tests/loyalty.test.js`:
+    - Added 3 integration tests verifying point refund on customer cancellation, manager cancellation, and idempotency (no double refunds).
+- **WHY (the problem or goal)**:
+  - Address Audit Bug #2: Redeemed points applied at checkout were permanently lost if an order was cancelled, resulting in customer point loss.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Idempotent atomic design prevents double refunds and maintains full audit integrity in `LoyaltyTransaction`.
+- **HOW TO TEST**:
+  - Place order redeeming 100 points -> cancel order -> verify user balance restored by 100 points and adjustment entry appears in ledger.
+- **Commit hashes**:
+  - `87fc24b` (fix(loyalty): atomically refund redeemed points on order cancellation with ledger entry)
+
+---
+
+## [2026-10-24] - Fix: Exempt Internal Phone OTP Accounts from Gmail Schema Validation
+
+- **Date**: 2026-10-24
+- **Title**: Fix: Exempt Internal Phone OTP Accounts from Gmail Schema Validation
+- **WHAT changed**:
+  - In `server/models/User.js`:
+    - Replaced rigid regex match with custom validator: exempts internal `${phone}@customer.aura.pk` synthetic emails while strictly enforcing `/^[a-zA-Z0-9_.+-]+@gmail\.com$/` for all standard email signups.
+  - In `server/controllers/authController.js`:
+    - Verified phone OTP verify route smoothly provisions users without collision.
+  - In `server/tests/auth.test.js`:
+    - Added 4 integration tests verifying phone OTP account creation, `@customer.aura.pk` exemption, and strict non-Gmail rejection for public signups.
+- **WHY (the problem or goal)**:
+  - Address Audit Bug #1: Phone OTP registration crashed on `User.create` with an unhandled 500 Mongoose `ValidationError` because the internal auto-generated email format conflicted with the schema regex.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Replaced single regex with custom Mongoose validator function handling internal provisioning transparently.
+- **HOW TO TEST**:
+  - Send phone OTP -> verify OTP -> user account created successfully with zero validation errors.
+- **Commit hashes**:
+  - `efcecd1` (fix(auth): exempt internal phone OTP emails from gmail validation and add auth tests)
+
+---
+
 ## [2026-10-24] - Docs: Feature Verification Audit of Batch 1 and Feature Document
 
 - **Date**: 2026-10-24
