@@ -43,7 +43,7 @@
   - Run Expo lint: `npm run lint` -> 0 errors.
   - From Order Tracking screen, open an active delivery order -> click "Track Live Rider" -> view live animated radar map, milestones, and rider card.
 - **Commit hashes**:
-  - `bc01797` (feat(tracking): implement live GPS rider tracking with animated map, telemetry, and delivery milestones)
+  - `fd366c5` (feat(tracking): implement live GPS rider tracking with animated map, telemetry, and delivery milestones)
 
 ---
 
