@@ -119,6 +119,7 @@ The backend is built with Express.js using a modular controller-route-model arch
 | | `POST` | `/api/menu` | Manager | Creates a new culinary menu item. |
 | | `PUT` | `/api/menu/:id` | Manager | Updates price, description, and details. |
 | | `PATCH` | `/api/menu/:id/availability` | Manager/Staff | Toggles In Stock / Sold Out status. |
+| | `POST` | `/api/upload` | Manager | Uploads dish photo; stores on Cloudinary CDN if configured, with local uploads/ fallback. |
 | **Tables** | `GET` | `/api/tables` | Public | Lists all restaurant tables with zone & capacity. |
 | **Reservations** | `GET` | `/api/reservations/my` | Authenticated | Customer's table reservations. |
 | | `POST` | `/api/reservations` | Authenticated | Creates booking with collision verification and branch tag. |

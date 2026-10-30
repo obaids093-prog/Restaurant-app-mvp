@@ -91,8 +91,8 @@
 ### 11. Code Quality & Technical Health
 - **Dark & Light Mode**: Complete theme system with persistent theme caching.
 - **Cold-Start Resilience**: 45s hard timeout limit, automatic single retry for timed-out GET requests, and animated "Waking up the server, please wait" banner when cold starts exceed 5s.
-- **Photo Storage Architecture**: Uploaded dish photos are stored on local server disk (`server/uploads/`) for development; catalog production images are delivered via Unsplash CDN. Cloud object storage (e.g. Cloudinary/S3) is scheduled for the commercial release.
-- **Automated Tests**: 90/90 tests passing across 9 Jest suites (`auth`, `reviews`, `vouchers`, `loyalty`, `notifications`, `analytics`, `noHardcodedVouchers`, `clientColdStart`, `secureTokenStorage`).
+- **Photo Storage Architecture**: Uploaded dish photos leverage Cloudinary cloud object storage (free tier) with global CDN delivery and automatic WebP/AVIF transformation, while gracefully falling back to local server disk storage (`server/uploads/`) for local development without keys. Catalog images are delivered via Unsplash CDN.
+- **Automated Tests**: Comprehensive automated test coverage across 10 Jest test suites (`auth`, `reviews`, `vouchers`, `loyalty`, `notifications`, `analytics`, `noHardcodedVouchers`, `clientColdStart`, `secureTokenStorage`, `cloudStorage`).
 - **CI/CD Cloud Deployment**: Render cloud backend automatically syncing with GitHub repository.
 
 ---
@@ -110,8 +110,8 @@ To transform AURA from an academic MVP to an enterprise-grade food & dining appl
 - **Zero-Latency Updates**: Upgrade 10-second HTTP polling to **Socket.io** or **Supabase Realtime**.
 - **Instant Status Sync**: When a chef taps "Ready" in the kitchen, the customer's phone status updates in under 200ms without background battery drain.
 
-### 3. Cloud Object Storage for Uploads (Priority: HIGH)
-- **Permanent Asset Storage**: Migrate local disk storage (`server/uploads/`) to **Cloudinary** or **AWS S3 / Cloudflare R2** with automatic WebP image compression.
+### 3. Cloud Object Storage for Uploads (STATUS: IMPLEMENTED)
+- **Permanent Asset Storage**: `cloudStorageService.js` integrates **Cloudinary** free tier with SHA-1 signing and automated WebP optimization (`f_auto,q_auto,w_800`), with seamless fallback to local disk storage. Dish images persist permanently across Render restarts.
 
 ### 4. Native Remote Push Notifications (Priority: HIGH)
 - **EAS Push Credentials**: Configure Apple APNs and Google FCM credentials in EAS build profiles for background push alerts when the app is closed.
