@@ -30,7 +30,7 @@ dotenv.config();
 // Validate required environment variables before initializing services
 if (process.env.NODE_ENV !== 'test') {
   const requiredEnv = ['MONGO_URI', 'JWT_SECRET'];
-  const missingEnv = requiredEnv.filter((key) => !process.env[key] || !process.env[key].trim());
+  const missingEnv = requiredEnv.filter((key) => !process.env[key]?.trim());
 
   if (missingEnv.length > 0) {
     console.error('\n❌ FATAL CONFIGURATION ERROR: Missing required environment variable(s):');
@@ -42,7 +42,7 @@ if (process.env.NODE_ENV !== 'test') {
   }
 
   // Connect to MongoDB
-  connectDB();
+  void connectDB();
 }
 
 const app = express();
