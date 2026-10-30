@@ -65,6 +65,5 @@ const paymentTransactionSchema = new mongoose.Schema(
 );
 
 paymentTransactionSchema.index({ orderId: 1 });
-paymentTransactionSchema.index({ transactionRef: 1 });
 
 module.exports = mongoose.model('PaymentTransaction', paymentTransactionSchema);

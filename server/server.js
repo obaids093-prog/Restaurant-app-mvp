@@ -15,12 +15,14 @@
 // ═══════════════════════════════════════════════════════════
 
 const express = require('express');
+const http = require('node:http');
 const cors = require('cors');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const dotenv = require('dotenv');
 const path = require('node:path');
 const connectDB = require('./config/db');
+const { initializeSocket } = require('./services/socketService');
 
 // Load .env variables into process.env
 dotenv.config();
@@ -181,10 +183,19 @@ app.use((err, req, res, _next) => {
 
 // ── Start Server ─────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
+
+// Create HTTP server wrapping Express app (required for Socket.io)
+const server = http.createServer(app);
+
+// Initialize real-time WebSocket layer on the HTTP server
 if (require.main === module) {
-  app.listen(PORT, () => {
+  initializeSocket(server);
+  server.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`🔌 WebSocket server ready on ws://localhost:${PORT}`);
   });
 }
 
 module.exports = app;
+module.exports.server = server;
+

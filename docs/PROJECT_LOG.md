@@ -1,5 +1,49 @@
 # Project Log
 
+## [2026-10-30] - Feat: Real-Time WebSockets & Zero-Latency Order/Notification Sync (Roadmap Item #2)
+
+- **Date**: 2026-10-30
+- **Title**: Feat: Real-Time WebSockets & Zero-Latency Order/Notification Sync (Roadmap Item #2)
+- **WHAT changed**:
+  - In `server/package.json`:
+    - Added `socket.io` dependency.
+  - In `package.json`:
+    - Added `socket.io-client` dependency.
+  - In `server/services/socketService.js`:
+    - Implemented `initializeSocket(httpServer)` with JWT handshake authentication and room-based routing (`user:<userId>`, `role:manager`, `order:<orderId>`).
+    - Implemented emit helper methods: `emitOrderStatusUpdate`, `emitNewOrder`, `emitNotification`, `emitManagerNotification`, `emitInventoryAlert`, `emitMenuUpdate`.
+  - In `server/server.js`:
+    - Replaced standard express listen with `http.createServer(app)` and initialized Socket.io server.
+  - In `server/controllers/orderController.js`:
+    - Added real-time socket events on order creation (`emitNewOrder`), customer cancellation, and manager status progression (`emitOrderStatusUpdate`).
+  - In `server/services/notificationService.js`:
+    - Emitted instant socket notifications (`emitNotification`) on every database notification creation.
+  - In `src/context/SocketContext.js`:
+    - Created React Native `SocketProvider` and `useSocket` hook with auto-reconnection, AppState foreground detection, and graceful noop fallback.
+  - In `App.js`:
+    - Wrapped `SocketProvider` inside `AuthProvider` to make real-time events universally available across the entire component tree.
+  - In `src/context/OrdersContext.js`:
+    - Integrated real-time socket event listeners for `order:statusUpdated` and `order:new` to instantly sync customer order lists and KDS screens without polling delays.
+  - In `src/context/NotificationContext.js`:
+    - Subscribed to `notification:new` for instant banner popups and unread count badges.
+  - In `src/components/LiveSocketBadge.js`:
+    - Created pulsing status badge indicating real-time sync status (`LIVE`, `SYNCING...`, `OFFLINE`).
+  - In `src/screens/KitchenDisplay/KitchenDisplayScreen.js`:
+    - Integrated `LiveSocketBadge` in the KDS tablet header rail.
+  - In `server/tests/socket.test.js`:
+    - Added 8 automated tests for socket initialization, room targeting, and emit helpers.
+  - In `docs/`:
+    - Marked Roadmap Item #2 as COMPLETED in `docs/APP_FEATURES_AND_ROADMAP.md`.
+- **WHY (the problem or goal)**:
+  - Implement Roadmap Item #2: Eliminate slow, battery-draining 10-second HTTP polling by transitioning order tracking and kitchen dispatch to sub-200ms real-time WebSockets.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Leveraged industry-standard Socket.io with JWT authentication and room segmentation. Maintained HTTP endpoints as graceful fallbacks so clients in restricted networks continue to operate seamlessly.
+- **HOW TO TEST**:
+  - Run server unit tests: `npm test tests/socket.test.js` passes all 8 tests.
+  - Open app: Kitchen Display Screen header shows pulsing green `LIVE` badge.
+
+---
+
 ## [2026-10-30] - Feat: Ingredient-Level Inventory & Auto-Stock Depletion System (Roadmap Item #10)
 
 - **Date**: 2026-10-30

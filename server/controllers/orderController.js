@@ -20,6 +20,7 @@ const notificationService = require('../services/notificationService');
 const riderTrackingService = require('../services/riderTrackingService');
 const receiptService = require('../services/receiptService');
 const inventoryService = require('../services/inventoryService');
+const { emitNewOrder, emitOrderStatusUpdate } = require('../services/socketService');
 const { CANCEL_WINDOW_MINUTES } = require('../config/constants');
 
 // Safe regex string escaper to prevent NoSQL regex injection / ReDoS (S1-A)
@@ -222,6 +223,9 @@ const placeOrder = async (req, res) => {
       console.warn('Inventory depletion error:', invErr.message);
     }
 
+    // Broadcast new order to all connected clients in real-time
+    emitNewOrder(newOrder);
+
     res.status(201).json(newOrder);
   } catch (error) {
     console.error('Error placing order:', error);
@@ -326,6 +330,9 @@ const updateOrderStatus = async (req, res) => {
         console.warn('Failed to notify order cancellation:', notifErr.message);
       }
 
+      // Broadcast cancellation via WebSocket
+      emitOrderStatusUpdate(cancelled);
+
       return res.status(200).json(cancelled);
     }
 
@@ -349,6 +356,9 @@ const updateOrderStatus = async (req, res) => {
       } catch (notifErr) {
         console.warn('Failed to notify order status:', notifErr.message);
       }
+
+      // Broadcast manager cancellation via WebSocket
+      emitOrderStatusUpdate(order);
 
       return res.status(200).json(order);
     }
@@ -389,6 +399,9 @@ const updateOrderStatus = async (req, res) => {
         console.warn('Failed to award loyalty points:', awardErr.message);
       }
     }
+
+    // Broadcast status progression via WebSocket
+    emitOrderStatusUpdate(order);
 
     res.status(200).json(order);
   } catch (error) {

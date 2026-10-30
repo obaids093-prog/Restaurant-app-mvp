@@ -1,8 +1,18 @@
 const {
   depleteOrderIngredients,
 } = require('../services/inventoryService');
+const MenuItem = require('../models/MenuItem');
 
 describe('Inventory Depletion Service', () => {
+  beforeAll(() => {
+    jest.spyOn(MenuItem, 'findById').mockResolvedValue(null);
+    jest.spyOn(MenuItem, 'findOne').mockResolvedValue(null);
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   it('handles empty or null order safely without throwing', async () => {
     const res = await depleteOrderIngredients(null);
     expect(res).toEqual({ depleted: [] });

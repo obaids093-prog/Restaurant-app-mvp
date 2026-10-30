@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import apiClient from '../api/client';
 import { useAuth } from './AuthContext';
+import { useSocket } from './SocketContext';
 
 export const OrdersContext = createContext(null);
 
@@ -25,6 +26,7 @@ const normalizeOrder = (o) => ({
 
 export const OrdersProvider = ({ children }) => {
   const { user } = useAuth();
+  const { subscribe } = useSocket();
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -64,6 +66,42 @@ export const OrdersProvider = ({ children }) => {
       setOrders([]);
     }
   }, [user, fetchOrders]);
+
+  // Real-time WebSocket subscriptions for order updates & incoming orders
+  useEffect(() => {
+    if (!subscribe) return;
+
+    // Listen for real-time status updates (e.g. Preparing, Ready, Served, Cancelled)
+    const unsubStatus = subscribe('order:statusUpdated', (updatedOrder) => {
+      if (!updatedOrder) return;
+      const normalized = normalizeOrder(updatedOrder);
+      setOrders((prev) => {
+        const orderId = normalized.id || normalized._id;
+        const exists = prev.some((o) => (o.id || o._id) === orderId);
+        if (exists) {
+          return prev.map((o) => ((o.id || o._id) === orderId ? { ...o, ...normalized } : o));
+        }
+        return [normalized, ...prev];
+      });
+    });
+
+    // Listen for new orders (e.g. managers receiving instant order dispatches)
+    const unsubNew = subscribe('order:new', (newOrder) => {
+      if (!newOrder) return;
+      const normalized = normalizeOrder(newOrder);
+      setOrders((prev) => {
+        const orderId = normalized.id || normalized._id;
+        const exists = prev.some((o) => (o.id || o._id) === orderId);
+        if (exists) return prev;
+        return [normalized, ...prev];
+      });
+    });
+
+    return () => {
+      if (typeof unsubStatus === 'function') unsubStatus();
+      if (typeof unsubNew === 'function') unsubNew();
+    };
+  }, [subscribe]);
 
   /**
    * Place an order via POST /api/orders (Question 7 requirement)

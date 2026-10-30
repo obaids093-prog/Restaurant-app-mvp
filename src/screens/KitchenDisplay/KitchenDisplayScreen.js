@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useOrders } from '../../context/OrdersContext';
+import { LiveSocketBadge } from '../../components/LiveSocketBadge';
 import { styles } from './kdsStyles';
 
 const STATIONS = [
@@ -164,6 +165,9 @@ export default function KitchenDisplayScreen({ navigation }) {
         </View>
 
         <View style={styles.headerRight}>
+          {/* Live WebSocket Status Badge */}
+          <LiveSocketBadge style={{ marginRight: 8 }} />
+
           {/* Digital Clock */}
           <View
             style={[

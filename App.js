@@ -12,6 +12,7 @@ import {
 } from '@expo-google-fonts/poppins';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider } from './src/context/AuthContext';
+import { SocketProvider } from './src/context/SocketContext';
 import { MenuProvider } from './src/context/MenuContext';
 import { CartProvider } from './src/context/CartContext';
 import { OrdersProvider } from './src/context/OrdersContext';
@@ -64,17 +65,19 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
-          <BranchProvider>
-            <MenuProvider>
-              <CartProvider>
-                <OrdersProvider>
-                  <NotificationProvider>
-                    <MainApp fontsLoaded={fontsLoaded} />
-                  </NotificationProvider>
-                </OrdersProvider>
-              </CartProvider>
-            </MenuProvider>
-          </BranchProvider>
+          <SocketProvider>
+            <BranchProvider>
+              <MenuProvider>
+                <CartProvider>
+                  <OrdersProvider>
+                    <NotificationProvider>
+                      <MainApp fontsLoaded={fontsLoaded} />
+                    </NotificationProvider>
+                  </OrdersProvider>
+                </CartProvider>
+              </MenuProvider>
+            </BranchProvider>
+          </SocketProvider>
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>

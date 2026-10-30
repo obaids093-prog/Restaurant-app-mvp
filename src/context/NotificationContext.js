@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAuth } from './AuthContext';
+import { useSocket } from './SocketContext';
 import {
   getNotificationsModule,
   registerForPushNotificationsAsync,
@@ -12,6 +13,7 @@ const NotificationContext = createContext(null);
 
 export function NotificationProvider({ children }) {
   const { user } = useAuth();
+  const { subscribe } = useSocket();
   const notificationState = useNotifications();
   const [pushToken, setPushToken] = useState(null);
   const [activeBannerNotification, setActiveBannerNotification] = useState(null);
@@ -20,6 +22,34 @@ export function NotificationProvider({ children }) {
   const responseListener = useRef(null);
 
   const lastShownNotificationIdRef = useRef(null);
+
+  // Real-time WebSocket notifications (instant zero-latency alert)
+  useEffect(() => {
+    if (!subscribe) return;
+
+    const unsubNotification = subscribe('notification:new', (notif) => {
+      if (!notif) return;
+      setActiveBannerNotification({
+        title: notif.title || 'AURA Alert',
+        body: notif.body || '',
+        data: {
+          type: notif.type,
+          orderId: notif.refModel === 'Order' ? notif.refId : null,
+        },
+      });
+
+      if (notificationState?.refreshNotifications) {
+        notificationState.refreshNotifications();
+      }
+      if (notificationState?.fetchUnreadCount) {
+        notificationState.fetchUnreadCount();
+      }
+    });
+
+    return () => {
+      if (typeof unsubNotification === 'function') unsubNotification();
+    };
+  }, [subscribe, notificationState]);
 
   // Register push token when authenticated user signs in
   useEffect(() => {

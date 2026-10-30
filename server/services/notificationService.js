@@ -1,5 +1,6 @@
 const Notification = require('../models/Notification');
 const mongoose = require('mongoose');
+const { emitNotification } = require('./socketService');
 
 /**
  * Create a new notification for a user
@@ -27,7 +28,12 @@ async function createNotification({ user, type, title, body, refModel = null, re
     isRead: false,
   });
 
-  return await notification.save();
+  const savedNotification = await notification.save();
+
+  // Push notification to connected WebSocket clients in real-time
+  emitNotification(user, savedNotification);
+
+  return savedNotification;
 }
 
 /**

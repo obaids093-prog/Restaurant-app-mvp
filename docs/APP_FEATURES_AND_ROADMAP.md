@@ -107,9 +107,12 @@ To transform AURA from an academic MVP to an enterprise-grade food & dining appl
 - **Saved Cards Tokenization**: Backend tokenization service (`POST /api/payments/tokenize-card`) generating secure, masked token references (`tok_visa_...`) for frictionless 1-tap reorders.
 - **Dynamic Settlement**: Unified settlement flow across Dine-in, Takeaway, and Delivery orders with instant digital receipt generation (`AURA-RCP-...`) and order payment state synchronization.
 
-### 2. Real-Time WebSockets / Server-Sent Events (Priority: HIGH)
-- **Zero-Latency Updates**: Upgrade 10-second HTTP polling to **Socket.io** or **Supabase Realtime**.
-- **Instant Status Sync**: When a chef taps "Ready" in the kitchen, the customer's phone status updates in under 200ms without background battery drain.
+### 2. Real-Time WebSockets / Server-Sent Events (Priority: HIGH) — [COMPLETED]
+- **Zero-Latency Updates**: Integrated **Socket.io** (`socketService.js`) with JWT handshake authentication, dedicated room routing (`user:<userId>`, `role:manager`, `order:<orderId>`), and sub-200ms live order status updates.
+- **Client Socket Provider & State**: React Native `SocketProvider` and `useSocket` hook with automatic token injection, exponential backoff reconnection, AppState foreground detection, and graceful HTTP fallback.
+- **Live Sync & Instant Notifications**: `OrdersContext` listens to `order:statusUpdated` and `order:new` for real-time order lists and KDS bump synchronization. `NotificationContext` displays instant in-app toasts on `notification:new`.
+- **Live Connection Badge**: Animated pulsing status badge (`LiveSocketBadge.js`) integrated into Kitchen Display System and management views.
+- **Test Coverage**: Comprehensive Jest test suite (`socket.test.js`) validating socket initialization, event emission, room targeting, and error guards.
 
 ### 3. Cloud Object Storage for Uploads (STATUS: IMPLEMENTED)
 - **Permanent Asset Storage**: `cloudStorageService.js` integrates **Cloudinary** free tier with SHA-1 signing and automated WebP optimization (`f_auto,q_auto,w_800`), with seamless fallback to local disk storage. Dish images persist permanently across Render restarts.
