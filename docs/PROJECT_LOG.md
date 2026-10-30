@@ -1,5 +1,31 @@
 # Project Log
 
+## [2026-10-30] - Feat: Native Remote Push Notifications & EAS Production Profiles (Roadmap Item #4)
+
+- **Date**: 2026-10-30
+- **Title**: Feat: Native Remote Push Notifications & EAS Production Profiles (Roadmap Item #4)
+- **WHAT changed**:
+  - In `app.json`:
+    - Configured `expo-notifications` plugin with custom icon and brand accent `#D4AF37`.
+  - In `eas.json`:
+    - Configured production release channels and Android App Bundle (`app-bundle`) build profiles for EAS cloud compilation.
+  - In `server/services/pushNotificationService.js`:
+    - Validates Expo push token formats (`ExponentPushToken[...]`, `ExpoPushToken[...]`).
+    - Dispatches HTTP batches to Expo push gateways with automatic pruning of unregistered tokens.
+  - In `src/services/pushNotificationService.js`:
+    - Initializes Android notification channels (`aura-order-updates`, `default`) with maximum importance and gold vibration patterns.
+    - Synchronizes client device tokens with backend upon authentication.
+  - In `docs/`:
+    - Marked Roadmap Item #4 as COMPLETED in `docs/APP_FEATURES_AND_ROADMAP.md`.
+- **WHY (the problem or goal)**:
+  - Implement Roadmap Item #4: Enable native background remote push notifications so users are notified of order and delivery updates even when the app is closed.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Leveraged Expo Push Notification Service architecture combined with EAS Continuous Native Generation, ensuring zero crashes in Expo Go while enabling full background push in production APK builds.
+- **HOW TO TEST**:
+  - Validated with Jest tests in `server/tests/notifications.test.js` (tests 13, 14, 15).
+
+---
+
 ## [2026-10-30] - Feat: Real-Time WebSockets & Zero-Latency Order/Notification Sync (Roadmap Item #2)
 
 - **Date**: 2026-10-30

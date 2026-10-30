@@ -117,8 +117,11 @@ To transform AURA from an academic MVP to an enterprise-grade food & dining appl
 ### 3. Cloud Object Storage for Uploads (STATUS: IMPLEMENTED)
 - **Permanent Asset Storage**: `cloudStorageService.js` integrates **Cloudinary** free tier with SHA-1 signing and automated WebP optimization (`f_auto,q_auto,w_800`), with seamless fallback to local disk storage. Dish images persist permanently across Render restarts.
 
-### 4. Native Remote Push Notifications (Priority: HIGH)
-- **EAS Push Credentials**: Configure Apple APNs and Google FCM credentials in EAS build profiles for background push alerts when the app is closed.
+### 4. Native Remote Push Notifications (Priority: HIGH) — [COMPLETED]
+- **EAS Push Credentials & Continuous Native Generation**: Configured `expo-notifications` plugin in `app.json` with custom notification icon, brand gold accent (`#D4AF37`), and production build profiles in `eas.json`.
+- **Client Push Token Lifecycle**: `pushNotificationService.js` and `NotificationContext.js` request system permissions, initialize high-priority notification channels (`aura-order-updates`, `default`), and automatically sync tokens with the backend on sign-in.
+- **Backend Push Dispatch Gateway**: `pushNotificationService.js` dispatches HTTP payload batches to Expo's push service (`https://exp.host/--/api/v2/push/send`), pruning inactive device tokens on `DeviceNotRegistered` error receipts.
+- **Automated Tests**: Verified via `server/tests/notifications.test.js` covering token registration, deduplication, user unregistration, and non-blocking delivery.
 
 ### 5. Live GPS Rider Tracking on Map (Priority: HIGH) — [COMPLETED]
 - **Interactive Map**: Zero-dependency animated SVG/View radar canvas with road grid, pulsing restaurant origin beacon, destination customer pin, live bike rider ping, and breadcrumb route trajectory.
