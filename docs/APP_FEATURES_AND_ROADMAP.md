@@ -121,9 +121,10 @@ To transform AURA from an academic MVP to an enterprise-grade food & dining appl
 - **Dynamic Telemetry & ETA**: Backend telemetry service (`riderTrackingService.js`) with Bezier waypoint interpolation, Haversine distance, speed calculations, dynamic ETA countdown, and 4-second client polling hook (`useRiderTracking`).
 - **Milestone & Rider Card**: 4-step progress stepper (Order Placed ➔ In Kitchen ➔ Rider Dispatched ➔ Arrived), destination address card, and rider profile card with direct Call/SMS actions.
 
-### 6. Table QR-Code Dine-In Ordering (Priority: MEDIUM-HIGH)
-- **Camera QR Scanner**: Customers sitting at a restaurant table scan a physical acrylic QR standee on the table.
-- **Auto-Locked Table**: The app automatically selects the branch and locks `Table #8`, allowing customers to browse, order, and pay directly from their phones without waiting for a waiter.
+### 6. Table QR-Code Dine-In Ordering (Priority: MEDIUM-HIGH) — [COMPLETED]
+- **Camera QR Scanner & Standee Browser**: Integrated `TableQRScannerScreen` featuring simulated viewfinder with animated laser line, manual code input fallback, branch switcher (Lahore Gulberg & Islamabad Blue Area), and interactive acrylic standee browser (`TableStandeeCard`).
+- **Auto-Locked Table & Deep Links**: Backend verification (`POST /api/tables/verify-qr`) parses custom URI deep links (`aura://table?branch=...&table=...`), JSON standee tags, and manual table identifiers with zero paid dependencies.
+- **Dine-In Menu Routing**: Seamless one-tap transition from physical table scan directly into `MenuScreen` pre-loaded with seated table context. Accessible from both Menu header and Reservation screen.
 
 ### 7. Automated SMS & WhatsApp Order Updates (Priority: MEDIUM)
 - **WhatsApp Cloud API / Twilio**: Automatically send order confirmation, preparation alerts, and digital PDF receipts directly to the customer's WhatsApp or SMS.

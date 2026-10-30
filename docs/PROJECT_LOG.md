@@ -1,5 +1,42 @@
 # Project Log
 
+## [2026-10-30] - Feat: Table QR-Code Dine-In Ordering with Standee Scanner & Deep Links (Roadmap Item #6)
+
+- **Date**: 2026-10-30
+- **Title**: Feat: Table QR-Code Dine-In Ordering with Standee Scanner & Deep Links (Roadmap Item #6)
+- **WHAT changed**:
+  - In `server/controllers/tableController.js`:
+    - Implemented `parseTableQRPayload(raw)` supporting `aura://table?branch=...&table=...` URI deep links, JSON standee tags, and natural table strings (`"Table 4"`, `"4"`).
+    - Implemented `verifyTableQR` (`POST /api/tables/verify-qr`) returning verified branch metadata, seat capacity, table zone/location, and deep link URL.
+    - Implemented `getTableStandees` (`GET /api/tables/qr-standees`) returning printable table standee cards for dining halls.
+  - In `server/routes/tableRoutes.js`:
+    - Registered `POST /api/tables/verify-qr` and `GET /api/tables/qr-standees`.
+  - In `server/tests/tableQR.test.js`:
+    - Added 12 automated unit and integration tests verifying deep link parsing, natural number extraction, validation rejections, branch mappings, and standee generations.
+  - In `src/screens/TableQRScanner/`:
+    - Created `TableQRScannerScreen.js`: Main scanner screen with animated laser viewfinder, manual code entry input, branch selection, and interactive table standee cards.
+    - Created `TableQRViewfinder.js`: Camera viewfinder simulation with corner target brackets and looping Animated laser line.
+    - Created `TableStandeeCard.js`: Acrylic standee visual with QR code visual, branch name, table badge, seat count, and "Tap to simulate scan" action.
+    - Created `tableQRStyles.js`, `index.js`, and root re-export bridge `src/screens/TableQRScannerScreen.js`.
+  - In `src/navigation/AppNavigator.js`:
+    - Registered `TableQRScanner` in the main StackNavigator with `slide_from_bottom` modal animation.
+  - In `src/screens/Menu/MenuScreen.js`:
+    - Added QR code scanner icon button (`qr-code-outline`) to the header actions row.
+  - In `src/screens/Reservation/ReservationScreen.js`:
+    - Added QR code scanner quick trigger adjacent to `BranchChip` in the reservations header.
+  - In `docs/`:
+    - Marked Item #6 as COMPLETED in `docs/APP_FEATURES_AND_ROADMAP.md`.
+- **WHY (the problem or goal)**:
+  - Implement Roadmap Item #6: Allow dine-in guests to scan an acrylic QR standee on their table to instantly lock their table number and branch, eliminating the need to wait for a physical menu or server.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Created a camera scanner interface with viewfinder animation and manual code fallback, coupled with backend deep link parsing (`aura://table`) that works reliably in Expo Go and web simulators without requiring physical camera permissions or device hardware.
+- **HOW TO TEST**:
+  - Run `npm test server/tests/tableQR.test.js` -> 12/12 passing.
+  - From Menu or Reservation screen, tap the QR icon button in the header -> Table QR Scanner opens.
+  - Tap any table standee card or type "Table 4" -> prompts "Seated Successfully at Table 4" and directs to Menu with table locked.
+
+---
+
 ## [2026-10-30] - Feat: Live GPS Rider Tracking with Simulated Telemetry, Animated Map & Delivery Milestones (Roadmap Item #5)
 
 - **Date**: 2026-10-30

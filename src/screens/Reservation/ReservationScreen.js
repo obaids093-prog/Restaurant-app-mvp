@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StatusBar, Platform, Alert } from 'react-native';
+import { View, Text, StatusBar, Platform, Alert, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useReservation } from '../../hooks/useReservation';
@@ -16,6 +18,7 @@ import Step2PickTime from './Step2PickTime';
 import Step3YourDetails from './Step3YourDetails';
 
 export default function ReservationScreen() {
+  const navigation = useNavigation();
   const { user } = useAuth();
   const { activeBranch } = useBranch();
   const { colors, typography, isDark } = useTheme();
@@ -251,7 +254,23 @@ export default function ReservationScreen() {
                   Manage upcoming & past dining experiences
                 </Text>
               </View>
-              <BranchChip />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('TableQRScanner')}
+                  style={{
+                    padding: 8,
+                    borderRadius: 10,
+                    backgroundColor: colors.card,
+                    borderWidth: 1,
+                    borderColor: colors.cardBorder,
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Scan Table QR Code"
+                >
+                  <Ionicons name="qr-code-outline" size={18} color={colors.primary} />
+                </TouchableOpacity>
+                <BranchChip />
+              </View>
             </View>
 
             <View style={styles.segmentWrapper}>

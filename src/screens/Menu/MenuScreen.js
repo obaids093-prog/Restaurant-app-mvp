@@ -592,6 +592,23 @@ export default function MenuScreen({ navigation }) {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <BranchChip compact />
 
+          {/* Table QR Code Scanner Button */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('TableQRScanner')}
+            style={[
+              styles.headerActionBtn,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.subtleBorder,
+              },
+            ]}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Scan Table QR Code"
+          >
+            <Ionicons name="qr-code-outline" size={20} color={colors.textPrimary} />
+          </TouchableOpacity>
+
           {/* Favourites Heart Toggle Button */}
           <TouchableOpacity
             onPress={() => setFavouritesOnly(!favouritesOnly)}

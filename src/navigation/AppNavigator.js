@@ -19,6 +19,7 @@ import ManagerDashboardScreen from '../screens/ManagerDashboardScreen';
 import OrderPlacedScreen from '../screens/OrderPlacedScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import RiderTrackingScreen from '../screens/RiderTrackingScreen';
+import TableQRScannerScreen from '../screens/TableQRScannerScreen';
 import { navigationRef } from './navigationRef';
 export { navigationRef };
 
@@ -214,6 +215,14 @@ export default function AppNavigator() {
           options={{
             headerShown: false,
             animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="TableQRScanner"
+          component={TableQRScannerScreen}
+          options={{
+            headerShown: false,
+            animation: 'slide_from_bottom',
           }}
         />
       </Stack.Navigator>
