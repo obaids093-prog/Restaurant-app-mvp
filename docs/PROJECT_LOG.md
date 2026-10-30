@@ -1,5 +1,33 @@
 # Project Log
 
+## [2026-10-30] - Fix: Remove Unverified Social Login Route and Buttons (Safety Fix #1)
+
+- **Date**: 2026-10-30
+- **Title**: Fix: Remove Unverified Social Login Route and Buttons (Safety Fix #1)
+- **WHAT changed**:
+  - In `server/routes/authRoutes.js`:
+    - Removed `POST /api/auth/social-login` route.
+  - In `server/controllers/authController.js`:
+    - Removed `socialLogin` handler and export.
+  - In `src/screens/Login/LoginScreen.js` & `src/screens/Login/SocialLoginButtons.js`:
+    - Deleted `SocialLoginButtons.js` and removed social sign-in buttons from the login card.
+  - In `src/context/AuthContext.js`:
+    - Removed `loginWithSocial` method from AuthContext.
+  - In `server/tests/auth.test.js`:
+    - Replaced social login tests with an automated test verifying `POST /api/auth/social-login` returns 404.
+  - In `docs/SECURITY.md`:
+    - Documented vulnerability finding, remediation fix, and test verification.
+- **WHY (the problem or goal)**:
+  - Eliminate critical authentication bypass where supplying any email address allowed immediate account takeover without cryptographic token verification.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Completely excised the endpoint and UI buttons. Verified all remaining JWT issuances strictly require a bcrypt password or 6-digit SMS OTP.
+- **HOW TO TEST**:
+  - Run `npm test tests/auth.test.js` (verifies 404 on `/api/auth/social-login`).
+- **RISKS or follow-ups**:
+  - Re-implementation will require authentic provider ID-token verification (`google-auth-library` and Apple JWKS) with valid client IDs.
+
+---
+
 ## [2026-10-30] - Docs: System Reality Audit & Technical Vulnerability Assessment
 
 - **Date**: 2026-10-30

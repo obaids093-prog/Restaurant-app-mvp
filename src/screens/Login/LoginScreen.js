@@ -26,7 +26,6 @@ import BrandCanopy from './BrandCanopy';
 import EmailPasswordForm from './EmailPasswordForm';
 import PhoneOtpStep from './PhoneOtpStep';
 import NameEntryStep from './NameEntryStep';
-import SocialLoginButtons from './SocialLoginButtons';
 import GuestBrowseFooter from './GuestBrowseFooter';
 
 export default function LoginScreen({ navigation }) {
@@ -576,16 +575,6 @@ export default function LoginScreen({ navigation }) {
                   setPhoneError={setPhoneError}
                   colors={colors}
                   fonts={fonts}
-                />
-              )}
-
-              {/* 1-Tap Social Sign-In (Google & Apple) */}
-              {phoneStep !== 'nameEntry' && (
-                <SocialLoginButtons
-                  navigation={navigation}
-                  onError={(msg) => setServerError(msg)}
-                  isSubmitting={isSubmitting}
-                  setIsSubmitting={setIsSubmitting}
                 />
               )}
             </Animated.View>
