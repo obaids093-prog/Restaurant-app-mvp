@@ -86,6 +86,9 @@ export const OrdersProvider = ({ children }) => {
         branchId: orderData.branchId || 'lhr_gulberg',
         branchName: orderData.branchName || 'AURA • Gulberg III, Lahore',
         branchCity: orderData.branchCity || 'Lahore',
+        paymentMethod: orderData.paymentMethod || 'pay_at_table',
+        paymentStatus: orderData.paymentStatus || 'Pending',
+        paymentRef: orderData.paymentRef || '',
       };
 
       const created = await apiClient('/api/orders', {

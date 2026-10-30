@@ -23,6 +23,12 @@ import { useBranch } from '../context/BranchContext';
 import { BranchChip } from '../components/ui';
 import { brand } from '../config/brand';
 import { getOptimizedImageUrl } from '../utils/imageUrl';
+import apiClient from '../api/client';
+import {
+  PaymentMethodSelector,
+  PaymentDetailsForm,
+  OtpVerificationModal,
+} from '../components/PaymentSheet';
 
 // Named rate constants for transparent breakdown
 const SERVICE_CHARGE_RATE = 0.05;
@@ -38,7 +44,19 @@ const showOrderAlert = (title, message) => {
 };
 
 // Pure payload builder
-const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber, pickupTime, getItemPrice, activeBranch) => {
+const buildOrderPayload = (
+  user,
+  cartState,
+  calculations,
+  orderType,
+  tableNumber,
+  pickupTime,
+  getItemPrice,
+  activeBranch,
+  paymentMethod = 'pay_at_table',
+  paymentStatus = 'Pending',
+  paymentRef = ''
+) => {
   const isTakeaway =
     String(orderType || '').toLowerCase().includes('takeaway') ||
     String(orderType || '').toLowerCase().includes('curbside');
@@ -53,6 +71,9 @@ const buildOrderPayload = (user, cartState, calculations, orderType, tableNumber
     branchId: activeBranch?.id || 'lhr_gulberg',
     branchName: activeBranch?.fullName || 'AURA • Gulberg III, Lahore',
     branchCity: activeBranch?.city || 'Lahore',
+    paymentMethod,
+    paymentStatus,
+    paymentRef,
     items: (cartState.items || []).map((item) => ({
       id: item.id || item._id,
       name: item.name,
@@ -116,8 +137,18 @@ export default function OrderSummaryScreen({ route, navigation }) {
     String(initialOrderType).toLowerCase().includes('takeaway') ? 'Takeaway' : 'Dine-in'
   );
 
-  // Settlement preference
-  const [paymentMethod, setPaymentMethod] = useState('pay_at_table'); // 'pay_at_table' | 'cash' | 'card_online'
+  // Settlement preference & form data
+  const [paymentMethod, setPaymentMethod] = useState('jazzcash');
+  const [paymentFormData, setPaymentFormData] = useState({
+    accountNumber: user?.phone || '',
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvv: '',
+    cardHolder: user?.name || '',
+  });
+  const [activeTxn, setActiveTxn] = useState(null);
+  const [isOtpModalVisible, setIsOtpModalVisible] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
   const isDineIn = activeDiningType === 'Dine-in';
   const userName = user?.name || 'Valued Guest';
@@ -169,6 +200,30 @@ export default function OrderSummaryScreen({ route, navigation }) {
     setErrorMessage('');
 
     try {
+      const isOnlineWalletOrCard = ['jazzcash', 'easypaisa', 'card_online'].includes(paymentMethod);
+
+      if (isOnlineWalletOrCard) {
+        // Step 1: Initiate payment session with gateway
+        const initRes = await apiClient.post('/payments/initiate', {
+          amount: Math.round(calculations.grandTotal),
+          method: paymentMethod,
+          accountNumber: paymentFormData.accountNumber,
+          cardNumber: paymentFormData.cardNumber,
+          cardExpiry: paymentFormData.cardExpiry,
+          cardCvv: paymentFormData.cardCvv,
+          cardHolder: paymentFormData.cardHolder,
+        });
+
+        const txnData = initRes.data;
+        if (txnData?.requiresOtp) {
+          setActiveTxn(txnData);
+          setIsOtpModalVisible(true);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Step 2: Settle directly for offline cash or pay at table
       const orderPayload = buildOrderPayload(
         user,
         cartState,
@@ -177,7 +232,10 @@ export default function OrderSummaryScreen({ route, navigation }) {
         tableNumber,
         pickupTime,
         getItemPrice,
-        activeBranch
+        activeBranch,
+        paymentMethod,
+        'Pending',
+        ''
       );
 
       const newOrder = await createOrder(orderPayload);
@@ -197,9 +255,63 @@ export default function OrderSummaryScreen({ route, navigation }) {
       console.error('Order dispatch error:', err);
       const errMsg = err.message || 'Unable to place order at this time.';
       setErrorMessage(errMsg);
-      showOrderAlert('Order Failed', errMsg);
+      showOrderAlert('Payment / Order Failed', errMsg);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyOtp = async (otpCode) => {
+    if (isVerifyingOtp || !activeTxn) return;
+    setIsVerifyingOtp(true);
+    setErrorMessage('');
+
+    try {
+      // Step 1: Verify 3DS / Wallet OTP
+      const verifyRes = await apiClient.post('/payments/verify-otp', {
+        transactionRef: activeTxn.transactionRef,
+        otp: otpCode,
+      });
+
+      const verified = verifyRes.data;
+      if (!verified?.success) {
+        throw new Error(verified?.message || 'Verification could not be confirmed.');
+      }
+
+      // Step 2: Create verified and fully paid Order in backend
+      const orderPayload = buildOrderPayload(
+        user,
+        cartState,
+        calculations,
+        activeDiningType,
+        tableNumber,
+        pickupTime,
+        getItemPrice,
+        activeBranch,
+        paymentMethod,
+        'Paid',
+        activeTxn.transactionRef
+      );
+
+      const newOrder = await createOrder(orderPayload);
+      const snapshotItems = [...cartState.items];
+      clearCart();
+      setIsOtpModalVisible(false);
+
+      navigation.replace('OrderPlaced', {
+        order: newOrder,
+        orderType: activeDiningType,
+        tableNumber,
+        branch: activeBranch,
+        grandTotal: calculations.grandTotal,
+        items: snapshotItems,
+        receiptNumber: verified.receiptNumber,
+      });
+    } catch (err) {
+      console.error('OTP confirmation failed:', err);
+      showOrderAlert('Payment Failed', err.message || 'Incorrect verification code.');
+    } finally {
+      setIsVerifyingOtp(false);
     }
   };
 
@@ -439,88 +551,20 @@ export default function OrderSummaryScreen({ route, navigation }) {
           })}
         </View>
 
-        {/* Settlement Preference Selector */}
-        <View
-          style={[
-            styles.summaryCard,
-            { backgroundColor: colors.card, borderColor: colors.cardBorder },
-            shadows.soft,
-          ]}
-        >
-          <Text style={[styles.cardHeading, { color: colors.mutedText, marginBottom: 12 }]}>
-            SETTLEMENT PREFERENCE
-          </Text>
-
-          {/* Pay at Table Option */}
-          <TouchableOpacity
-            onPress={() => setPaymentMethod('pay_at_table')}
-            style={[
-              styles.paymentOptionRow,
-              {
-                backgroundColor: paymentMethod === 'pay_at_table' ? colors.primaryTint : colors.surfaceSubtle,
-                borderColor: paymentMethod === 'pay_at_table' ? colors.primary : colors.surfaceBorder,
-              },
-            ]}
-            activeOpacity={0.85}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              <View
-                style={[
-                  styles.radioOuter,
-                  { borderColor: paymentMethod === 'pay_at_table' ? colors.primary : colors.border },
-                ]}
-              >
-                {paymentMethod === 'pay_at_table' && (
-                  <View style={[styles.radioInner, { backgroundColor: colors.primary }]} />
-                )}
-              </View>
-              <View style={{ marginLeft: 12 }}>
-                <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700' }]}>
-                  Pay at Table
-                </Text>
-                <Text style={[typography.caption, { color: colors.textSecondary, fontSize: 11 }]}>
-                  Card or terminal upon cloche presentation
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="receipt-outline" size={20} color={colors.primary} />
-          </TouchableOpacity>
-
-          {/* Direct Cash Option */}
-          <TouchableOpacity
-            onPress={() => setPaymentMethod('cash')}
-            style={[
-              styles.paymentOptionRow,
-              {
-                backgroundColor: paymentMethod === 'cash' ? colors.primaryTint : colors.surfaceSubtle,
-                borderColor: paymentMethod === 'cash' ? colors.primary : colors.surfaceBorder,
-              },
-            ]}
-            activeOpacity={0.85}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              <View
-                style={[
-                  styles.radioOuter,
-                  { borderColor: paymentMethod === 'cash' ? colors.primary : colors.border },
-                ]}
-              >
-                {paymentMethod === 'cash' && (
-                  <View style={[styles.radioInner, { backgroundColor: colors.primary }]} />
-                )}
-              </View>
-              <View style={{ marginLeft: 12 }}>
-                <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '700' }]}>
-                  Direct Cash
-                </Text>
-                <Text style={[typography.caption, { color: colors.textSecondary, fontSize: 11 }]}>
-                  Settle in PKR notes directly with your attendant
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="cash-outline" size={20} color={colors.ready} />
-          </TouchableOpacity>
-        </View>
+        {/* Real-world Online & Offline Payment Gateways */}
+        <PaymentMethodSelector
+          selectedMethod={paymentMethod}
+          onSelectMethod={setPaymentMethod}
+          orderType={activeDiningType}
+        />
+        <PaymentDetailsForm
+          method={paymentMethod}
+          formData={paymentFormData}
+          onChangeField={(field, val) =>
+            setPaymentFormData((prev) => ({ ...prev, [field]: val }))
+          }
+          userPhone={user?.phone}
+        />
 
         {/* Financial Folio Breakdown */}
         <View
@@ -644,6 +688,15 @@ export default function OrderSummaryScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* 3D-Secure / OTP Verification Modal */}
+      <OtpVerificationModal
+        visible={isOtpModalVisible}
+        transaction={activeTxn}
+        onVerify={handleVerifyOtp}
+        onCancel={() => setIsOtpModalVisible(false)}
+        isVerifying={isVerifyingOtp}
+      />
     </View>
   );
 }

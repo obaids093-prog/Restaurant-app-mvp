@@ -164,6 +164,25 @@ const orderSchema = new mongoose.Schema(
       default: 'Lahore',
       trim: true,
     },
+    paymentMethod: {
+      type: String,
+      enum: ['jazzcash', 'easypaisa', 'card_online', 'cash', 'pay_at_table'],
+      default: 'pay_at_table',
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['Unpaid', 'Pending', 'Paid', 'Refunded'],
+      default: 'Unpaid',
+    },
+    paymentRef: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    paidAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true, // Automatically manages createdAt and updatedAt

@@ -191,6 +191,10 @@ const placeOrder = async (req, res) => {
       branchId: branchId || 'lhr_gulberg',
       branchName: branchName || 'AURA • Gulberg III, Lahore',
       branchCity: branchCity || 'Lahore',
+      paymentMethod: req.body.paymentMethod || 'pay_at_table',
+      paymentStatus: req.body.paymentStatus || 'Pending',
+      paymentRef: req.body.paymentRef || '',
+      paidAt: req.body.paymentStatus === 'Paid' ? new Date() : null,
     });
 
     if (appliedPromoCode) {

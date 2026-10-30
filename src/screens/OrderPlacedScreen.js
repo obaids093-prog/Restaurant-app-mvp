@@ -24,6 +24,7 @@ export default function OrderPlacedScreen({ route, navigation }) {
     branch,
     grandTotal,
     items = [],
+    receiptNumber,
   } = route.params || {};
 
   // Entrance animations
@@ -259,8 +260,24 @@ export default function OrderPlacedScreen({ route, navigation }) {
               <Text style={[typography.headingSm, { color: colors.primary, fontWeight: '800' }]}>
                 {brand.formatPrice(totalAmount)}
               </Text>
-              <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
-                Pay at Table (Card/Cash)
+              <Text
+                style={[
+                  typography.caption,
+                  {
+                    color:
+                      order?.paymentStatus === 'Paid'
+                        ? colors.ready || '#10B981'
+                        : colors.mutedText,
+                    fontSize: 11,
+                    fontWeight: '600',
+                  },
+                ]}
+              >
+                {order?.paymentStatus === 'Paid'
+                  ? `✓ Paid (${order?.paymentMethod?.toUpperCase() || 'ONLINE'}${receiptNumber ? ` • ${receiptNumber}` : ''})`
+                  : order?.paymentMethod === 'cash'
+                  ? 'Cash on Delivery'
+                  : 'Pay at Table (Cash/Card)'}
               </Text>
             </View>
           </View>

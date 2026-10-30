@@ -1,5 +1,49 @@
 # Project Log
 
+## [2026-10-30] - Feat: Online Payment Gateways with JazzCash, EasyPaisa, Card 3D-Secure & Tokenization (Roadmap Item #1)
+
+- **Date**: 2026-10-30
+- **Title**: Feat: Online Payment Gateways with JazzCash, EasyPaisa, Card 3D-Secure & Tokenization (Roadmap Item #1)
+- **WHAT changed**:
+  - In `server/models/PaymentTransaction.js`:
+    - Created schema storing transaction records (`amount`, `currency: 'PKR'`, `method`, `status`, `transactionRef`, `maskedAccount`, `cardBrand`, `otpExpiresAt`, `paidAt`).
+  - In `server/models/Order.js`:
+    - Added payment fields: `paymentMethod` (enum: `['jazzcash', 'easypaisa', 'card_online', 'cash', 'pay_at_table']`), `paymentStatus` (enum: `['Unpaid', 'Pending', 'Paid', 'Refunded']`), `paymentRef` (string), `paidAt` (date).
+  - In `server/controllers/paymentController.js` & `server/routes/paymentRoutes.js`:
+    - Implemented `getPaymentMethods` (`GET /api/payments/methods`) returning payment options, perk badges, and fee schedules.
+    - Implemented `initiatePayment` (`POST /api/payments/initiate`) with mobile format validation (`03XX`), Luhn/format checking for cards, simulated 3DS OTP generation (`123456`), and resilient in-memory transaction registry.
+    - Implemented `verifyPaymentOtp` (`POST /api/payments/verify-otp`) verifying 6-digit challenge code, updating database transaction and order state, and generating official receipt numbers (`AURA-RCP-...`).
+    - Implemented `tokenizeCard` (`POST /api/payments/tokenize-card`) providing secure masked tokens for 1-tap card re-use.
+  - In `server/server.js`:
+    - Mounted `/api/payments` router.
+  - In `server/tests/payments.test.js`:
+    - Added automated unit test suite covering mobile validation, brand detection, initiation, OTP rejection/confirmation, offline bypass, and tokenization.
+  - In `src/api/client.js`:
+    - Added universal HTTP convenience methods (`apiClient.get`, `apiClient.post`, `apiClient.patch`, `apiClient.put`, `apiClient.delete`).
+  - In `src/components/PaymentSheet/`:
+    - Created `PaymentMethodSelector.js` with branded cards for JazzCash, EasyPaisa, Card, Pay at Table, and Cash.
+    - Created `PaymentDetailsForm.js` with profile phone autofill, live card formatting, and MM/YY validation.
+    - Created `OtpVerificationModal.js` with simulated 3DS code display, countdown timer, and secure code input.
+    - Created `paymentStyles.js` and `index.js`.
+  - In `src/screens/OrderSummaryScreen.js`:
+    - Integrated `PaymentMethodSelector`, `PaymentDetailsForm`, and `OtpVerificationModal`.
+    - Wired 2-step payment initiation and OTP verification flow with automatic fallback to offline cash/table settlement.
+  - In `src/screens/OrderPlacedScreen.js`:
+    - Added dynamic payment badge and official receipt number display.
+  - In `docs/`:
+    - Marked Roadmap Item #1 as COMPLETED in `docs/APP_FEATURES_AND_ROADMAP.md`.
+- **WHY (the problem or goal)**:
+  - Implement Roadmap Item #1: Enable Pakistani customers to pay via national digital wallets (JazzCash, EasyPaisa) and credit/debit cards with 3D Secure verification without requiring expensive third-party payment merchant accounts.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Created a modular payment gateway service simulating the real-world APIs of JazzCash (Mobile Account USSD/MPIN push) and 3D Secure Card OTP with zero paid dependencies, coupled with a high-fidelity mobile payment sheet.
+- **HOW TO TEST**:
+  - Run server tests: `payments.test.js` passes all tests.
+  - In the app, add items to cart -> Proceed to Order Summary.
+  - Select JazzCash or EasyPaisa -> Click "Confirm & Dispatch to Kitchen" -> OTP modal pops up showing demo code `123456`.
+  - Tap "Confirm Payment" -> Order placed with `✓ Paid (JAZZCASH • AURA-RCP-...)`.
+
+---
+
 ## [2026-10-30] - Feat: Table QR-Code Dine-In Ordering with Standee Scanner & Deep Links (Roadmap Item #6)
 
 - **Date**: 2026-10-30

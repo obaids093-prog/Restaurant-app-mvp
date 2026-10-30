@@ -197,4 +197,30 @@ export const apiClient = async (endpoint, options = {}) => {
   }
 };
 
+apiClient.get = async (endpoint, options = {}) => {
+  const data = await apiClient(endpoint, { ...options, method: 'GET' });
+  return { data, status: 200 };
+};
+
+apiClient.post = async (endpoint, body, options = {}) => {
+  const data = await apiClient(endpoint, { ...options, method: 'POST', body });
+  return { data, status: 200 };
+};
+
+apiClient.patch = async (endpoint, body, options = {}) => {
+  const data = await apiClient(endpoint, { ...options, method: 'PATCH', body });
+  return { data, status: 200 };
+};
+
+apiClient.put = async (endpoint, body, options = {}) => {
+  const data = await apiClient(endpoint, { ...options, method: 'PUT', body });
+  return { data, status: 200 };
+};
+
+apiClient.delete = async (endpoint, options = {}) => {
+  const data = await apiClient(endpoint, { ...options, method: 'DELETE' });
+  return { data, status: 200 };
+};
+
 export default apiClient;
+

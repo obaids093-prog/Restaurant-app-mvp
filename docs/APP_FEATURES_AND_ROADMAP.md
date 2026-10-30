@@ -101,10 +101,11 @@
 
 To transform AURA from an academic MVP to an enterprise-grade food & dining application competing with platforms like **Foodpanda**, **McDonald's**, **Starbucks**, and **OpenTable**, the following features are recommended:
 
-### 1. Online Payment Gateways (Priority: CRITICAL)
-- **Local Mobile Wallets**: **JazzCash** and **EasyPaisa** SDK/API integration (essential for 80%+ of Pakistani digital food shoppers).
-- **Credit / Debit Cards**: Integration with **PayFast**, **Safepay**, or **Stripe** with 3D Secure OTP verification.
-- **Saved Cards Tokenization**: Encrypted card tokenization for 1-tap checkout without re-entering card details.
+### 1. Online Payment Gateways & Digital Wallets (Priority: CRITICAL) — [COMPLETED]
+- **Local Mobile Wallets**: Integrated **JazzCash** and **EasyPaisa** simulated payment sessions with 11-digit mobile validation (`03XX`), automatic autofill from profile, and simulated OTP verification.
+- **Credit / Debit Cards & 3D-Secure**: Full card checkout supporting **Visa**, **Mastercard**, **Amex**, and **PayPak** with card brand auto-detection, formatted spacing, and interactive 3D Secure OTP verification modal (`OtpVerificationModal`).
+- **Saved Cards Tokenization**: Backend tokenization service (`POST /api/payments/tokenize-card`) generating secure, masked token references (`tok_visa_...`) for frictionless 1-tap reorders.
+- **Dynamic Settlement**: Unified settlement flow across Dine-in, Takeaway, and Delivery orders with instant digital receipt generation (`AURA-RCP-...`) and order payment state synchronization.
 
 ### 2. Real-Time WebSockets / Server-Sent Events (Priority: HIGH)
 - **Zero-Latency Updates**: Upgrade 10-second HTTP polling to **Socket.io** or **Supabase Realtime**.
