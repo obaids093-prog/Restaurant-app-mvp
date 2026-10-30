@@ -1,5 +1,32 @@
 # Project Log
 
+## [2026-10-30] - Feat: Digital Kitchen Display System (KDS) Tablet Screen & Chef Bump Rail (Roadmap Item #8)
+
+- **Date**: 2026-10-30
+- **Title**: Feat: Digital Kitchen Display System (KDS) Tablet Screen & Chef Bump Rail (Roadmap Item #8)
+- **WHAT changed**:
+  - In `src/screens/KitchenDisplay/`:
+    - Created `KitchenDisplayScreen.js`: High-performance tablet screen featuring live kitchen metrics (Total Load, Pending Prep, Cooking, Rush Delay), digital clock ticker, audio chime toggle, and station filtering (`All Stations`, `Grill & Mains`, `Appetizers`, `Dessert & Pastry`, `Bar & Beverages`).
+    - Color-coded aging timers (🟢 Green < 10m, 🟡 Amber 10-20m, 🔴 Red > 20m with "RUSH / LATE" alert).
+    - 1-Tap Bump Rail: `[🔥 Start Cooking]` (Pending ➔ Preparing), `[✅ Mark Ready]` (Preparing ➔ Ready), and `[🍽 Serve & Clear]` (Ready ➔ Served).
+    - Auto-polling every 5 seconds to synchronize new kitchen tickets without manual refreshes.
+    - Created `kdsStyles.js`, `index.js`, and root re-export bridge `src/screens/KitchenDisplayScreen.js`.
+  - In `src/navigation/AppNavigator.js`:
+    - Registered `KitchenDisplay` screen in root StackNavigator.
+  - In `src/screens/Manager/OrdersTab.js`:
+    - Added dedicated "Chef Kitchen Display System (KDS)" launch banner above order filters.
+  - In `docs/`:
+    - Marked Roadmap Item #8 as COMPLETED in `docs/APP_FEATURES_AND_ROADMAP.md`.
+- **WHY (the problem or goal)**:
+  - Implement Roadmap Item #8: High-volume commercial kitchens require a fast, tablet-optimized screen where chefs can see line tickets with cooking notes and bump orders through prep stages with zero paper tickets.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Built an intuitive React Native tablet layout with color-coded timers, station filtering, and one-tap status advancement directly connected to `OrdersContext`.
+- **HOW TO TEST**:
+  - In Manager Dashboard, navigate to Orders tab -> Tap "Chef Kitchen Display System (KDS)".
+  - View live tickets, switch station filters, and tap "Start Cooking" or "Mark Ready" -> Order progresses immediately.
+
+---
+
 ## [2026-10-30] - Feat: Automated WhatsApp & SMS Order Updates & Digital Receipt Share Sheet (Roadmap Item #7)
 
 - **Date**: 2026-10-30

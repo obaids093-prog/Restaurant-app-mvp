@@ -20,6 +20,7 @@ import OrderPlacedScreen from '../screens/OrderPlacedScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import RiderTrackingScreen from '../screens/RiderTrackingScreen';
 import TableQRScannerScreen from '../screens/TableQRScannerScreen';
+import KitchenDisplayScreen from '../screens/KitchenDisplayScreen';
 import { navigationRef } from './navigationRef';
 export { navigationRef };
 
@@ -223,6 +224,14 @@ export default function AppNavigator() {
           options={{
             headerShown: false,
             animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="KitchenDisplay"
+          component={KitchenDisplayScreen}
+          options={{
+            headerShown: false,
+            animation: 'fade',
           }}
         />
       </Stack.Navigator>

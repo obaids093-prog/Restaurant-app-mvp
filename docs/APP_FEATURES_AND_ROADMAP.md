@@ -132,9 +132,11 @@ To transform AURA from an academic MVP to an enterprise-grade food & dining appl
 - **Interactive Share Sheet Modal**: `DigitalReceiptModal` displays a restaurant crest, itemized folio, 1-tap WhatsApp dispatch (`https://wa.me/?text=...`), native SMS link (`sms:?body=...`), and clipboard copy with animated toast.
 - **Order Placement & Tracking Integration**: Direct triggers from both `OrderPlacedScreen` and `OrderTrackingScreen` / `PastOrderCard`.
 
-### 8. Digital Kitchen Display System (KDS) Tablet App (Priority: MEDIUM)
-- **Chefs' Tablet View**: Dedicated horizontal landscape mode designed for 10-inch kitchen tablets mounted in the kitchen.
-- **Audio Chime & Color Alerts**: Sound chime whenever a new order arrives, with color-coded timers (Green < 10m, Amber 15m, Red > 20m) to ensure fast order fulfillment.
+### 8. Digital Kitchen Display System (KDS) Tablet Screen (Priority: MEDIUM) — [COMPLETED]
+- **Chef Bump Rail & Tablet UI**: Modular `KitchenDisplayScreen` designed for 10-inch kitchen tablet rails with live digital time ticker, audio chime toggle, and station filters (`All Stations`, `Grill & Mains`, `Appetizers`, `Dessert & Pastry`, `Bar & Beverages`).
+- **Color-Coded Aging Timers**: Real-time order age tracking (🟢 Green < 10m on-track, 🟡 Amber 10-20m attention, 🔴 Red > 20m rush delay alert) and load metrics bar.
+- **1-Tap Bump Bar**: Direct state transitions (`Pending` ➔ `Preparing` ➔ `Ready` ➔ `Served`) synchronized directly with customer tracking via `OrdersContext` and `PATCH /api/orders/:id/status`.
+- **Manager Integration**: Direct 1-tap launcher banner integrated in `OrdersTab`.
 
 ### 9. Social Sign-In & Biometrics (Priority: MEDIUM)
 - **1-Tap Social Login**: "Sign in with Google" and "Sign in with Apple".

@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { FilterTabs, EmptyState } from '../../components/ui';
 import OrderItemCard from './OrderItemCard';
 import { styles } from './managerStyles';
@@ -18,6 +20,7 @@ export default function OrdersTab({
   handleUpdateStatus,
   handleCancelOrder,
 }) {
+  const navigation = useNavigation();
   return (
     <View style={styles.tabContentBlock}>
       {/* Multi-Branch Filter Pills */}
@@ -55,6 +58,38 @@ export default function OrdersTab({
           );
         })}
       </View>
+
+      {/* Kitchen Display System Launch Banner */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('KitchenDisplay')}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: 12,
+          backgroundColor: `${colors.primary}18`,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: `${colors.primary}40`,
+          marginBottom: 12,
+        }}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Launch Kitchen Display System"
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Ionicons name="tv-outline" size={22} color={colors.primary} />
+          <View>
+            <Text style={{ fontSize: 13, fontWeight: '800', color: colors.textPrimary }}>
+              Chef Kitchen Display System (KDS)
+            </Text>
+            <Text style={{ fontSize: 11, color: colors.textSecondary }}>
+              Multi-station bump screen & timer rail for line cooks
+            </Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+      </TouchableOpacity>
 
       {/* Filter Tabs */}
       <FilterTabs
