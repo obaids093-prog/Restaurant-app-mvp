@@ -149,7 +149,6 @@ export const MenuProvider = ({ children }) => {
           isSpecial: Boolean(itemData.isSpecial),
           isAvailable: true,
           prepTime: itemData.prepTime || '15 min',
-          rating: 4.9,
           tag: itemData.tag || 'Chef Special',
         },
       });

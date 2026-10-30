@@ -95,7 +95,9 @@ const createMenuItem = async (req, res) => {
       isSpecial: Boolean(isSpecial),
       isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,
       prepTime: prepTime ? String(prepTime).trim().slice(0, 30) : '15 min',
-      rating: rating !== undefined ? Math.min(5, Math.max(0, Number(rating))) : 4.8,
+      rating: rating !== undefined ? Math.min(5, Math.max(0, Number(rating))) : 0,
+      ratingAverage: 0,
+      ratingCount: 0,
       tag: tag ? String(tag).trim().slice(0, 50) : '',
     });
 

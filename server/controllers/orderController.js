@@ -301,6 +301,16 @@ const updateOrderStatus = async (req, res) => {
         return res.status(400).json({ message: 'Order can no longer be cancelled (status may have changed).' });
       }
 
+      // Refund any redeemed loyalty points atomically
+      await loyaltyService.refundOrderPoints(cancelled._id);
+
+      // Notify the customer about their cancellation (same as manager path)
+      try {
+        await notificationService.notifyOrderStatus(cancelled);
+      } catch (notifErr) {
+        console.warn('Failed to notify order cancellation:', notifErr.message);
+      }
+
       return res.status(200).json(cancelled);
     }
 
@@ -315,6 +325,9 @@ const updateOrderStatus = async (req, res) => {
       }
       order.status = 'Cancelled';
       await order.save();
+
+      // Refund any redeemed loyalty points atomically
+      await loyaltyService.refundOrderPoints(order._id);
 
       try {
         await notificationService.notifyOrderStatus(order);

@@ -24,6 +24,29 @@ export const BASE_URL = __DEV__
 
 export const TOKEN_KEY = '@restaurant_app_auth_token';
 
+// Cold start constants
+export const TIMEOUT_MS = 45000;
+export const WAKING_BANNER_THRESHOLD_MS = 5000;
+
+// Listeners for waking banner: "Waking up the server, please wait"
+const wakingListeners = new Set();
+let activeSlowRequestsCount = 0;
+
+export const subscribeServerWaking = (listener) => {
+  wakingListeners.add(listener);
+  return () => wakingListeners.delete(listener);
+};
+
+export const notifyServerWaking = (isWaking) => {
+  wakingListeners.forEach((fn) => {
+    try {
+      fn(isWaking);
+    } catch (err) {
+      console.warn('[apiClient] wakingListener error:', err);
+    }
+  });
+};
+
 /**
  * Helper to retrieve stored token if not explicitly provided
  */
@@ -76,12 +99,13 @@ const handleRequestError = (error, isAborted, url) => {
 /**
  * Core HTTP client helper
  * @param {string} endpoint - API endpoint (e.g. '/api/menu' or 'menu')
- * @param {object} options - fetch options (method, body, headers, customToken)
+ * @param {object} options - fetch options (method, body, headers, customToken, _isRetry)
  * @returns {Promise<any>} - parsed JSON response
  */
 export const apiClient = async (endpoint, options = {}) => {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${BASE_URL}${cleanEndpoint}`;
+  const method = (options.method || 'GET').toUpperCase();
 
   const token = await resolveAuthToken(options.token);
 
@@ -100,13 +124,38 @@ export const apiClient = async (endpoint, options = {}) => {
   }
 
   const controller = new AbortController();
-  // 45s timeout to gracefully accommodate Render free-tier cold starts (spins down after 15 min inactivity)
+  let timedOut = false;
+
+  // 45s timeout to gracefully accommodate Render free-tier cold starts
   const timeoutId = setTimeout(() => {
+    timedOut = true;
     controller.abort();
-  }, 45000);
+  }, TIMEOUT_MS);
+
+  // Show "Waking up the server, please wait" banner when request takes >5s
+  let isSlow = false;
+  const slowTimerId = setTimeout(() => {
+    isSlow = true;
+    activeSlowRequestsCount++;
+    if (activeSlowRequestsCount === 1) {
+      notifyServerWaking(true);
+    }
+  }, WAKING_BANNER_THRESHOLD_MS);
+
+  const cleanupTimers = () => {
+    clearTimeout(timeoutId);
+    clearTimeout(slowTimerId);
+    if (isSlow) {
+      isSlow = false;
+      activeSlowRequestsCount = Math.max(0, activeSlowRequestsCount - 1);
+      if (activeSlowRequestsCount === 0) {
+        notifyServerWaking(false);
+      }
+    }
+  };
 
   const config = {
-    method: options.method || 'GET',
+    method,
     headers,
     signal: controller.signal,
     ...(Platform.OS === 'web' ? { cache: 'no-store' } : {}),
@@ -118,7 +167,7 @@ export const apiClient = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(url, config);
-    clearTimeout(timeoutId);
+    cleanupTimers();
 
     const data = await parseResponseBody(response);
 
@@ -131,8 +180,20 @@ export const apiClient = async (endpoint, options = {}) => {
 
     return data;
   } catch (error) {
-    clearTimeout(timeoutId);
-    handleRequestError(error, controller.signal.aborted, url);
+    cleanupTimers();
+
+    const wasAborted = controller.signal.aborted || error.name === 'AbortError' || timedOut;
+
+    // Retry a timed out GET request once automatically (never retry POST/PUT/DELETE)
+    if (wasAborted && method === 'GET' && !options._isRetry) {
+      console.warn(`[apiClient] GET ${cleanEndpoint} timed out after 45s. Retrying once...`);
+      return apiClient(endpoint, {
+        ...options,
+        _isRetry: true,
+      });
+    }
+
+    handleRequestError(error, wasAborted, url);
   }
 };
 

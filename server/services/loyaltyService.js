@@ -287,6 +287,56 @@ async function awardOrderPoints(orderId) {
   };
 }
 
+/**
+ * Atomically refund redeemed points when an order is cancelled
+ * Idempotent: checks and sets pointsRefunded = true atomically
+ */
+async function refundOrderPoints(orderId) {
+  if (!orderId || !mongoose.Types.ObjectId.isValid(orderId)) {
+    return { pointsRefunded: 0 };
+  }
+
+  const order = await Order.findOneAndUpdate(
+    {
+      _id: orderId,
+      pointsRedeemed: { $gt: 0 },
+      pointsRefunded: { $ne: true },
+    },
+    {
+      $set: { pointsRefunded: true },
+    },
+    { new: true }
+  );
+
+  if (!order) {
+    return { pointsRefunded: 0 };
+  }
+
+  const pointsToRefund = order.pointsRedeemed;
+
+  const updatedUser = await User.findByIdAndUpdate(
+    order.user,
+    { $inc: { loyaltyPoints: pointsToRefund } },
+    { new: true }
+  );
+
+  if (updatedUser) {
+    await LoyaltyTransaction.create({
+      user: order.user,
+      order: order._id,
+      type: 'adjustment',
+      points: pointsToRefund,
+      balanceAfter: updatedUser.loyaltyPoints,
+      description: `Refunded ${pointsToRefund} loyalty points for cancelled order #${order._id.toString().slice(-6).toUpperCase()}`,
+    });
+  }
+
+  return {
+    pointsRefunded: pointsToRefund,
+    newBalance: updatedUser ? updatedUser.loyaltyPoints : undefined,
+  };
+}
+
 module.exports = {
   TIER_CONFIG,
   calculateTier,
@@ -294,4 +344,5 @@ module.exports = {
   quoteRedemption,
   redeemPoints,
   awardOrderPoints,
+  refundOrderPoints,
 };

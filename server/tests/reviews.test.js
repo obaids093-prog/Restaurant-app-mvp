@@ -202,6 +202,32 @@ describe('Feature 1: Ratings and Reviews Endpoints', () => {
       expect(res.body.message).toMatch(/own orders/i);
     });
 
+    it('rejects review for a dish that is not part of the order', async () => {
+      const unrelatedDish = await MenuItem.create({
+        name: 'Unrelated Dish For Test',
+        description: 'Not in customer order',
+        price: 999,
+        category: 'Starters',
+        image: 'https://images.unsplash.com/photo-unrelated',
+      });
+
+      const res = await request(app)
+        .post('/api/reviews')
+        .set('Authorization', `Bearer ${customerToken}`)
+        .send({
+          orderId: servedOrder._id.toString(),
+          menuItemId: unrelatedDish._id.toString(),
+          rating: 4,
+          comment: 'Did not order this dish',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('The specified dish was not part of this order');
+
+      await MenuItem.findByIdAndDelete(unrelatedDish._id);
+    });
+
     it('rejects invalid rating values (< 1 or > 5 or non-integer)', async () => {
       // Create a fresh served order for otherCustomer
       const otherOrder = await Order.create({
@@ -340,4 +366,29 @@ describe('Feature 1: Ratings and Reviews Endpoints', () => {
       expect(dish.ratingAverage).toBe(0);
     });
   });
+
+  describe('Menu Item Rating Defaults (POST /api/menu)', () => {
+    it('newly created dish starts with ratingAverage 0, ratingCount 0, and rating 0', async () => {
+      const res = await request(app)
+        .post('/api/menu')
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({
+          name: 'Freshly Added Dish',
+          description: 'A brand new test dish without reviews yet',
+          price: 1200,
+          category: 'Mains',
+          image: 'https://images.unsplash.com/photo-new-dish',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.ratingAverage).toBe(0);
+      expect(res.body.ratingCount).toBe(0);
+      expect(res.body.rating).toBe(0);
+
+      if (res.body._id) {
+        await MenuItem.findByIdAndDelete(res.body._id);
+      }
+    });
+  });
 });
+

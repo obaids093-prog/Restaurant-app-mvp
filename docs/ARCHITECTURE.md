@@ -34,7 +34,8 @@ The platform is designed with a decoupled client-server architecture consisting 
 ### A. Core Design Philosophy
 - **Component-Driven Design (CDD)**: Reusable atomic components located in `src/components/ui/` (`Button`, `Card`, `Input`, `PhoneInput`, `SegmentedControl`, `FilterTabs`, `TabBar`, etc.).
 - **Strict Tokenized Theme Engine**: Centralized tokens in `src/theme/theme.js` supporting dynamic switching between light and dark modes with zero hardcoded hex values in screens.
-- **Resilient Offline Storage (`safeStorage`)**: Web, iOS, and Android compatible wrapper over `@react-native-async-storage/async-storage` preventing crashes on storage permission blocks.
+- **Hardware-Backed Secure Storage (`safeStorage`)**: Uses `expo-secure-store` (iOS Keychain / Android Keystore) for sensitive JWT authentication tokens with automatic transparent migration from legacy storage, while persisting non-sensitive preferences in `@react-native-async-storage/async-storage` and falling back safely on Web.
+- **Cold-Start Resilience & Live Notice**: Client API (`src/api/client.js`) integrates a 45-second timeout budget, automatic single retry on timeout for idempotent `GET` requests, and global event listeners rendering an animated `ServerWakingBanner` whenever cloud cold-starts exceed 5 seconds.
 
 ### B. Global State Management (Context API)
 

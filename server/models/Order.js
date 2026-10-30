@@ -80,6 +80,10 @@ const orderSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    pointsRefunded: {
+      type: Boolean,
+      default: false,
+    },
     serviceCharge: {
       type: Number,
       default: 0,

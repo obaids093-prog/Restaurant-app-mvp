@@ -13,10 +13,15 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      match: [
-        /^[a-zA-Z0-9_.+-]+@gmail\.com$/,
-        'Please provide a valid Gmail address (@gmail.com)',
-      ],
+      validate: {
+        validator: function (v) {
+          if (!v || typeof v !== 'string') return false;
+          // Internal generated phone accounts are exempt
+          if (v.endsWith('@customer.aura.pk')) return true;
+          return /^[a-zA-Z0-9_.+-]+@gmail\.com$/.test(v);
+        },
+        message: 'Please provide a valid Gmail address (@gmail.com)',
+      },
     },
     password: {
       type: String,

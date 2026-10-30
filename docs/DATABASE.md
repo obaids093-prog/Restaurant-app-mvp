@@ -126,6 +126,7 @@ erDiagram
         number pointsDiscountAmount
         number pointsEarned
         boolean pointsAwarded
+        boolean pointsRefunded
         Date createdAt
         Date updatedAt
     }
@@ -155,7 +156,7 @@ Stores customer and administrative staff accounts with encrypted credentials and
 | :--- | :--- | :---: | :--- | :--- | :--- |
 | `_id` | `ObjectId` | Auto | Auto | MongoDB ObjectId | Primary Key |
 | `name` | `String` | Yes | — | `trim: true` | Validation: `'Please provide a name'` |
-| `email` | `String` | Yes | — | `unique: true`, `lowercase: true`, `trim: true` | Validation regex: `/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/` |
+| `email` | `String` | Yes | — | `unique: true`, `lowercase: true`, `trim: true` | Validation: `/^[a-zA-Z0-9_.+-]+@gmail\.com$/` (exempts internal `@customer.aura.pk` phone OTP accounts) |
 | `password` | `String` | Yes | — | `minlength: 6` | Bcrypt salt hash (stored after hash generation) |
 | `role` | `String` | No | `'customer'` | `['customer', 'manager']` | Access-control role flag |
 | `phone` | `String` | No | `''` | `trim: true` | Customer contact telephone |
@@ -293,6 +294,7 @@ Customer food and beverage orders, checkout bill breakdowns, and kitchen fulfill
 | `pointsDiscountAmount` | `Number` | No | `0` | `min: 0` | Rs. discount from redeemed points (1 pt = Rs. 1) |
 | `pointsEarned` | `Number` | No | `0` | `min: 0` | Loyalty points earned from this order |
 | `pointsAwarded` | `Boolean` | No | `false` | Boolean flag | Whether points have been credited to patron |
+| `pointsRefunded`| `Boolean` | No | `false` | Boolean flag | Whether redeemed loyalty points were refunded upon cancellation |
 | `createdAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
 | `updatedAt` | `Date` | Auto | Current Time | Managed by Mongoose | Timestamp |
 

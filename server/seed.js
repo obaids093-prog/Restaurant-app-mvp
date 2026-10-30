@@ -85,7 +85,6 @@ const initialMenuItems = [
     isSpecial: true,
     isAvailable: true,
     prepTime: '12 min',
-    rating: 4.9,
     tag: "Chef's Signature",
   },
   {
@@ -97,7 +96,6 @@ const initialMenuItems = [
     isSpecial: false,
     isAvailable: true,
     prepTime: '14 min',
-    rating: 4.8,
     tag: 'Wild Caught',
   },
   {
@@ -109,7 +107,6 @@ const initialMenuItems = [
     isSpecial: false,
     isAvailable: true,
     prepTime: '10 min',
-    rating: 4.7,
     tag: 'Artisan Cured',
   },
   {
@@ -121,7 +118,6 @@ const initialMenuItems = [
     isSpecial: true,
     isAvailable: false,
     prepTime: '15 min',
-    rating: 4.9,
     tag: 'Seasonal Harvest',
   },
   // Mains
@@ -134,7 +130,6 @@ const initialMenuItems = [
     isSpecial: true,
     isAvailable: true,
     prepTime: '20 min',
-    rating: 5.0,
     tag: 'A5 Miyazaki',
   },
   {
@@ -146,7 +141,6 @@ const initialMenuItems = [
     isSpecial: true,
     isAvailable: true,
     prepTime: '24 min',
-    rating: 5.0,
     tag: 'Prime Cut',
   },
   {
@@ -158,7 +152,6 @@ const initialMenuItems = [
     isSpecial: false,
     isAvailable: true,
     prepTime: '20 min',
-    rating: 4.8,
     tag: 'Fresh Fish',
   },
   {
@@ -170,7 +163,6 @@ const initialMenuItems = [
     isSpecial: true,
     isAvailable: true,
     prepTime: '18 min',
-    rating: 4.9,
     tag: 'Fresh Handmade',
   },
   {
@@ -182,7 +174,6 @@ const initialMenuItems = [
     isSpecial: false,
     isAvailable: true,
     prepTime: '22 min',
-    rating: 4.8,
     tag: 'Slow Braised',
   },
   {
@@ -194,7 +185,6 @@ const initialMenuItems = [
     isSpecial: false,
     isAvailable: false,
     prepTime: '16 min',
-    rating: 4.7,
     tag: 'Woodfired',
   },
   // Desserts
@@ -207,7 +197,6 @@ const initialMenuItems = [
     isSpecial: true,
     isAvailable: true,
     prepTime: '15 min',
-    rating: 4.9,
     tag: 'Signature Dessert',
   },
   {
@@ -219,7 +208,6 @@ const initialMenuItems = [
     isSpecial: false,
     isAvailable: true,
     prepTime: '12 min',
-    rating: 4.7,
     tag: 'Classic Tart',
   },
   {
@@ -231,7 +219,6 @@ const initialMenuItems = [
     isSpecial: true,
     isAvailable: true,
     prepTime: '10 min',
-    rating: 5.0,
     tag: 'Fresh Pastry',
   },
   // Drinks
@@ -244,7 +231,6 @@ const initialMenuItems = [
     isSpecial: true,
     isAvailable: true,
     prepTime: '6 min',
-    rating: 4.9,
     tag: 'House Elixir',
   },
   {
@@ -256,7 +242,6 @@ const initialMenuItems = [
     isSpecial: false,
     isAvailable: true,
     prepTime: '5 min',
-    rating: 4.8,
     tag: 'Single Origin',
   },
   {
@@ -268,7 +253,6 @@ const initialMenuItems = [
     isSpecial: false,
     isAvailable: true,
     prepTime: '5 min',
-    rating: 4.7,
     tag: 'Craft Brew',
   },
   {
@@ -280,7 +264,6 @@ const initialMenuItems = [
     isSpecial: false,
     isAvailable: true,
     prepTime: '4 min',
-    rating: 4.6,
     tag: 'Organic Zero-Proof',
   },
 ];

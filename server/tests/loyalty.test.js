@@ -269,4 +269,84 @@ describe('Feature 3: Patron Loyalty Points & VIP Tiers', () => {
       expect(res.body.data.nextTier).toBe('Gold');
     });
   });
+
+  describe('Loyalty Points Refund on Cancellation', () => {
+    it('refunds redeemed points when customer cancels their own pending order', async () => {
+      // Ensure customer has 200 points
+      await User.findByIdAndUpdate(customerUser._id, { loyaltyPoints: 200 });
+
+      // Place order redeeming 100 points
+      const orderRes = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${customerToken}`)
+        .send({
+          items: [{ menuItem: testDish._id, quantity: 1 }],
+          pointsToRedeem: 100,
+        });
+
+      expect(orderRes.status).toBe(201);
+      const userAfterCheckout = await User.findById(customerUser._id);
+      expect(userAfterCheckout.loyaltyPoints).toBe(100);
+
+      // Customer cancels order
+      const cancelRes = await request(app)
+        .patch(`/api/orders/${orderRes.body._id}/status`)
+        .set('Authorization', `Bearer ${customerToken}`)
+        .send({ status: 'Cancelled' });
+
+      expect(cancelRes.status).toBe(200);
+      expect(cancelRes.body.status).toBe('Cancelled');
+
+      // Points must be refunded back to 200
+      const userAfterCancel = await User.findById(customerUser._id);
+      expect(userAfterCancel.loyaltyPoints).toBe(200);
+
+      // Verify refund transaction in ledger
+      const refundTx = await LoyaltyTransaction.findOne({
+        user: customerUser._id,
+        order: orderRes.body._id,
+        type: 'adjustment',
+      });
+      expect(refundTx).toBeDefined();
+      expect(refundTx.points).toBe(100);
+
+      // Second cancel attempt must fail and NOT refund points again (idempotent)
+      const doubleCancelRes = await request(app)
+        .patch(`/api/orders/${orderRes.body._id}/status`)
+        .set('Authorization', `Bearer ${customerToken}`)
+        .send({ status: 'Cancelled' });
+
+      expect(doubleCancelRes.status).toBe(400);
+      const userAfterDoubleCancel = await User.findById(customerUser._id);
+      expect(userAfterDoubleCancel.loyaltyPoints).toBe(200); // Still 200, never duplicated!
+    });
+
+    it('refunds redeemed points when manager cancels a pending order', async () => {
+      // Place order redeeming 50 points
+      const orderRes = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${customerToken}`)
+        .send({
+          items: [{ menuItem: testDish._id, quantity: 1 }],
+          pointsToRedeem: 50,
+        });
+
+      expect(orderRes.status).toBe(201);
+      const userBeforeCancel = await User.findById(customerUser._id);
+      expect(userBeforeCancel.loyaltyPoints).toBe(150);
+
+      // Manager cancels order
+      const cancelRes = await request(app)
+        .patch(`/api/orders/${orderRes.body._id}/status`)
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({ status: 'Cancelled' });
+
+      expect(cancelRes.status).toBe(200);
+      expect(cancelRes.body.status).toBe('Cancelled');
+
+      // Points must be refunded back to 200
+      const userAfterCancel = await User.findById(customerUser._id);
+      expect(userAfterCancel.loyaltyPoints).toBe(200);
+    });
+  });
 });
