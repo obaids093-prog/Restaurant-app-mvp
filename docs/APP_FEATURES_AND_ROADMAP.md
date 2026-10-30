@@ -144,9 +144,11 @@ To transform AURA from an academic MVP to an enterprise-grade food & dining appl
 - **1-Tap Bump Bar**: Direct state transitions (`Pending` ➔ `Preparing` ➔ `Ready` ➔ `Served`) synchronized directly with customer tracking via `OrdersContext` and `PATCH /api/orders/:id/status`.
 - **Manager Integration**: Direct 1-tap launcher banner integrated in `OrdersTab`.
 
-### 9. Social Sign-In & Biometrics (Priority: MEDIUM)
-- **1-Tap Social Login**: "Sign in with Google" and "Sign in with Apple".
-- **Biometric Security**: FaceID / Fingerprint unlocking for instant access without retyping passwords.
+### 9. 1-Tap Social Sign-In (Priority: MEDIUM) — [COMPLETED]
+- **1-Tap Social Login**: Integrated "Continue with Google" and "Continue with Apple" frictionless authentication (`SocialLoginButtons.js`), with branded icons, custom modal selection, and JWT token issuance.
+- **Backend Social Gateway**: Dedicated backend endpoint (`POST /api/auth/social-login`) supporting automatic customer account provisioning, 50-point welcome bonus, and seamless session restoration for existing diners.
+- **Biometrics Policy**: Biometric login intentionally skipped per user specification in favor of fast 1-tap social credentials.
+- **Automated Tests**: Tested via `server/tests/auth.test.js` validating provider validation, Google user creation, Apple relay address support, and duplicate-free re-logins.
 
 ### 10. Ingredient-Level Inventory & Auto-Stock Management (Priority: MEDIUM) — [COMPLETED]
 - **Automatic Stock Depletion**: `inventoryService.js` automatically decrements available portions (`stockCount`) and recipe raw ingredients (`Ingredient` schema) whenever a customer order is placed or cooked.

@@ -16,12 +16,16 @@ const userSchema = new mongoose.Schema(
       validate: {
         validator: function (v) {
           if (!v || typeof v !== 'string') return false;
-          // Internal generated phone accounts are exempt
-          if (v.endsWith('@customer.aura.pk')) return true;
-          return /^[a-zA-Z0-9_.+-]+@gmail\.com$/.test(v);
+          if (v.endsWith('@customer.aura.pk') || v.endsWith('@apple.aura.pk') || v.endsWith('@privaterelay.appleid.com')) return true;
+          return /^[a-zA-Z0-9_.+-]+@(gmail\.com|googlemail\.com|apple\.com)$/.test(v);
         },
-        message: 'Please provide a valid Gmail address (@gmail.com)',
+        message: 'Please provide a valid Gmail or Apple address',
       },
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google', 'apple', 'phone'],
+      default: 'local',
     },
     password: {
       type: String,

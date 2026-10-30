@@ -1,5 +1,37 @@
 # Project Log
 
+## [2026-10-30] - Feat: 1-Tap Social Sign-In with Google & Apple (Roadmap Item #9)
+
+- **Date**: 2026-10-30
+- **Title**: Feat: 1-Tap Social Sign-In with Google & Apple (Roadmap Item #9)
+- **WHAT changed**:
+  - In `server/models/User.js`:
+    - Added `authProvider` field (`enum: ['local', 'google', 'apple', 'phone']`).
+    - Broadened email validation to allow Apple private relay addresses (`@privaterelay.appleid.com`).
+  - In `server/controllers/authController.js`:
+    - Implemented `socialLogin` (`POST /api/auth/social-login`) supporting automatic account provisioning, 50-point welcome bonus, and secure JWT generation.
+  - In `server/routes/authRoutes.js`:
+    - Registered `POST /api/auth/social-login`.
+  - In `src/context/AuthContext.js`:
+    - Added `loginWithSocial({ provider, email, name, avatar })` method to context and persisted credentials in secure storage.
+  - In `src/screens/Login/SocialLoginButtons.js`:
+    - Created modular social sign-in component with branded Google and Apple buttons, divider, and interactive 1-tap confirmation modal.
+  - In `src/screens/Login/LoginScreen.js`:
+    - Integrated `SocialLoginButtons` directly inside the primary authentication card.
+  - In `server/tests/auth.test.js`:
+    - Added 5 automated unit tests verifying provider validation, Google account registration, duplicate avoidance, and Apple relay email handling.
+  - In `docs/`:
+    - Marked Roadmap Item #9 as COMPLETED in `docs/APP_FEATURES_AND_ROADMAP.md`.
+- **WHY (the problem or goal)**:
+  - Implement Roadmap Item #9: Eliminate login friction by allowing diners to authenticate in 1 tap using Google or Apple credentials without typing passwords, while skipping biometrics per user request.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Created a universal social auth gateway endpoint on the backend paired with a high-fidelity client modal. Omitted biometric local authentication as instructed by user.
+- **HOW TO TEST**:
+  - Run server unit tests: `npm test tests/auth.test.js` passes all 11 tests.
+  - Open Login screen in app: "Continue with Google" and "Continue with Apple" buttons appear below the email form with working 1-tap confirmation.
+
+---
+
 ## [2026-10-30] - Feat: Native Remote Push Notifications & EAS Production Profiles (Roadmap Item #4)
 
 - **Date**: 2026-10-30

@@ -610,6 +610,81 @@ const verifyPhoneOtp = async (req, res) => {
   }
 };
 
+/**
+ * @desc    1-Tap Social Login (Google & Apple)
+ * @route   POST /api/auth/social-login
+ * @access  Public
+ */
+const socialLogin = async (req, res) => {
+  try {
+    const { provider, email, name, avatar, idToken } = req.body || {};
+
+    if (!provider || !['google', 'apple'].includes(provider)) {
+      return res.status(400).json({ message: 'Valid provider (google or apple) is required.' });
+    }
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: 'Valid email is required from social provider.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check if user exists with this email
+    let user = await User.findOne({ email: cleanEmail });
+    let isNewUser = false;
+
+    if (!user) {
+      isNewUser = true;
+      const randomPassword = crypto.randomBytes(16).toString('hex') + 'A1!';
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(randomPassword, salt);
+
+      const defaultAvatar =
+        avatar ||
+        (provider === 'google'
+          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&fm=jpg&fit=crop&q=80'
+          : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&fm=jpg&fit=crop&q=80');
+
+      user = await User.create({
+        name: name ? name.trim() : provider === 'google' ? 'Google Guest' : 'Apple Guest',
+        email: cleanEmail,
+        password: hashedPassword,
+        role: 'customer',
+        authProvider: provider,
+        membership: 'Member',
+        avatar: defaultAvatar,
+        loyaltyTier: 'Bronze',
+        loyaltyPoints: 50, // Welcome gift
+      });
+    }
+
+    const token = generateToken(user._id);
+
+    return res.status(isNewUser ? 201 : 200).json({
+      success: true,
+      token,
+      isNewUser,
+      provider,
+      user: {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        role: user.role,
+        membership: user.membership,
+        avatar: user.avatar,
+        loyaltyTier: user.loyaltyTier,
+        loyaltyPoints: user.loyaltyPoints,
+        authProvider: user.authProvider || provider,
+      },
+    });
+  } catch (error) {
+    console.error('Social Login Error:', error);
+    return res.status(500).json({ message: 'Server error during social login.' });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -621,6 +696,7 @@ module.exports = {
   updateStaff,
   sendPhoneOtp,
   verifyPhoneOtp,
+  socialLogin,
   normalizePakPhone,
   _otpStore: otpStore,
 };

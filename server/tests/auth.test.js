@@ -166,4 +166,82 @@ describe('Feature: Phone OTP & Gmail Auth Rule Enforcement', () => {
       expect(res.body.user.role).toBe('manager');
     });
   });
+
+  describe('Feature: 1-Tap Social Sign-In (Google & Apple)', () => {
+    afterAll(async () => {
+      await User.deleteMany({
+        email: {
+          $in: [
+            'google.tester@gmail.com',
+            'apple.tester@privaterelay.appleid.com',
+          ],
+        },
+      });
+    });
+
+    it('rejects social login if provider is invalid', async () => {
+      const res = await request(app)
+        .post('/api/auth/social-login')
+        .send({ provider: 'facebook', email: 'test@gmail.com' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/Valid provider/i);
+    });
+
+    it('rejects social login if email is missing', async () => {
+      const res = await request(app)
+        .post('/api/auth/social-login')
+        .send({ provider: 'google' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/Valid email is required/i);
+    });
+
+    it('creates and authenticates a new user via Google Sign-In', async () => {
+      const res = await request(app)
+        .post('/api/auth/social-login')
+        .send({
+          provider: 'google',
+          email: 'google.tester@gmail.com',
+          name: 'Hamza Google',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.token).toBeDefined();
+      expect(res.body.user.email).toBe('google.tester@gmail.com');
+      expect(res.body.user.name).toBe('Hamza Google');
+      expect(res.body.user.authProvider).toBe('google');
+      expect(res.body.isNewUser).toBe(true);
+    });
+
+    it('authenticates existing user via Google without creating duplicate', async () => {
+      const res = await request(app)
+        .post('/api/auth/social-login')
+        .send({
+          provider: 'google',
+          email: 'google.tester@gmail.com',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.token).toBeDefined();
+      expect(res.body.isNewUser).toBe(false);
+    });
+
+    it('creates and authenticates a user via Apple Sign-In with relay email', async () => {
+      const res = await request(app)
+        .post('/api/auth/social-login')
+        .send({
+          provider: 'apple',
+          email: 'apple.tester@privaterelay.appleid.com',
+          name: 'Sarah Apple',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.token).toBeDefined();
+      expect(res.body.user.authProvider).toBe('apple');
+    });
+  });
 });

@@ -20,11 +20,13 @@ const {
   updateStaff,
   sendPhoneOtp,
   verifyPhoneOtp,
+  socialLogin,
 } = require('../controllers/authController');
 const { protect, managerOnly } = require('../middleware/auth');
 
 router.post('/register', register);
 router.post('/login', login);
+router.post('/social-login', socialLogin);
 router.get('/me', protect, getMe);
 router.put('/profile', protect, updateProfile);
 router.delete('/profile', protect, deleteAccount);

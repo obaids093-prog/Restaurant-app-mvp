@@ -223,6 +223,36 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
+   * 1-Tap Social Login (Google & Apple)
+   */
+  const loginWithSocial = async ({ provider, email, name, avatar, idToken }) => {
+    try {
+      const response = await apiClient('/api/auth/social-login', {
+        method: 'POST',
+        body: {
+          provider,
+          email,
+          name: name || (provider === 'google' ? 'Google Diner' : 'Apple Diner'),
+          avatar: avatar || '',
+          idToken: idToken || '',
+        },
+      });
+
+      const { token: receivedToken, user: receivedUser } = response;
+      if (receivedToken && receivedUser) {
+        setToken(receivedToken);
+        setUser(receivedUser);
+        await safeStorage.setItem(TOKEN_KEY, receivedToken);
+        await safeStorage.setItem(AUTH_USER_KEY, JSON.stringify(receivedUser));
+        return receivedUser;
+      }
+      throw new Error('Social authentication response invalid.');
+    } catch (error) {
+      throw new Error(error.message || `Failed to sign in with ${provider}.`);
+    }
+  };
+
+  /**
    * Finalize login session if user skips typing name
    */
   const completePendingAuth = async (pendingUser) => {
@@ -240,6 +270,7 @@ export const AuthProvider = ({ children }) => {
         isLoadingAuth,
         login,
         signup,
+        loginWithSocial,
         sendPhoneOtp,
         verifyPhoneOtp,
         completePendingAuth,
