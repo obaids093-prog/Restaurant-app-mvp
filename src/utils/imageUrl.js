@@ -35,6 +35,13 @@ export const getOptimizedImageUrl = (rawUrl, fallback = null) => {
     }
   }
 
+  // Optimize Cloudinary links: inject auto-format, auto-quality, and max 800px width for mobile
+  if (url.includes('res.cloudinary.com') && url.includes('/image/upload/')) {
+    if (!url.includes('/f_auto') && !url.includes('/q_auto')) {
+      url = url.replace('/image/upload/', '/image/upload/f_auto,q_auto,w_800/');
+    }
+  }
+
   return url;
 };
 

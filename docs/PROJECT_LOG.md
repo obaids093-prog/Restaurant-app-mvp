@@ -1,5 +1,40 @@
 # Project Log
 
+## [2026-10-30] - Feat: Cloud Object Storage for Uploaded Dish Photos with Local Disk Fallback (Audit Bug #3)
+
+- **Date**: 2026-10-30
+- **Title**: Feat: Cloud Object Storage for Uploaded Dish Photos with Local Disk Fallback (Audit Bug #3)
+- **WHAT changed**:
+  - In `server/services/cloudStorageService.js`:
+    - Created cloud storage service supporting Cloudinary free tier integration via native Node.js HTTPS and crypto modules with zero external package bloat.
+    - Implemented environment detection for `CLOUDINARY_URL` and discrete keys (`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`).
+    - Implemented SHA-1 signature generation for authenticated Cloudinary REST API uploads (`POST /v1_1/:cloud_name/image/upload`).
+    - Implemented `uploadToCloudinary` with Base64 payload, 25-second timeout, and graceful local fallback on configuration absence or network error.
+  - In `server/controllers/uploadController.js`:
+    - Updated `uploadImage` to attempt Cloudinary upload when configured, returning the permanent Cloudinary CDN URL and `storageProvider: 'cloudinary'`.
+    - Maintained automatic fallback to local `server/uploads/` directory with `storageProvider: 'local'` when Cloudinary is not configured or fails.
+  - In `src/utils/imageUrl.js`:
+    - Added Cloudinary URL optimization rule injecting automatic format and quality transformations (`f_auto,q_auto,w_800`) for mobile performance.
+  - In `server/.env.example`:
+    - Documented optional Cloudinary credentials with clear instructions that omitting them safely defaults to local disk storage.
+  - In `server/tests/cloudStorage.test.js`:
+    - Added automated unit test suite verifying configuration detection, SHA-1 signature computation, graceful local fallback, controller response, and client URL optimization.
+  - In `docs/APP_FEATURES_AND_ROADMAP.md` & `docs/ARCHITECTURE.md`:
+    - Updated photo storage architecture and marked Roadmap Item 3 as implemented.
+- **WHY (the problem or goal)**:
+  - Address Audit Bug #3: Render free tier runs on ephemeral containers that erase all files written to `server/uploads/` whenever the container sleeps or restarts, causing manager-uploaded dish photos to disappear and render broken images to customers.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Used native HTTPS REST integration with Cloudinary's generous free tier (25 GB / 25 Monthly Credits) with zero new npm dependencies, maintaining 100% backward-compatible local disk storage for local development.
+- **HOW TO TEST**:
+  - Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` in `server/.env`.
+  - As Manager, upload a dish image via `POST /api/upload` -> returns permanent Cloudinary CDN URL.
+  - Omit keys in local dev -> returns local URL `https://.../uploads/dish_...`.
+  - Run Jest test suite: `server/tests/cloudStorage.test.js` passes.
+- **Commit hashes**:
+  - `d4940f6` (feat(storage): implement cloudinary cloud object storage for dish photos with local disk fallback)
+
+---
+
 ## [2026-10-30] - Merge: Integrate Audit Fixes Branch into Main
 
 - **Date**: 2026-10-30

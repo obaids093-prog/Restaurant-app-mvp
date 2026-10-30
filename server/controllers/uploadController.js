@@ -24,6 +24,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const cloudStorageService = require('../services/cloudStorageService');
 
 // ── Ensure uploads directory exists ─────────────────────────
 const uploadsDir = path.join(__dirname, '..', 'uploads');
@@ -66,23 +67,58 @@ const upload = multer({
 // ── Upload Handler ──────────────────────────────────────────
 // POST /api/upload
 // Protected: Manager only
-const uploadImage = (req, res) => {
+const uploadImage = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No image file provided' });
   }
 
-  // Build the public URL for this image
-  // In production, this would be a CDN URL like https://cdn.kfc.com/images/...
+  // Default to local URL
   const protocol = req.protocol;
   const host = req.get('host');
-  const imageUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+  let finalUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+  let storageProvider = 'local';
+  let cloudMetadata = null;
+
+  // If Cloudinary is configured in environment, upload to cloud CDN
+  if (cloudStorageService.isCloudinaryConfigured()) {
+    try {
+      const cloudResult = await cloudStorageService.uploadToCloudinary({
+        filePath: req.file.path,
+        filename: req.file.filename,
+        mimetype: req.file.mimetype,
+        folder: 'aura/dishes',
+      });
+
+      if (cloudResult && cloudResult.success && cloudResult.url) {
+        finalUrl = cloudResult.url;
+        storageProvider = 'cloudinary';
+        cloudMetadata = {
+          publicId: cloudResult.publicId,
+          format: cloudResult.format,
+          bytes: cloudResult.bytes,
+        };
+      } else {
+        console.warn(
+          '[uploadController] Cloudinary upload returned error, using local fallback:',
+          cloudResult ? cloudResult.error : 'Unknown'
+        );
+      }
+    } catch (cloudErr) {
+      console.warn(
+        '[uploadController] Cloudinary upload threw error, using local fallback:',
+        cloudErr.message
+      );
+    }
+  }
 
   res.status(201).json({
     message: 'Image uploaded successfully',
-    imageUrl,
+    imageUrl: finalUrl,
     filename: req.file.filename,
+    storageProvider,
     size: req.file.size,
     mimetype: req.file.mimetype,
+    ...(cloudMetadata ? { cloud: cloudMetadata } : {}),
   });
 };
 
