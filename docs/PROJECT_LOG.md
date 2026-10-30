@@ -1,5 +1,30 @@
 # Project Log
 
+## [2026-10-30] - Merge: Integrate Audit Fixes Branch into Main
+
+- **Date**: 2026-10-30
+- **Title**: Merge: Integrate Audit Fixes Branch into Main
+- **WHAT changed**:
+  - Merged branch `audit-fixes` cleanly into `main` with 0 conflicts:
+    - Auth: Phone OTP email validation exemption (`@customer.aura.pk`) and clean 400 rejection for non-Gmail staff creation.
+    - Loyalty: Idempotent atomic refund of redeemed loyalty points upon order cancellation with ledger tracking.
+    - Storage: Migration of sensitive JWT tokens to hardware-backed `expo-secure-store` with automatic legacy migration.
+    - Cold-Start Resilience: Single automatic retry on timeout for GET requests and animated `ServerWakingBanner`.
+    - Menu & Reviews: Clean zero-rating defaults on new dishes, seed cleanup, and verified dish order review assertion test.
+    - Notifications: Order cancellation status notifications dispatched on customer self-cancellation.
+    - Living Documentation: Fully synchronized `APP_FEATURES_AND_ROADMAP.md`, `ARCHITECTURE.md`, `DATABASE.md`, and `PROJECT_LOG.md`.
+- **WHY (the problem or goal)**:
+  - Bring all production audit bug fixes and test suites into `main` to deliver a commercial-ready stable release baseline.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Validated 0 merge conflicts using ORT merge strategy; verified all documentation and schema updates.
+- **HOW TO TEST**:
+  - Run full server test suite (`npm test` in `server/`) -> 90/90 tests passing across all 9 suites.
+  - Run Expo lint (`npm run lint`) -> 0 errors.
+- **Commit hashes**:
+  - `792facf` (merge: incorporate audit fixes across auth, loyalty, storage, client retry, and test suites into main)
+
+---
+
 ## [2026-10-30] - Docs: Align Features Document with Code State across Cancel Window, Polling, Storage, and Roadmap
 
 - **Date**: 2026-10-30
