@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const Table = require('../models/Table');
 
@@ -15,19 +16,52 @@ const BRANCH_MAP = {
 };
 
 /**
+ * Generates HMAC-SHA256 signature for authenticating table QR codes.
+ * Prevents diners or attackers from spoofing arbitrary table links.
+ */
+function signTableQR(branchId, tableNumber, exp = null) {
+  const secret = process.env.JWT_SECRET || 'aura_qr_secret_salt_2026';
+  const data = exp ? `${branchId}:${tableNumber}:${exp}` : `${branchId}:${tableNumber}`;
+  return crypto.createHmac('sha256', secret).update(data).digest('hex').slice(0, 16);
+}
+
+/**
+ * Verifies whether a provided signature matches the branch and table number
+ */
+function verifyTableQRSignature(branchId, tableNumber, exp, sig) {
+  if (!sig || typeof sig !== 'string') return false;
+  if (exp) {
+    const expNum = Number(exp);
+    if (Number.isNaN(expNum) || Date.now() > expNum) {
+      return false; // Expired
+    }
+  }
+  const expectedWithExp = signTableQR(branchId, tableNumber, exp);
+  const expectedWithoutExp = signTableQR(branchId, tableNumber);
+  return sig === expectedWithExp || sig === expectedWithoutExp;
+}
+
+/**
  * Parses table QR code payload from URL, JSON, or table number string
  */
 function parseTableQRPayload(raw) {
   if (!raw || typeof raw !== 'string') return null;
   const trimmed = raw.trim();
 
-  // Format 1: aura://table?branch=lhr_gulberg&table=4
+  // Format 1: aura://table?branch=lhr_gulberg&table=4&sig=...&exp=...
   if (trimmed.startsWith('aura://')) {
     try {
       const parsedUrl = new URL(trimmed.replace('aura://', 'http://aura.local/'));
       const branch = parsedUrl.searchParams.get('branch') || 'lhr_gulberg';
       const table = parsedUrl.searchParams.get('table');
-      if (table) return { branchId: branch, tableNumber: table };
+      const sig = parsedUrl.searchParams.get('sig');
+      const exp = parsedUrl.searchParams.get('exp');
+      if (table) {
+        const payload = { branchId: branch, tableNumber: table };
+        if (sig) payload.sig = sig;
+        if (exp) payload.exp = exp;
+        return payload;
+      }
     } catch {
       // ignore URL parse failure
     }
@@ -38,10 +72,13 @@ function parseTableQRPayload(raw) {
     try {
       const parsed = JSON.parse(trimmed);
       if (parsed.tableNumber || parsed.table) {
-        return {
+        const payload = {
           branchId: parsed.branchId || parsed.branch || 'lhr_gulberg',
           tableNumber: String(parsed.tableNumber || parsed.table),
         };
+        if (parsed.sig) payload.sig = parsed.sig;
+        if (parsed.exp) payload.exp = parsed.exp;
+        return payload;
       }
     } catch {
       // ignore JSON parse failure
@@ -100,6 +137,24 @@ const verifyTableQR = async (req, res) => {
     const branch = BRANCH_MAP[extracted.branchId] || BRANCH_MAP.lhr_gulberg;
     const tableNumStr = String(extracted.tableNumber);
 
+    // If signature is provided, verify cryptographic authenticity & expiration (Safety Fix #4)
+    let isSignatureValid = false;
+    if (extracted.sig) {
+      if (extracted.exp && Date.now() > Number(extracted.exp)) {
+        return res.status(400).json({
+          valid: false,
+          message: 'Table QR code has expired. Please scan an active table standee.',
+        });
+      }
+      isSignatureValid = verifyTableQRSignature(extracted.branchId, tableNumStr, extracted.exp, extracted.sig);
+      if (!isSignatureValid) {
+        return res.status(400).json({
+          valid: false,
+          message: 'Invalid table QR signature. Please scan an authentic AURA table standee.',
+        });
+      }
+    }
+
     // Look for existing table record in DB if connected
     let dbTable = null;
     if (mongoose.connection && mongoose.connection.readyState === 1) {
@@ -120,7 +175,11 @@ const verifyTableQR = async (req, res) => {
       location: dbTable?.location || (parseInt(tableNumStr, 10) <= 4 ? 'Window View' : 'Main Dining Hall'),
       isWindow: dbTable?.isWindow || parseInt(tableNumStr, 10) <= 4,
       branch,
-      deepLink: `aura://table?branch=${branch.branchId}&table=${tableNumStr}`,
+      verifiedSignature: isSignatureValid,
+      isTamperProof: isSignatureValid,
+      deepLink: extracted.sig
+        ? `aura://table?branch=${branch.branchId}&table=${tableNumStr}&sig=${extracted.sig}`
+        : `aura://table?branch=${branch.branchId}&table=${tableNumStr}`,
       scannedAt: new Date().toISOString(),
     };
 
@@ -148,20 +207,26 @@ const getTableStandees = async (req, res) => {
       }
     }
 
-    const standees = (dbTables && dbTables.length > 0 ? dbTables : Array.from({ length: 12 }, (_, i) => ({
+    const rawList = dbTables && dbTables.length > 0 ? dbTables : Array.from({ length: 12 }, (_, i) => ({
       tableNumber: String(i + 1),
       name: `Table ${i + 1}`,
       seats: (i + 1) % 3 === 0 ? 6 : (i + 1) % 2 === 0 ? 4 : 2,
       location: i < 4 ? 'Window View' : i > 8 ? 'Executive Terrace' : 'Main Dining Hall',
-    }))).map((t) => ({
-      tableNumber: String(t.tableNumber),
-      tableName: t.name || `Table ${t.tableNumber}`,
-      seats: t.seats || 4,
-      location: t.location || 'Main Dining Hall',
-      branch,
-      deepLink: `aura://table?branch=${branch.branchId}&table=${t.tableNumber}`,
-      instructions: 'Scan with your smartphone camera to browse menu, order, and pay.',
     }));
+
+    const standees = rawList.map((t) => {
+      const sig = signTableQR(branch.branchId, String(t.tableNumber));
+      return {
+        tableNumber: String(t.tableNumber),
+        tableName: t.name || `Table ${t.tableNumber}`,
+        seats: t.seats || 4,
+        location: t.location || 'Main Dining Hall',
+        branch,
+        signature: sig,
+        deepLink: `aura://table?branch=${branch.branchId}&table=${t.tableNumber}&sig=${sig}`,
+        instructions: 'Scan with your smartphone camera to browse menu, order, and pay.',
+      };
+    });
 
     res.status(200).json({ branch, count: standees.length, standees });
   } catch (error) {
@@ -175,4 +240,6 @@ module.exports = {
   verifyTableQR,
   getTableStandees,
   parseTableQRPayload,
+  signTableQR,
+  verifyTableQRSignature,
 };

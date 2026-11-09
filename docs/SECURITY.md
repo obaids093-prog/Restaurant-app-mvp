@@ -40,3 +40,14 @@ This document tracks all identified security vulnerabilities, their immediate re
   - In `server/controllers/orderController.js`:
     - Integrated `restoreOrderIngredients` in both customer self-cancellation (`cancelMyOrder`) and manager order cancellation paths.
 - **Automated Test**: `Inventory Depletion & Restitution Service (Safety Fix #3)` in `server/tests/inventory.test.js` (8 unit tests verifying atomic decrements, zero-floor clamping, auto-sold-out transitions, and cancellation restitution).
+
+---
+
+## 4. Unsigned Table QR Code Injection & Forgery
+- **Vulnerability Finding**: Table QR codes were completely unsigned. Anyone could craft an arbitrary `aura://table?branch=...&table=42` deep link or submit forged table numbers to `/api/tables/verify-qr`, tricking the system into locking wrong or non-existent tables.
+- **Remediation Fix**:
+  - In `server/controllers/tableController.js`:
+    - Implemented cryptographic HMAC-SHA256 signature generation (`signTableQR`) and verification (`verifyTableQRSignature`).
+    - Appended cryptographic signatures (`&sig=...`) and optional timestamp expiration (`&exp=...`) to generated table standee deep links.
+    - Updated `POST /api/tables/verify-qr` to validate QR signatures: rejects tampered signatures or expired codes with 400 Bad Request. Returns `verifiedSignature: true` and `isTamperProof: true` for authentic standees.
+- **Automated Test**: `Table QR HMAC Cryptographic Signing (Safety Fix #4)` in `server/tests/tableQR.test.js` (6 unit tests verifying signature consistency, tampering rejection, expiration rejection, and standee signature inclusion).

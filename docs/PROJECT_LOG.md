@@ -1,5 +1,31 @@
 # Project Log
 
+## [2026-10-30] - Fix: Cryptographic Table QR HMAC Signing & Expiration Verification (Safety Fix #4)
+
+- **Date**: 2026-10-30
+- **Title**: Fix: Cryptographic Table QR HMAC Signing & Expiration Verification (Safety Fix #4)
+- **WHAT changed**:
+  - In `server/controllers/tableController.js`:
+    - Added HMAC-SHA256 signature generator (`signTableQR`) and verifier (`verifyTableQRSignature`).
+    - Updated `parseTableQRPayload` to extract optional `sig` and `exp` params from URLs and JSON payloads.
+    - Updated `verifyTableQR` (`POST /api/tables/verify-qr`) to enforce cryptographic signature authenticity: rejects tampered signatures or expired standee codes with HTTP 400.
+    - Updated `getTableStandees` (`GET /api/tables/qr-standees`) to append authentic cryptographic signatures to generated standee URLs.
+    - Exported `signTableQR` and `verifyTableQRSignature`.
+  - In `server/tests/tableQR.test.js`:
+    - Added 6 automated tests under `Table QR HMAC Cryptographic Signing (Safety Fix #4)` verifying signature generation, validation, tampered signature rejection, and expired QR rejection.
+  - In `docs/SECURITY.md`:
+    - Documented vulnerability finding, remediation fix, and test verification under Section 4.
+- **WHY (the problem or goal)**:
+  - Address Risk #4 and Recommendation #4 from `docs/REALITY_AUDIT.md`: Unsigned table QR links allowed arbitrary table number spoofing and malicious order injections into active dining tables.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Used native Node.js `crypto.createHmac('sha256')` with `JWT_SECRET`, avoiding external dependencies while enabling tamper-evident standee verification.
+- **HOW TO TEST**:
+  - Run `node node_modules/jest/bin/jest.js tests/tableQR.test.js` in `server/` -> all 18 tests pass.
+- **RISKS or follow-ups**:
+  - None; manual table number entry remains backward compatible for physical keypad input.
+
+---
+
 ## [2026-10-30] - Fix: Atomic Inventory Depletion & Cancellation Restitution (Safety Fix #3)
 
 - **Date**: 2026-10-30
