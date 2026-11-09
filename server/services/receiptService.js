@@ -1,8 +1,8 @@
 /**
  * server/services/receiptService.js
  * ═══════════════════════════════════════════════════════════
- * Generates formatted WhatsApp, SMS, and digital receipts for orders
- * with zero paid third-party dependencies (Twilio/WhatsApp Cloud API optional).
+ * Generates formatted WhatsApp receipts and deep links for orders
+ * with zero paid third-party dependencies (WhatsApp Cloud API optional).
  * ═══════════════════════════════════════════════════════════
  */
 
@@ -51,16 +51,6 @@ function formatWhatsAppReceipt(order, brandInfo = {}) {
 }
 
 /**
- * Formats a concise SMS payload suitable for standard 160-character limits
- */
-function formatSmsReceipt(order) {
-  if (!order) return '';
-  const ticketId = order._id ? String(order._id).slice(-6).toUpperCase() : 'AURA-01';
-  const total = Number(order.totalAmount || order.totalPrice || 0);
-  return `AURA: Order #${ticketId} confirmed! Total Rs. ${total.toLocaleString()} (${order.paymentStatus || 'Pending'}). Preparing at ${order.branchCity || 'Lahore'} branch.`;
-}
-
-/**
  * Generates pre-filled WhatsApp deep link
  */
 function generateWhatsAppShareUrl(phone, text) {
@@ -74,6 +64,5 @@ function generateWhatsAppShareUrl(phone, text) {
 
 module.exports = {
   formatWhatsAppReceipt,
-  formatSmsReceipt,
   generateWhatsAppShareUrl,
 };

@@ -2,50 +2,36 @@ const express = require('express');
 const request = require('supertest');
 const paymentRoutes = require('../routes/paymentRoutes');
 const {
-  validatePakMobile,
-  detectCardBrand,
+  AVAILABLE_PAYMENT_METHODS,
 } = require('../controllers/paymentController');
 
 const app = express();
 app.use(express.json());
 app.use('/api/payments', paymentRoutes);
 
-describe('Payment Helper Functions', () => {
-  it('validates authentic Pakistani mobile formats', () => {
-    expect(validatePakMobile('03001234567')).toBe(true);
-    expect(validatePakMobile('0345 9876543')).toBe(true);
-    expect(validatePakMobile('+923218765432')).toBe(true);
-    expect(validatePakMobile('923001122334')).toBe(true);
-  });
-
-  it('rejects invalid or foreign mobile numbers', () => {
-    expect(validatePakMobile('02134567890')).toBe(false); // PTCL landline
-    expect(validatePakMobile('123456')).toBe(false);
-    expect(validatePakMobile('+14155552671')).toBe(false);
-    expect(validatePakMobile(null)).toBe(false);
-    expect(validatePakMobile('')).toBe(false);
-  });
-
-  it('detects card brand accurately', () => {
-    expect(detectCardBrand('4242424242424242')).toBe('Visa');
-    expect(detectCardBrand('5100000000000000')).toBe('Mastercard');
-    expect(detectCardBrand('378282246310005')).toBe('Amex');
-    expect(detectCardBrand('5081680000000000')).toBe('PayPak');
+describe('Payment Methods Configuration', () => {
+  it('exposes only real in-person payment methods (cash & pay_at_table)', () => {
+    const ids = AVAILABLE_PAYMENT_METHODS.map((m) => m.id);
+    expect(ids).toEqual(['pay_at_table', 'cash']);
+    expect(ids).not.toContain('jazzcash');
+    expect(ids).not.toContain('easypaisa');
+    expect(ids).not.toContain('card_online');
   });
 });
 
 describe('GET /api/payments/methods', () => {
-  it('returns list of supported Pakistani payment methods', async () => {
+  it('returns currency PKR and supported methods', async () => {
     const res = await request(app).get('/api/payments/methods');
     expect(res.status).toBe(200);
     expect(res.body.currency).toBe('PKR');
     expect(Array.isArray(res.body.methods)).toBe(true);
 
     const methodIds = res.body.methods.map((m) => m.id);
-    expect(methodIds).toContain('jazzcash');
-    expect(methodIds).toContain('easypaisa');
-    expect(methodIds).toContain('card_online');
+    expect(methodIds).toContain('cash');
     expect(methodIds).toContain('pay_at_table');
+    expect(methodIds).not.toContain('jazzcash');
+    expect(methodIds).not.toContain('easypaisa');
+    expect(methodIds).not.toContain('card_online');
   });
 });
 
@@ -53,207 +39,73 @@ describe('POST /api/payments/initiate', () => {
   it('rejects initiation without valid positive amount', async () => {
     const res = await request(app)
       .post('/api/payments/initiate')
-      .send({ amount: 0, method: 'jazzcash' });
+      .send({ amount: 0, method: 'cash' });
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
   });
 
-  it('rejects invalid payment method', async () => {
+  it('rejects negative amount', async () => {
     const res = await request(app)
       .post('/api/payments/initiate')
-      .send({ amount: 1500, method: 'unsupported_bitcoin' });
+      .send({ amount: -100, method: 'cash' });
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
   });
 
-  it('rejects JazzCash without valid mobile number', async () => {
+  it('rejects simulated/unsupported payment methods like jazzcash', async () => {
     const res = await request(app)
       .post('/api/payments/initiate')
-      .send({ amount: 2500, method: 'jazzcash', accountNumber: '021334455' });
+      .send({ amount: 1500, method: 'jazzcash' });
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
-    expect(res.body.message).toContain('valid 11-digit mobile number');
+    expect(res.body.message).toMatch(/only cash and pay-at-table/i);
   });
 
-  it('initiates JazzCash session and returns demo OTP', async () => {
+  it('rejects card_online method', async () => {
     const res = await request(app)
       .post('/api/payments/initiate')
-      .send({ amount: 2500, method: 'jazzcash', accountNumber: '03001234567' });
-
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.transactionRef).toMatch(/^JC_/);
-    expect(res.body.requiresOtp).toBe(true);
-    expect(res.body.demoOtp).toBe('123456');
-    expect(res.body.maskedAccount).toContain('0300');
-  });
-
-  it('initiates EasyPaisa session and returns demo OTP', async () => {
-    const res = await request(app)
-      .post('/api/payments/initiate')
-      .send({ amount: 1800, method: 'easypaisa', accountNumber: '03459876543' });
-
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.transactionRef).toMatch(/^EP_/);
-    expect(res.body.requiresOtp).toBe(true);
-    expect(res.body.demoOtp).toBe('123456');
-  });
-
-  it('rejects online card with invalid expiration format', async () => {
-    const res = await request(app)
-      .post('/api/payments/initiate')
-      .send({
-        amount: 3200,
-        method: 'card_online',
-        cardNumber: '4242424242424242',
-        cardExpiry: '2028-12',
-        cardCvv: '123',
-      });
-
+      .send({ amount: 2000, method: 'card_online' });
     expect(res.status).toBe(400);
-    expect(res.body.message).toContain('MM/YY format');
+    expect(res.body.success).toBe(false);
   });
 
-  it('initiates online Card 3DS session with valid card details', async () => {
+  it('successfully initiates cash payment', async () => {
     const res = await request(app)
       .post('/api/payments/initiate')
-      .send({
-        amount: 3200,
-        method: 'card_online',
-        cardNumber: '4242424242424242',
-        cardExpiry: '12/28',
-        cardCvv: '456',
-        cardHolder: 'Sarah Ahmed',
-      });
-
+      .send({ amount: 1250, method: 'cash' });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.transactionRef).toMatch(/^CARD_/);
-    expect(res.body.cardBrand).toBe('Visa');
-    expect(res.body.maskedAccount).toBe('•••• •••• •••• 4242');
-  });
-
-  it('immediately confirms offline pay_at_table without requiring OTP', async () => {
-    const res = await request(app)
-      .post('/api/payments/initiate')
-      .send({ amount: 4500, method: 'pay_at_table' });
-
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
+    expect(res.body.method).toBe('cash');
+    expect(res.body.amount).toBe(1250);
     expect(res.body.requiresOtp).toBe(false);
+    expect(res.body.transactionRef).toMatch(/^CASH_/);
+  });
+
+  it('successfully initiates pay_at_table payment', async () => {
+    const res = await request(app)
+      .post('/api/payments/initiate')
+      .send({ amount: 3500, method: 'pay_at_table' });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.method).toBe('pay_at_table');
+    expect(res.body.amount).toBe(3500);
+    expect(res.body.requiresOtp).toBe(false);
+    expect(res.body.transactionRef).toMatch(/^TABLE_/);
   });
 });
 
-describe('POST /api/payments/verify-otp', () => {
-  it('rejects confirmation with incorrect OTP', async () => {
-    const initRes = await request(app)
-      .post('/api/payments/initiate')
-      .send({ amount: 1500, method: 'jazzcash', accountNumber: '03001234567' });
-
-    const ref = initRes.body.transactionRef;
-
-    const verifyRes = await request(app)
+describe('Removed Simulated Payment Endpoints', () => {
+  it('verify-otp endpoint no longer exists (404)', async () => {
+    const res = await request(app)
       .post('/api/payments/verify-otp')
-      .send({ transactionRef: ref, otp: '999999' });
-
-    expect(verifyRes.status).toBe(400);
-    expect(verifyRes.body.success).toBe(false);
-    expect(verifyRes.body.message).toContain('Invalid verification code');
+      .send({ transactionRef: 'TEST_123', otp: '123456' });
+    expect(res.status).toBe(404);
   });
 
-  it('successfully verifies with 123456 and produces official receipt number', async () => {
-    const initRes = await request(app)
-      .post('/api/payments/initiate')
-      .send({ amount: 2100, method: 'easypaisa', accountNumber: '03451122334' });
-
-    const ref = initRes.body.transactionRef;
-
-    const verifyRes = await request(app)
-      .post('/api/payments/verify-otp')
-      .send({ transactionRef: ref, otp: '123456' });
-
-    expect(verifyRes.status).toBe(200);
-    expect(verifyRes.body.success).toBe(true);
-    expect(verifyRes.body.status).toBe('Success');
-    expect(verifyRes.body.receiptNumber).toMatch(/^AURA-RCP-/);
-    expect(verifyRes.body.paidAt).toBeDefined();
-  });
-});
-
-describe('POST /api/payments/tokenize-card', () => {
-  it('tokenizes card securely without saving raw numbers', async () => {
+  it('tokenize-card endpoint no longer exists (404)', async () => {
     const res = await request(app)
       .post('/api/payments/tokenize-card')
-      .send({
-        cardNumber: '5100123456789012',
-        cardHolder: 'Ali Raza',
-        cardExpiry: '11/27',
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.cardToken).toMatch(/^tok_mastercard_/);
-    expect(res.body.last4).toBe('9012');
-    expect(res.body.brand).toBe('Mastercard');
-  });
-});
-
-describe('Production Safety Guards (Safety Fix #5)', () => {
-  const originalEnv = process.env.NODE_ENV;
-  const originalAllow = process.env.ALLOW_SIMULATED_PAYMENTS;
-
-  afterEach(() => {
-    process.env.NODE_ENV = originalEnv;
-    process.env.ALLOW_SIMULATED_PAYMENTS = originalAllow;
-  });
-
-  it('rejects simulated online payments in production mode without explicit opt-in', async () => {
-    process.env.NODE_ENV = 'production';
-    delete process.env.ALLOW_SIMULATED_PAYMENTS;
-
-    const res = await request(app)
-      .post('/api/payments/initiate')
-      .send({
-        amount: 1500,
-        method: 'jazzcash',
-        accountNumber: '03001234567',
-      });
-
-    expect(res.status).toBe(403);
-    expect(res.body.success).toBe(false);
-    expect(res.body.message).toMatch(/disabled in production mode/i);
-  });
-
-  it('allows cash and pay-at-table orders even in production mode', async () => {
-    process.env.NODE_ENV = 'production';
-    delete process.env.ALLOW_SIMULATED_PAYMENTS;
-
-    const res = await request(app)
-      .post('/api/payments/initiate')
-      .send({
-        amount: 2200,
-        method: 'cash',
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.requiresOtp).toBe(false);
-  });
-
-  it('rejects verify-otp in production mode without explicit opt-in', async () => {
-    process.env.NODE_ENV = 'production';
-    delete process.env.ALLOW_SIMULATED_PAYMENTS;
-
-    const res = await request(app)
-      .post('/api/payments/verify-otp')
-      .send({
-        transactionRef: 'JC_TEST_123',
-        otp: '123456',
-      });
-
-    expect(res.status).toBe(403);
-    expect(res.body.success).toBe(false);
-    expect(res.body.message).toMatch(/disabled in production mode/i);
+      .send({ cardNumber: '4242424242424242' });
+    expect(res.status).toBe(404);
   });
 });

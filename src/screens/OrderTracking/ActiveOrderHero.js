@@ -13,7 +13,6 @@ export default function ActiveOrderHero({
   cancelRemaining,
   isCancelling,
   onCancelOrder,
-  onTrackRider,
   colors,
   shadows,
   typography,
@@ -87,20 +86,6 @@ export default function ActiveOrderHero({
         </View>
       )}
 
-      {/* Track Live Rider CTA */}
-      {onTrackRider && (
-        <TouchableOpacity
-          onPress={() => onTrackRider(activeOrder)}
-          style={[styles.trackRiderBtn, { backgroundColor: colors.primary }]}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="navigate-outline" size={18} color={colors.onPrimary} style={{ marginRight: 6 }} />
-          <Text style={[styles.trackRiderBtnText, { color: colors.onPrimary }]}>
-            Track Live Rider
-          </Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.onPrimary} style={{ marginLeft: 4 }} />
-        </TouchableOpacity>
-      )}
 
       {/* Cancel Button (While Pending) */}
       {canCancel && (

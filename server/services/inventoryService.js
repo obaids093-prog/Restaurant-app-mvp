@@ -34,39 +34,53 @@ async function depleteOrderIngredients(order) {
     }
 
     if (dish) {
-      const currentStock = typeof dish.stockCount === 'number' ? dish.stockCount : 25;
-      const decQty = Math.min(currentStock, qty);
-      const nextStock = Math.max(0, currentStock - decQty);
+      // 1. Attempt atomic conditional decrement: stockCount must be >= qty
+      let updated = await MenuItem.findOneAndUpdate(
+        { _id: dish._id, stockCount: { $gte: qty } },
+        { $inc: { stockCount: -qty } },
+        { new: true }
+      );
 
-      const updatePayload = {
-        $inc: { stockCount: -decQty },
-      };
-      if (nextStock === 0) {
-        updatePayload.$set = { isAvailable: false };
+      let depletedQty = qty;
+      if (!updated) {
+        // Not enough stock for full quantity; deduct whatever is left down to 0
+        const latest = await MenuItem.findById(dish._id);
+        const available = Math.max(0, latest?.stockCount || 0);
+        if (available > 0) {
+          updated = await MenuItem.findOneAndUpdate(
+            { _id: dish._id, stockCount: { $gte: available } },
+            { $inc: { stockCount: -available } },
+            { new: true }
+          );
+          depletedQty = available;
+        } else {
+          depletedQty = 0;
+        }
       }
 
-      const updated = (await MenuItem.findByIdAndUpdate(dish._id, updatePayload, { new: true })) || dish;
+      const finalStock = updated && typeof updated.stockCount === 'number' ? Math.max(0, updated.stockCount) : 0;
+      if (finalStock === 0) {
+        await MenuItem.findByIdAndUpdate(dish._id, {
+          $set: { isAvailable: false, stockCount: 0 },
+        });
+      }
 
       // Deplete recipe ingredients with lower bound floor (never drop below 0)
-      if (Array.isArray(dish.recipe) && dish.recipe.length > 0) {
+      if (depletedQty > 0 && Array.isArray(dish.recipe) && dish.recipe.length > 0) {
         for (const ing of dish.recipe) {
-          const reqQty = (Number(ing.quantity) || 1) * qty;
-          const ingredientDoc = await Ingredient.findOne({ name: new RegExp(`^${ing.ingredient}$`, 'i') });
-          if (ingredientDoc) {
-            const ingCurrentStock = typeof ingredientDoc.stock === 'number' ? ingredientDoc.stock : 100;
-            const ingDec = Math.min(ingCurrentStock, reqQty);
-            await Ingredient.findByIdAndUpdate(ingredientDoc._id, {
-              $inc: { stock: -ingDec },
-            });
-          }
+          const reqQty = (Number(ing.quantity) || 1) * depletedQty;
+          await Ingredient.findOneAndUpdate(
+            { name: new RegExp(`^${ing.ingredient}$`, 'i'), stock: { $gte: reqQty } },
+            { $inc: { stock: -reqQty } }
+          );
         }
       }
 
       results.push({
         dishId: dish._id,
         name: dish.name,
-        remainingStock: updated.stockCount !== undefined ? updated.stockCount : nextStock,
-        autoSoldOut: (updated.stockCount !== undefined ? updated.stockCount : nextStock) === 0,
+        remainingStock: finalStock,
+        autoSoldOut: finalStock === 0,
       });
     }
   }

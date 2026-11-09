@@ -183,4 +183,29 @@ describe('Table QR HMAC Cryptographic Signing (Safety Fix #4)', () => {
     expect(res.body.valid).toBe(false);
     expect(res.body.message).toMatch(/expired/i);
   });
+
+  it('uses dedicated TABLE_QR_SECRET from environment when present', () => {
+    const originalSecret = process.env.TABLE_QR_SECRET;
+    try {
+      process.env.TABLE_QR_SECRET = 'custom_table_secret_xyz';
+      const sig1 = signTableQR('lhr_gulberg', '10');
+      expect(sig1).toHaveLength(16);
+      expect(verifyTableQRSignature('lhr_gulberg', '10', null, sig1)).toBe(true);
+    } finally {
+      process.env.TABLE_QR_SECRET = originalSecret;
+    }
+  });
+
+  it('throws error in production when TABLE_QR_SECRET is absent', () => {
+    const originalEnv = process.env.NODE_ENV;
+    const originalSecret = process.env.TABLE_QR_SECRET;
+    try {
+      process.env.NODE_ENV = 'production';
+      delete process.env.TABLE_QR_SECRET;
+      expect(() => signTableQR('lhr_gulberg', '1')).toThrow(/TABLE_QR_SECRET environment variable is missing/i);
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+      process.env.TABLE_QR_SECRET = originalSecret;
+    }
+  });
 });

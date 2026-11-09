@@ -24,11 +24,7 @@ import { BranchChip } from '../components/ui';
 import { brand } from '../config/brand';
 import { getOptimizedImageUrl } from '../utils/imageUrl';
 import apiClient from '../api/client';
-import {
-  PaymentMethodSelector,
-  PaymentDetailsForm,
-  OtpVerificationModal,
-} from '../components/PaymentSheet';
+import { PaymentMethodSelector } from '../components/PaymentSheet';
 
 // Named rate constants for transparent breakdown
 const SERVICE_CHARGE_RATE = 0.05;
@@ -137,18 +133,10 @@ export default function OrderSummaryScreen({ route, navigation }) {
     String(initialOrderType).toLowerCase().includes('takeaway') ? 'Takeaway' : 'Dine-in'
   );
 
-  // Settlement preference & form data
-  const [paymentMethod, setPaymentMethod] = useState('jazzcash');
-  const [paymentFormData, setPaymentFormData] = useState({
-    accountNumber: user?.phone || '',
-    cardNumber: '',
-    cardExpiry: '',
-    cardCvv: '',
-    cardHolder: user?.name || '',
-  });
-  const [activeTxn, setActiveTxn] = useState(null);
-  const [isOtpModalVisible, setIsOtpModalVisible] = useState(false);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  // Settlement preference (real cash or pay at table only)
+  const [paymentMethod, setPaymentMethod] = useState(
+    String(initialOrderType).toLowerCase().includes('takeaway') ? 'cash' : 'pay_at_table'
+  );
 
   const isDineIn = activeDiningType === 'Dine-in';
   const userName = user?.name || 'Valued Guest';
@@ -200,30 +188,6 @@ export default function OrderSummaryScreen({ route, navigation }) {
     setErrorMessage('');
 
     try {
-      const isOnlineWalletOrCard = ['jazzcash', 'easypaisa', 'card_online'].includes(paymentMethod);
-
-      if (isOnlineWalletOrCard) {
-        // Step 1: Initiate payment session with gateway
-        const initRes = await apiClient.post('/payments/initiate', {
-          amount: Math.round(calculations.grandTotal),
-          method: paymentMethod,
-          accountNumber: paymentFormData.accountNumber,
-          cardNumber: paymentFormData.cardNumber,
-          cardExpiry: paymentFormData.cardExpiry,
-          cardCvv: paymentFormData.cardCvv,
-          cardHolder: paymentFormData.cardHolder,
-        });
-
-        const txnData = initRes.data;
-        if (txnData?.requiresOtp) {
-          setActiveTxn(txnData);
-          setIsOtpModalVisible(true);
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      // Step 2: Settle directly for offline cash or pay at table
       const orderPayload = buildOrderPayload(
         user,
         cartState,
@@ -258,60 +222,6 @@ export default function OrderSummaryScreen({ route, navigation }) {
       showOrderAlert('Payment / Order Failed', errMsg);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleVerifyOtp = async (otpCode) => {
-    if (isVerifyingOtp || !activeTxn) return;
-    setIsVerifyingOtp(true);
-    setErrorMessage('');
-
-    try {
-      // Step 1: Verify 3DS / Wallet OTP
-      const verifyRes = await apiClient.post('/payments/verify-otp', {
-        transactionRef: activeTxn.transactionRef,
-        otp: otpCode,
-      });
-
-      const verified = verifyRes.data;
-      if (!verified?.success) {
-        throw new Error(verified?.message || 'Verification could not be confirmed.');
-      }
-
-      // Step 2: Create verified and fully paid Order in backend
-      const orderPayload = buildOrderPayload(
-        user,
-        cartState,
-        calculations,
-        activeDiningType,
-        tableNumber,
-        pickupTime,
-        getItemPrice,
-        activeBranch,
-        paymentMethod,
-        'Paid',
-        activeTxn.transactionRef
-      );
-
-      const newOrder = await createOrder(orderPayload);
-      const snapshotItems = [...cartState.items];
-      clearCart();
-      setIsOtpModalVisible(false);
-
-      navigation.replace('OrderPlaced', {
-        order: newOrder,
-        orderType: activeDiningType,
-        tableNumber,
-        branch: activeBranch,
-        grandTotal: calculations.grandTotal,
-        items: snapshotItems,
-        receiptNumber: verified.receiptNumber,
-      });
-    } catch (err) {
-      console.error('OTP confirmation failed:', err);
-      showOrderAlert('Payment Failed', err.message || 'Incorrect verification code.');
-    } finally {
-      setIsVerifyingOtp(false);
     }
   };
 
@@ -551,19 +461,11 @@ export default function OrderSummaryScreen({ route, navigation }) {
           })}
         </View>
 
-        {/* Real-world Online & Offline Payment Gateways */}
+        {/* Payment Settlement Method */}
         <PaymentMethodSelector
           selectedMethod={paymentMethod}
           onSelectMethod={setPaymentMethod}
           orderType={activeDiningType}
-        />
-        <PaymentDetailsForm
-          method={paymentMethod}
-          formData={paymentFormData}
-          onChangeField={(field, val) =>
-            setPaymentFormData((prev) => ({ ...prev, [field]: val }))
-          }
-          userPhone={user?.phone}
         />
 
         {/* Financial Folio Breakdown */}
@@ -689,14 +591,6 @@ export default function OrderSummaryScreen({ route, navigation }) {
         </View>
       </ScrollView>
 
-      {/* 3D-Secure / OTP Verification Modal */}
-      <OtpVerificationModal
-        visible={isOtpModalVisible}
-        transaction={activeTxn}
-        onVerify={handleVerifyOtp}
-        onCancel={() => setIsOtpModalVisible(false)}
-        isVerifying={isVerifyingOtp}
-      />
     </View>
   );
 }

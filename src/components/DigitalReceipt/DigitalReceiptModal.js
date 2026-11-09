@@ -39,7 +39,7 @@ export default function DigitalReceiptModal({
       `━━━━━━━━━━━━━━━━━━━━`,
       `👤 *Customer:* ${order.customerName || 'Valued Guest'}`,
       `🍽 *Service:* ${order.orderType || 'Dine-in'}${order.tableNumber ? ` (${order.tableNumber})` : ''}`,
-      `💳 *Payment:* ${order.paymentMethod ? order.paymentMethod.toUpperCase() : 'ONLINE'} (${order.paymentStatus || 'Paid'})`,
+      `💳 *Payment:* ${order.paymentMethod ? order.paymentMethod.toUpperCase() : 'CASH'} (${order.paymentStatus || 'Pending'})`,
       receiptNumber ? `🔢 *Receipt #:* ${receiptNumber}` : '',
       `━━━━━━━━━━━━━━━━━━━━`,
       `📋 *ORDER SUMMARY:*`,
@@ -62,16 +62,6 @@ export default function DigitalReceiptModal({
   const handleShareWhatsApp = () => {
     const text = compileWhatsAppText();
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    Linking.openURL(url).catch(() => {});
-  };
-
-  const handleShareSms = () => {
-    const text = `AURA Receipt #${ticketId}: Rs. ${grandTotal.toLocaleString()} confirmed. Thank you for dining with us!`;
-    const url = Platform.select({
-      ios: `sms:&body=${encodeURIComponent(text)}`,
-      android: `sms:?body=${encodeURIComponent(text)}`,
-      default: `sms:?body=${encodeURIComponent(text)}`,
-    });
     Linking.openURL(url).catch(() => {});
   };
 

@@ -18,7 +18,6 @@ import ProfileScreen from '../screens/ProfileScreen';
 import ManagerDashboardScreen from '../screens/ManagerDashboardScreen';
 import OrderPlacedScreen from '../screens/OrderPlacedScreen';
 import NotificationScreen from '../screens/NotificationScreen';
-import RiderTrackingScreen from '../screens/RiderTrackingScreen';
 import TableQRScannerScreen from '../screens/TableQRScannerScreen';
 import KitchenDisplayScreen from '../screens/KitchenDisplayScreen';
 import { navigationRef } from './navigationRef';
@@ -205,14 +204,6 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Notifications"
           component={NotificationScreen}
-          options={{
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="RiderTracking"
-          component={RiderTrackingScreen}
           options={{
             headerShown: false,
             animation: 'slide_from_right',

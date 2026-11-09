@@ -16,48 +16,54 @@ This document tracks all identified security vulnerabilities, their immediate re
 
 ---
 
-## 2. Unauthorized Socket.io Manager Room Eavesdropping
-- **Vulnerability Finding**: `socket.on('join:role')` previously allowed any connected client (even unauthenticated or customer users) to emit `join:role('manager')` and join the `role:manager` room. This allowed malicious clients to eavesdrop on all kitchen tickets, manager alerts, and inventory alerts.
+## 2. Unauthorized Socket.io Manager Room Eavesdropping & Client Room Tampering
+- **Vulnerability Finding**: `socket.on('join:role')` previously allowed connected clients to request arbitrary room joins, and sockets allowed unauthenticated connections.
 - **Remediation Fix**:
   - In `server/services/socketService.js`:
-    - Extracted and verified authenticated user ID and verified role via JWT and MongoDB User model during socket handshake middleware.
-    - Implemented `handleRoleJoin(socket, requestedRole)` with strict RBAC: rejects `manager` room requests unless `socket._userRole === 'manager'`. Emits `error:unauthorized` to offending clients.
-    - Exported `handleRoleJoin` for automated unit testing.
-- **Automated Test**: `Security & RBAC Room Guards (Safety Fix #2)` in `server/tests/socket.test.js` (5 unit tests verifying rejection of unauthenticated clients, rejection of customers, acceptance of managers, and denial of unknown roles).
+    - Made socket connection strictly authenticated via JWT; unauthenticated handshakes are rejected immediately.
+    - Completely removed client-side `join:role` event listener and client room request capability.
+    - Server automatically puts sockets into `user:<userId>` and verified role rooms (`role:manager`, `role:customer`).
+  - In `src/context/SocketContext.js`:
+    - Removed `socket.emit('join:role')` from client lifecycle.
+- **Automated Test**: `Server-Controlled Room Assignments (Safety Fix #2 & Part A)` in `server/tests/socket.test.js`.
 
 ---
 
 ## 3. Inventory Concurrency, Negative Raw Stocks & Cancellation Restitution
 - **Vulnerability Finding**:
-  - Dish depletion relied on non-atomic `findById` followed by JavaScript arithmetic and `save()`, leading to race conditions under concurrent orders.
-  - Raw ingredients could decrement below 0 without lower bounds.
-  - Cancelled orders never restored inventory, permanently draining restaurant supplies and triggering false "Sold Out" states.
+  - Race conditions during concurrent orders could deplete stock below zero.
+  - Cancelled orders previously never restored inventory.
 - **Remediation Fix**:
   - In `server/services/inventoryService.js`:
-    - Refactored `depleteOrderIngredients` to atomic MongoDB `findByIdAndUpdate` with `$inc` and clamped non-negative lower bounds (`Math.min(currentStock, qty)`).
-    - Added non-negative lower bound checks for raw `Ingredient` stock decrements.
+    - Switched depletion to conditional atomic `$inc` (`{ _id, stockCount: { $gte: qty } }`), guaranteeing stock never drops below 0 even under simultaneous concurrent orders.
+    - Automatic toggle of `isAvailable: false` when stock reaches 0.
     - Implemented `restoreOrderIngredients(order)` restoring dish portions, raw ingredient supplies, and auto-resetting `isAvailable: true`.
-  - In `server/controllers/orderController.js`:
-    - Integrated `restoreOrderIngredients` in both customer self-cancellation (`cancelMyOrder`) and manager order cancellation paths.
-- **Automated Test**: `Inventory Depletion & Restitution Service (Safety Fix #3)` in `server/tests/inventory.test.js` (8 unit tests verifying atomic decrements, zero-floor clamping, auto-sold-out transitions, and cancellation restitution).
+- **Automated Test**: `Inventory Depletion & Restitution Service (Safety Fix #3)` in `server/tests/inventory.test.js` (including simultaneous concurrent order simulation test).
 
 ---
 
 ## 4. Unsigned Table QR Code Injection & Forgery
-- **Vulnerability Finding**: Table QR codes were completely unsigned. Anyone could craft an arbitrary `aura://table?branch=...&table=42` deep link or submit forged table numbers to `/api/tables/verify-qr`, tricking the system into locking wrong or non-existent tables.
+- **Vulnerability Finding**: Table QR codes were completely unsigned, allowing arbitrary table spoofing.
 - **Remediation Fix**:
   - In `server/controllers/tableController.js`:
     - Implemented cryptographic HMAC-SHA256 signature generation (`signTableQR`) and verification (`verifyTableQRSignature`).
+    - Dedicated `TABLE_QR_SECRET` environment variable with production startup guard that refuses to boot if missing.
     - Appended cryptographic signatures (`&sig=...`) and optional timestamp expiration (`&exp=...`) to generated table standee deep links.
-    - Updated `POST /api/tables/verify-qr` to validate QR signatures: rejects tampered signatures or expired codes with 400 Bad Request. Returns `verifiedSignature: true` and `isTamperProof: true` for authentic standees.
-- **Automated Test**: `Table QR HMAC Cryptographic Signing (Safety Fix #4)` in `server/tests/tableQR.test.js` (6 unit tests verifying signature consistency, tampering rejection, expiration rejection, and standee signature inclusion).
+    - Updated `POST /api/tables/verify-qr` to validate QR signatures: rejects tampered signatures or expired codes with 400 Bad Request.
+- **Automated Test**: `Table QR HMAC Cryptographic Signing (Safety Fix #4)` in `server/tests/tableQR.test.js`.
 
 ---
 
-## 5. Simulated Payment Production Fraud & CVV Exposure
-- **Vulnerability Finding**:
-  - Simulated payment endpoints (`/api/payments/initiate` and `/api/payments/verify-otp`) had hardcoded fake OTP `123456` and were active without production environment guards, creating a risk where bad actors in production could confirm orders without spending real money.
-  - Raw card CVVs passed in request bodies were not immediately scrubbed from request memory.
+## 5. Simulated Payment Production Fraud & Card Data Collection
+- **Vulnerability Finding**: Simulated online card and mobile wallet endpoints (`/api/payments/initiate` and `/api/payments/verify-otp`) allowed fake OTPs and collected sensitive card PAN and CVV data without PCI certification.
+- **Remediation Fix**:
+  - In `server/controllers/paymentController.js` and `server/routes/paymentRoutes.js`:
+    - Purged all simulated payment mechanisms (JazzCash, EasyPaisa, online cards, 3DS OTP).
+    - Permitted payment methods restricted exclusively to real-world in-person settlement (`cash` and `pay_at_table`).
+    - Deleted `/verify-otp` and `/tokenize-card` endpoints.
+    - Deleted client-side payment forms (`PaymentDetailsForm.js`, `OtpVerificationModal.js`). Zero card details are ever accepted or stored.
+    - Created `docs/PAYMENTS_FUTURE.md` detailing future PCI-compliant integration plans.
+- **Automated Test**: `Payment Methods Configuration`, `GET /api/payments/methods`, `POST /api/payments/initiate`, and `Removed Simulated Payment Endpoints` in `server/tests/payments.test.js`.
   - The payment UI lacked explicit simulation disclaimers alerting users not to input authentic financial instruments.
 - **Remediation Fix**:
   - In `server/controllers/paymentController.js`:

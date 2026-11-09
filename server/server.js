@@ -30,6 +30,9 @@ dotenv.config();
 // Validate required environment variables before initializing services
 if (process.env.NODE_ENV !== 'test') {
   const requiredEnv = ['MONGO_URI', 'JWT_SECRET'];
+  if (process.env.NODE_ENV === 'production') {
+    requiredEnv.push('TABLE_QR_SECRET');
+  }
   const missingEnv = requiredEnv.filter((key) => !process.env[key]?.trim());
 
   if (missingEnv.length > 0) {

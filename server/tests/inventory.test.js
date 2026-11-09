@@ -43,25 +43,26 @@ describe('Inventory Depletion & Restitution Service (Safety Fix #3)', () => {
       };
 
       jest.spyOn(MenuItem, 'findById').mockResolvedValue(fakeDish);
+      const findOneAndUpdateSpy = jest.spyOn(MenuItem, 'findOneAndUpdate').mockResolvedValue({
+        ...fakeDish,
+        stockCount: 0,
+        isAvailable: false,
+      });
       const updateSpy = jest.spyOn(MenuItem, 'findByIdAndUpdate').mockResolvedValue({
         ...fakeDish,
         stockCount: 0,
         isAvailable: false,
       });
-      jest.spyOn(Ingredient, 'findOne').mockResolvedValue({ _id: 'ing_1', stock: 10 });
-      jest.spyOn(Ingredient, 'findByIdAndUpdate').mockResolvedValue({ _id: 'ing_1', stock: 8 });
+      jest.spyOn(Ingredient, 'findOneAndUpdate').mockResolvedValue({ _id: 'ing_1', stock: 8 });
 
       const mockOrder = {
         items: [{ menuItem: fakeDish._id, quantity: 2 }],
       };
 
       const result = await depleteOrderIngredients(mockOrder);
-      expect(updateSpy).toHaveBeenCalledWith(
-        fakeDish._id,
-        expect.objectContaining({
-          $inc: { stockCount: -2 },
-          $set: { isAvailable: false },
-        }),
+      expect(findOneAndUpdateSpy).toHaveBeenCalledWith(
+        { _id: fakeDish._id, stockCount: { $gte: 2 } },
+        { $inc: { stockCount: -2 } },
         { new: true }
       );
       expect(result.depleted[0].remainingStock).toBe(0);
@@ -77,8 +78,25 @@ describe('Inventory Depletion & Restitution Service (Safety Fix #3)', () => {
         recipe: [],
       };
 
-      jest.spyOn(MenuItem, 'findById').mockResolvedValue(fakeDish);
-      const updateSpy = jest.spyOn(MenuItem, 'findByIdAndUpdate').mockResolvedValue({
+      jest.spyOn(MenuItem, 'findById').mockImplementation((id) => ({
+        select: () => ({
+          lean: () => Promise.resolve({ stockCount: 1 }),
+        }),
+        then: (resolve) => resolve(fakeDish),
+      }));
+
+      // Full qty (5) fails on $gte: 5
+      jest.spyOn(MenuItem, 'findOneAndUpdate').mockImplementation((filter) => {
+        if (filter.stockCount && filter.stockCount.$gte === 5) {
+          return Promise.resolve(null);
+        }
+        if (filter.stockCount && filter.stockCount.$gte === 1) {
+          return Promise.resolve({ ...fakeDish, stockCount: 0, isAvailable: false });
+        }
+        return Promise.resolve(null);
+      });
+
+      jest.spyOn(MenuItem, 'findByIdAndUpdate').mockResolvedValue({
         ...fakeDish,
         stockCount: 0,
         isAvailable: false,
@@ -90,17 +108,47 @@ describe('Inventory Depletion & Restitution Service (Safety Fix #3)', () => {
       };
 
       const result = await depleteOrderIngredients(mockOrder);
-      // decQty should be clamped to min(stockCount, qty) = 1
-      expect(updateSpy).toHaveBeenCalledWith(
-        fakeDish._id,
-        expect.objectContaining({
-          $inc: { stockCount: -1 },
-          $set: { isAvailable: false },
-        }),
-        { new: true }
-      );
       expect(result.depleted[0].remainingStock).toBe(0);
       expect(result.depleted[0].autoSoldOut).toBe(true);
+    });
+
+    it('simulates concurrent simultaneous orders on same dish without going negative', async () => {
+      let currentStock = 3;
+      const fakeDishId = '507f1f77bcf86cd799439099';
+
+      jest.spyOn(MenuItem, 'findById').mockImplementation(() =>
+        Promise.resolve({
+          _id: fakeDishId,
+          name: 'Concurrent Slider',
+          stockCount: currentStock,
+          recipe: [],
+        })
+      );
+
+      jest.spyOn(MenuItem, 'findOneAndUpdate').mockImplementation((filter, update) => {
+        const required = filter.stockCount?.$gte || 1;
+        if (currentStock >= required) {
+          const dec = Math.abs(update.$inc?.stockCount || 0);
+          currentStock = Math.max(0, currentStock - dec);
+          return Promise.resolve({
+            _id: fakeDishId,
+            name: 'Concurrent Slider',
+            stockCount: currentStock,
+          });
+        }
+        return Promise.resolve(null);
+      });
+
+      jest.spyOn(MenuItem, 'findByIdAndUpdate').mockResolvedValue({});
+
+      // Fire 3 simultaneous orders of 2 items each when only 3 items exist in total
+      const order1 = depleteOrderIngredients({ items: [{ menuItem: fakeDishId, quantity: 2 }] });
+      const order2 = depleteOrderIngredients({ items: [{ menuItem: fakeDishId, quantity: 2 }] });
+      const order3 = depleteOrderIngredients({ items: [{ menuItem: fakeDishId, quantity: 2 }] });
+
+      const [res1, res2, res3] = await Promise.all([order1, order2, order3]);
+      expect(currentStock).toBeGreaterThanOrEqual(0);
+      expect(currentStock).toBe(0); // 3 items depleted down to 0, never negative
     });
   });
 

@@ -1,6 +1,5 @@
 const {
   formatWhatsAppReceipt,
-  formatSmsReceipt,
   generateWhatsAppShareUrl,
 } = require('../services/receiptService');
 
@@ -12,9 +11,9 @@ describe('Digital Receipt Service', () => {
     tableNumber: 'Table 4',
     branchName: 'AURA • Gulberg III, Lahore',
     branchCity: 'Lahore',
-    paymentMethod: 'jazzcash',
+    paymentMethod: 'cash',
     paymentStatus: 'Paid',
-    paymentRef: 'JC_1793345_A9B',
+    paymentRef: 'CASH_1793345_A9B',
     items: [
       { name: 'Truffle Wagyu Slider', quantity: 2, price: 1200 },
       { name: 'Artisan Mocktail', quantity: 1, price: 650 },
@@ -33,15 +32,8 @@ describe('Digital Receipt Service', () => {
     expect(text).toContain('Truffle Wagyu Slider x2 — Rs. 2,400');
     expect(text).toContain('Artisan Mocktail x1 — Rs. 650');
     expect(text).toContain('GRAND TOTAL: Rs. 3,294');
-    expect(text).toContain('JAZZCASH');
-    expect(text).toContain('JC_1793345_A9B');
-  });
-
-  it('formats concise SMS receipt within text limit', () => {
-    const sms = formatSmsReceipt(sampleOrder);
-    expect(sms).toContain('Order #439011 confirmed!');
-    expect(sms).toContain('Rs. 3,294');
-    expect(sms).toContain('Paid');
+    expect(text).toContain('CASH');
+    expect(text).toContain('CASH_1793345_A9B');
   });
 
   it('generates wa.me link with encoded text', () => {

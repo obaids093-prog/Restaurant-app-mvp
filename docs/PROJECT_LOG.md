@@ -1,5 +1,45 @@
 # Project Log
 
+## [2026-11-09] - Release Candidate Part A: Finish Safety Fixes & Purge Simulations
+
+- **Date**: 2026-11-09
+- **Title**: Release Candidate Part A: Finish Safety Fixes & Purge Simulations
+- **WHAT changed**:
+  - In `server/controllers/paymentController.js` and `server/routes/paymentRoutes.js`:
+    - Removed all simulated card, JazzCash, EasyPaisa, and fake 3DS OTP verification flows.
+    - Restricted payment options to real-world in-person settlement (`cash` and `pay_at_table`).
+    - Purged `/verify-otp` and `/tokenize-card` endpoints.
+  - Authored `docs/PAYMENTS_FUTURE.md`:
+    - Comprehensive architectural blueprint for future PCI-compliant payment integrations (Stripe, JazzCash, EasyPaisa merchant APIs).
+  - In `server/services/socketService.js` and `src/context/SocketContext.js`:
+    - Made socket connection strictly authenticated via JWT (anonymous connections rejected with error).
+    - Removed client-controlled `join:role` room requests; server automatically assigns connections to `user:<userId>` and role room (`role:manager`, `role:customer`).
+  - In `server/controllers/tableController.js` and `server/server.js`:
+    - Table QR HMAC signing now uses dedicated `TABLE_QR_SECRET` environment variable with production startup guard that halts if missing.
+  - In `server/services/inventoryService.js` and `server/tests/inventory.test.js`:
+    - Converted inventory depletion to atomic conditional `$inc` (`{ _id, stockCount: { $gte: qty } }`) to guarantee non-negative stock under concurrent order spikes. Added restitution upon cancellation and automated simultaneous-order test.
+  - Purged simulated rider GPS tracking:
+    - Deleted `server/services/riderTrackingService.js` and `server/tests/riderTracking.test.js`.
+    - Removed `GET /api/orders/:id/rider-tracking` endpoint.
+    - Deleted `src/screens/RiderTracking/`, `src/screens/RiderTrackingScreen.js`, and `src/hooks/useRiderTracking.js`.
+    - Removed rider tracking buttons and routes from `OrderTrackingScreen.js`, `ActiveOrderHero.js`, and `AppNavigator.js`.
+  - Purged simulated SMS receipt option:
+    - Removed `formatSmsReceipt` from `receiptService.js`, `orderController.js`, and `DigitalReceiptModal.js`, maintaining WhatsApp deep linking.
+  - Removed client-side payment forms:
+    - Deleted `PaymentDetailsForm.js` and `OtpVerificationModal.js`.
+    - Updated `OrderSummaryScreen.js` to handle in-person payment settlement cleanly without simulated card/OTP modals.
+- **WHY (the problem or goal)**:
+  - Fulfill strict Release Candidate reality audit bar: Nothing may be simulated — a feature is either real or removed. Zero sensitive card data may be collected without PCI compliance.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Eliminated mock payment/courier modules, enforced server-controlled authorization, and validated all server endpoints with automated Jest tests.
+- **HOW TO TEST**:
+  - Run `cd server; node node_modules/jest/bin/jest.js --runInBand --forceExit` -> all 15 test suites, 154 tests pass.
+  - Run `node node_modules/eslint/bin/eslint.js src/ --quiet` -> 0 errors.
+- **RISKS or follow-ups**:
+  - Payment options in app are strictly Cash and Pay at table until merchant accounts and PCI-compliant SDKs are integrated per `docs/PAYMENTS_FUTURE.md`.
+
+---
+
 ## [2026-10-30] - Fix: Payment Environment Production Guard & Demo Transparency (Safety Fix #5)
 
 - **Date**: 2026-10-30

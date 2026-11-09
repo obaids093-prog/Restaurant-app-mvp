@@ -6,27 +6,6 @@ import { styles } from './paymentStyles';
 
 export const METHODS = [
   {
-    id: 'jazzcash',
-    name: 'JazzCash Mobile Account',
-    icon: 'wallet-outline',
-    color: '#D32F2F',
-    perk: 'Instant 10% Cashback up to Rs. 200',
-  },
-  {
-    id: 'easypaisa',
-    name: 'EasyPaisa Wallet',
-    icon: 'cash-outline',
-    color: '#2E7D32',
-    perk: 'Instant 0% Fee Mobile Push',
-  },
-  {
-    id: 'card_online',
-    name: 'Credit / Debit Card',
-    icon: 'card-outline',
-    color: '#1565C0',
-    perk: 'Visa • Mastercard • PayPak (3D Secure)',
-  },
-  {
     id: 'pay_at_table',
     name: 'Pay at Table (Dine-in)',
     icon: 'restaurant-outline',
@@ -35,10 +14,10 @@ export const METHODS = [
   },
   {
     id: 'cash',
-    name: 'Cash on Delivery',
-    icon: 'cube-outline',
+    name: 'Cash on Counter',
+    icon: 'cash-outline',
     color: '#546E7A',
-    perk: 'Settle in cash upon arrival',
+    perk: 'Settle in cash at order counter',
   },
 ];
 

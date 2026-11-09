@@ -16,11 +16,36 @@ const BRANCH_MAP = {
 };
 
 /**
+ * Retrieves secret key for HMAC table QR signing.
+ * Refuses execution in production if TABLE_QR_SECRET is missing.
+ */
+function getTableQRSecret() {
+  const secret = process.env.TABLE_QR_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL: TABLE_QR_SECRET environment variable is missing in production.');
+    }
+    return process.env.JWT_SECRET || 'aura_qr_dev_secret_2026';
+  }
+  return secret;
+}
+
+/**
+ * Validates TABLE_QR_SECRET is configured for production.
+ */
+function validateTableQRConfig() {
+  if (process.env.NODE_ENV === 'production' && !process.env.TABLE_QR_SECRET) {
+    console.error('FATAL: TABLE_QR_SECRET environment variable is required in production.');
+    process.exit(1);
+  }
+}
+
+/**
  * Generates HMAC-SHA256 signature for authenticating table QR codes.
  * Prevents diners or attackers from spoofing arbitrary table links.
  */
 function signTableQR(branchId, tableNumber, exp = null) {
-  const secret = process.env.JWT_SECRET || 'aura_qr_secret_salt_2026';
+  const secret = getTableQRSecret();
   const data = exp ? `${branchId}:${tableNumber}:${exp}` : `${branchId}:${tableNumber}`;
   return crypto.createHmac('sha256', secret).update(data).digest('hex').slice(0, 16);
 }
@@ -242,4 +267,6 @@ module.exports = {
   parseTableQRPayload,
   signTableQR,
   verifyTableQRSignature,
+  validateTableQRConfig,
+  getTableQRSecret,
 };

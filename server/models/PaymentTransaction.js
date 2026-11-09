@@ -23,33 +23,18 @@ const paymentTransactionSchema = new mongoose.Schema(
     },
     method: {
       type: String,
-      enum: ['jazzcash', 'easypaisa', 'card_online', 'cash', 'pay_at_table'],
+      enum: ['cash', 'pay_at_table'],
       required: true,
     },
     status: {
       type: String,
-      enum: ['Initiated', 'RequiresOTP', 'Success', 'Failed'],
-      default: 'Initiated',
+      enum: ['Pending', 'Success', 'Failed'],
+      default: 'Pending',
     },
     transactionRef: {
       type: String,
       required: true,
       unique: true,
-    },
-    maskedAccount: {
-      type: String,
-      default: '',
-    },
-    cardBrand: {
-      type: String,
-      default: null,
-    },
-    otpCode: {
-      type: String,
-      select: false, // hidden from public queries
-    },
-    otpExpiresAt: {
-      type: Date,
     },
     paidAt: {
       type: Date,

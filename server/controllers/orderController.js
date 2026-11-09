@@ -17,7 +17,6 @@ const MenuItem = require('../models/MenuItem');
 const voucherService = require('../services/voucherService');
 const loyaltyService = require('../services/loyaltyService');
 const notificationService = require('../services/notificationService');
-const riderTrackingService = require('../services/riderTrackingService');
 const receiptService = require('../services/receiptService');
 const inventoryService = require('../services/inventoryService');
 const { emitNewOrder, emitOrderStatusUpdate } = require('../services/socketService');
@@ -188,7 +187,6 @@ const placeOrder = async (req, res) => {
       totalAmount: Math.round(finalTotalAmount * 100) / 100,
       orderType: finalOrderType,
       tableNumber: typeof tableNumber === 'string' ? tableNumber.trim().slice(0, 80) : '',
-      deliveryAddress: typeof req.body.deliveryAddress === 'string' ? req.body.deliveryAddress.trim().slice(0, 250) : '',
       status: 'Pending',
       notes: typeof notes === 'string' ? notes.trim().slice(0, 500) : '',
       branchId: branchId || 'lhr_gulberg',
@@ -424,25 +422,7 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
-// ── Get Rider Telemetry & Route Waypoints ─────────────────────
-// GET /api/orders/:id/rider-tracking
-// Protected: Authenticated Customer or Manager
-const getRiderTracking = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const tracking = await riderTrackingService.getOrderRiderTracking(id);
-    if (!tracking) {
-      return res.status(404).json({ message: 'Order not found for rider tracking' });
-    }
-
-    res.status(200).json(tracking);
-  } catch (error) {
-    console.error('Error fetching rider tracking:', error);
-    res.status(500).json({ message: 'Server error retrieving rider telemetry' });
-  }
-};
-
-// @desc    Get formatted WhatsApp and SMS digital receipt for an order
+// @desc    Get formatted WhatsApp digital receipt for an order
 // @route   GET /api/orders/:id/receipt
 // @access  Public or Protected
 const getOrderReceipt = async (req, res) => {
@@ -457,14 +437,12 @@ const getOrderReceipt = async (req, res) => {
     }
 
     const whatsAppText = receiptService.formatWhatsAppReceipt(order);
-    const smsText = receiptService.formatSmsReceipt(order);
     const whatsAppUrl = receiptService.generateWhatsAppShareUrl(order.user?.phone, whatsAppText);
 
     res.status(200).json({
       orderId: order._id,
       ticketId: String(order._id).slice(-6).toUpperCase(),
       whatsAppText,
-      smsText,
       whatsAppUrl,
       order,
     });
@@ -479,6 +457,5 @@ module.exports = {
   getMyOrders,
   getAllOrders,
   updateOrderStatus,
-  getRiderTracking,
   getOrderReceipt,
 };

@@ -100,9 +100,6 @@ export function SocketProvider({ children }) {
       setIsConnected(true);
       setConnectionState('connected');
 
-      // Join role-based room
-      socket.emit('join:role', user.role || 'customer');
-
       // Re-register all subscribed event listeners
       for (const [event, callbacks] of listenersRef.current.entries()) {
         for (const cb of callbacks) {
@@ -126,9 +123,6 @@ export function SocketProvider({ children }) {
       console.log('[Socket.io] ✅ Reconnected');
       setIsConnected(true);
       setConnectionState('connected');
-
-      // Re-join rooms after reconnection
-      socket.emit('join:role', user.role || 'customer');
     });
 
     socket.on('connect_error', (err) => {
