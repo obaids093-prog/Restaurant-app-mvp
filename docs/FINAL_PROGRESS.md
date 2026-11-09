@@ -4,7 +4,7 @@ Tracking progress across all phases for Release Candidate hardening, verificatio
 
 | Part | Description | Status | Commit | Server Tests |
 | :--- | :--- | :---: | :---: | :---: |
-| **PART A** | Finish Safety Fixes & Remove Simulations (Payments, Sockets, Table QR, Inventory, Rider Tracking, SMS) | COMPLETED | Pending Commit | 15 suites, 154 passed |
+| **PART A** | Finish Safety Fixes & Remove Simulations (Payments, Sockets, Table QR, Inventory, Rider Tracking, SMS) | COMPLETED | `d1bd010` | 15 suites, 154 passed |
 | **PART B** | Verify Every Feature & Comprehensive Fixes (Auth, Staff, Menu, Vouchers, Reservations, Pagination, etc.) | PENDING | - | - |
 | **PART C** | Security Hardening (Zod validation, Refresh Tokens, Rate Limits, Magic Bytes, Helmet, Logging, CI) | PENDING | - | - |
 | **PART D** | Play Store & Customer Trust (Account Deletion, Legal Screens, Offline Handling, App Icons) | PENDING | - | - |
