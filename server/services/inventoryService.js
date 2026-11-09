@@ -11,7 +11,8 @@ const MenuItem = require('../models/MenuItem');
 const Ingredient = require('../models/Ingredient');
 
 /**
- * Deducts raw ingredients and dish stock portions when an order is prepared
+ * Deducts raw ingredients and dish stock portions when an order is prepared.
+ * Uses atomic decrements and enforces non-negative stock lower bounds.
  */
 async function depleteOrderIngredients(order) {
   if (!order || !Array.isArray(order.items) || order.items.length === 0) {
@@ -22,7 +23,7 @@ async function depleteOrderIngredients(order) {
 
   for (const item of order.items) {
     const menuItemId = item.menuItem || item.id || item._id;
-    const qty = Number(item.quantity) || 1;
+    const qty = Math.max(1, Number(item.quantity) || 1);
 
     let dish = null;
     if (menuItemId && mongoose.Types.ObjectId.isValid(menuItemId)) {
@@ -34,23 +35,86 @@ async function depleteOrderIngredients(order) {
 
     if (dish) {
       const currentStock = typeof dish.stockCount === 'number' ? dish.stockCount : 25;
-      const nextStock = Math.max(0, currentStock - qty);
-      dish.stockCount = nextStock;
+      const decQty = Math.min(currentStock, qty);
+      const nextStock = Math.max(0, currentStock - decQty);
 
-      // Auto Sold-Out if stock hits 0
+      const updatePayload = {
+        $inc: { stockCount: -decQty },
+      };
       if (nextStock === 0) {
-        dish.isAvailable = false;
+        updatePayload.$set = { isAvailable: false };
       }
 
-      await dish.save();
+      const updated = (await MenuItem.findByIdAndUpdate(dish._id, updatePayload, { new: true })) || dish;
 
-      // Deplete recipe ingredients if defined
+      // Deplete recipe ingredients with lower bound floor (never drop below 0)
       if (Array.isArray(dish.recipe) && dish.recipe.length > 0) {
         for (const ing of dish.recipe) {
           const reqQty = (Number(ing.quantity) || 1) * qty;
+          const ingredientDoc = await Ingredient.findOne({ name: new RegExp(`^${ing.ingredient}$`, 'i') });
+          if (ingredientDoc) {
+            const ingCurrentStock = typeof ingredientDoc.stock === 'number' ? ingredientDoc.stock : 100;
+            const ingDec = Math.min(ingCurrentStock, reqQty);
+            await Ingredient.findByIdAndUpdate(ingredientDoc._id, {
+              $inc: { stock: -ingDec },
+            });
+          }
+        }
+      }
+
+      results.push({
+        dishId: dish._id,
+        name: dish.name,
+        remainingStock: updated.stockCount !== undefined ? updated.stockCount : nextStock,
+        autoSoldOut: (updated.stockCount !== undefined ? updated.stockCount : nextStock) === 0,
+      });
+    }
+  }
+
+  return { depleted: results };
+}
+
+/**
+ * Restores raw ingredients and dish stock portions when an order is cancelled
+ * @param {object} order - The cancelled order document
+ */
+async function restoreOrderIngredients(order) {
+  if (!order || !Array.isArray(order.items) || order.items.length === 0) {
+    return { restored: [] };
+  }
+
+  const results = [];
+
+  for (const item of order.items) {
+    const menuItemId = item.menuItem || item.id || item._id;
+    const qty = Math.max(1, Number(item.quantity) || 1);
+
+    let dish = null;
+    if (menuItemId && mongoose.Types.ObjectId.isValid(menuItemId)) {
+      dish = await MenuItem.findById(menuItemId);
+    }
+    if (!dish && item.name) {
+      dish = await MenuItem.findOne({ name: new RegExp(`^${item.name}$`, 'i') });
+    }
+
+    if (dish) {
+      // Restore portion count atomically and reactivate dish availability
+      const updatedDish = await MenuItem.findByIdAndUpdate(
+        dish._id,
+        {
+          $inc: { stockCount: qty },
+          $set: { isAvailable: true },
+        },
+        { new: true }
+      );
+
+      // Restore recipe ingredients
+      if (Array.isArray(dish.recipe) && dish.recipe.length > 0) {
+        for (const ing of dish.recipe) {
+          const restoreQty = (Number(ing.quantity) || 1) * qty;
           await Ingredient.findOneAndUpdate(
             { name: new RegExp(`^${ing.ingredient}$`, 'i') },
-            { $inc: { stock: -reqQty } }
+            { $inc: { stock: restoreQty } }
           );
         }
       }
@@ -58,13 +122,13 @@ async function depleteOrderIngredients(order) {
       results.push({
         dishId: dish._id,
         name: dish.name,
-        remainingStock: nextStock,
-        autoSoldOut: nextStock === 0,
+        restoredQty: qty,
+        newStock: updatedDish?.stockCount !== undefined ? updatedDish.stockCount : (dish.stockCount || 0) + qty,
       });
     }
   }
 
-  return { depleted: results };
+  return { restored: results };
 }
 
 /**
@@ -112,6 +176,7 @@ async function getInventoryOverview(branchId = 'lhr_gulberg') {
 
 module.exports = {
   depleteOrderIngredients,
+  restoreOrderIngredients,
   replenishDishStock,
   getInventoryOverview,
 };

@@ -1,5 +1,32 @@
 # Project Log
 
+## [2026-10-30] - Fix: Atomic Inventory Depletion & Cancellation Restitution (Safety Fix #3)
+
+- **Date**: 2026-10-30
+- **Title**: Fix: Atomic Inventory Depletion & Cancellation Restitution (Safety Fix #3)
+- **WHAT changed**:
+  - In `server/services/inventoryService.js`:
+    - Refactored `depleteOrderIngredients` from non-atomic read-modify-save to atomic MongoDB `findByIdAndUpdate` with `$inc` and non-negative clamping (`Math.min(currentStock, qty)`).
+    - Enforced non-negative floor on raw `Ingredient.stock` decrements.
+    - Implemented `restoreOrderIngredients(order)` to atomically restore dish portions, raw ingredients, and reactivate `isAvailable = true` on cancellation.
+    - Exported `restoreOrderIngredients`.
+  - In `server/controllers/orderController.js`:
+    - Integrated `restoreOrderIngredients` in both customer self-cancellation (`cancelMyOrder`) and manager order cancellation paths.
+  - In `server/tests/inventory.test.js`:
+    - Expanded test suite from 2 to 8 comprehensive unit tests covering atomic decrements, zero-floor clamping, auto-sold-out transitions, and cancellation restitution.
+  - In `docs/SECURITY.md`:
+    - Documented vulnerability finding, remediation fix, and test verification under Section 3.
+- **WHY (the problem or goal)**:
+  - Address Risks #5, #6, #7 and Recommendation #5 from `docs/REALITY_AUDIT.md`: Non-atomic inventory operations risked race conditions, raw ingredients could go negative, and cancelled orders permanently consumed supplies.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Leveraged MongoDB atomic operators (`$inc`) and clamped bounds, coupled with restitution hooks on the order cancellation lifecycle.
+- **HOW TO TEST**:
+  - Run `node node_modules/jest/bin/jest.js tests/inventory.test.js` in `server/` -> all 8 tests pass.
+- **RISKS or follow-ups**:
+  - None; backward compatible with existing order creation flow.
+
+---
+
 ## [2026-10-30] - Fix: Socket.io Role Authorization & Manager Room Protection (Safety Fix #2)
 
 - **Date**: 2026-10-30

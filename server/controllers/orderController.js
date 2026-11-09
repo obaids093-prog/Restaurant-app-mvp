@@ -323,6 +323,13 @@ const updateOrderStatus = async (req, res) => {
       // Refund any redeemed loyalty points atomically
       await loyaltyService.refundOrderPoints(cancelled._id);
 
+      // Restore inventory portions and raw recipe ingredients
+      try {
+        await inventoryService.restoreOrderIngredients(cancelled);
+      } catch (invErr) {
+        console.warn('Failed to restore order inventory upon cancellation:', invErr.message);
+      }
+
       // Notify the customer about their cancellation (same as manager path)
       try {
         await notificationService.notifyOrderStatus(cancelled);
@@ -350,6 +357,13 @@ const updateOrderStatus = async (req, res) => {
 
       // Refund any redeemed loyalty points atomically
       await loyaltyService.refundOrderPoints(order._id);
+
+      // Restore inventory portions and raw recipe ingredients
+      try {
+        await inventoryService.restoreOrderIngredients(order);
+      } catch (invErr) {
+        console.warn('Failed to restore order inventory upon cancellation:', invErr.message);
+      }
 
       try {
         await notificationService.notifyOrderStatus(order);

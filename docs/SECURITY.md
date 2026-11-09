@@ -24,3 +24,19 @@ This document tracks all identified security vulnerabilities, their immediate re
     - Implemented `handleRoleJoin(socket, requestedRole)` with strict RBAC: rejects `manager` room requests unless `socket._userRole === 'manager'`. Emits `error:unauthorized` to offending clients.
     - Exported `handleRoleJoin` for automated unit testing.
 - **Automated Test**: `Security & RBAC Room Guards (Safety Fix #2)` in `server/tests/socket.test.js` (5 unit tests verifying rejection of unauthenticated clients, rejection of customers, acceptance of managers, and denial of unknown roles).
+
+---
+
+## 3. Inventory Concurrency, Negative Raw Stocks & Cancellation Restitution
+- **Vulnerability Finding**:
+  - Dish depletion relied on non-atomic `findById` followed by JavaScript arithmetic and `save()`, leading to race conditions under concurrent orders.
+  - Raw ingredients could decrement below 0 without lower bounds.
+  - Cancelled orders never restored inventory, permanently draining restaurant supplies and triggering false "Sold Out" states.
+- **Remediation Fix**:
+  - In `server/services/inventoryService.js`:
+    - Refactored `depleteOrderIngredients` to atomic MongoDB `findByIdAndUpdate` with `$inc` and clamped non-negative lower bounds (`Math.min(currentStock, qty)`).
+    - Added non-negative lower bound checks for raw `Ingredient` stock decrements.
+    - Implemented `restoreOrderIngredients(order)` restoring dish portions, raw ingredient supplies, and auto-resetting `isAvailable: true`.
+  - In `server/controllers/orderController.js`:
+    - Integrated `restoreOrderIngredients` in both customer self-cancellation (`cancelMyOrder`) and manager order cancellation paths.
+- **Automated Test**: `Inventory Depletion & Restitution Service (Safety Fix #3)` in `server/tests/inventory.test.js` (8 unit tests verifying atomic decrements, zero-floor clamping, auto-sold-out transitions, and cancellation restitution).
