@@ -15,8 +15,43 @@
 
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
+const User = require('../models/User');
 
 let io = null;
+
+/**
+ * Safely handles role room join requests with RBAC validation.
+ * Prevents unauthorized clients from subscribing to the manager broadcast room.
+ * @param {import('socket.io').Socket} socket
+ * @param {string} requestedRole
+ * @returns {boolean} Whether join was allowed
+ */
+const handleRoleJoin = (socket, requestedRole) => {
+  if (requestedRole === 'manager') {
+    if (socket._userRole !== 'manager') {
+      console.warn(`[Socket.io] ⚠️ Unauthorized role:manager join rejected for socket ${socket.id} (user: ${socket._userId || 'anon'})`);
+      if (typeof socket.emit === 'function') {
+        socket.emit('error:unauthorized', {
+          message: 'Manager authorization required to join manager room.',
+        });
+      }
+      return false;
+    }
+    if (typeof socket.join === 'function') {
+      socket.join('role:manager');
+    }
+    console.log(`[Socket.io] Verified manager ${socket._userId} joined role:manager room`);
+    return true;
+  }
+  if (requestedRole === 'customer') {
+    if (typeof socket.join === 'function') {
+      socket.join('role:customer');
+    }
+    return true;
+  }
+  return false;
+};
 
 /**
  * Initialize Socket.io on the existing HTTP server
@@ -38,7 +73,7 @@ const initializeSocket = (httpServer) => {
   });
 
   // ── JWT Authentication Middleware ─────────────────────────
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token || socket.handshake.query?.token;
 
     if (!token) {
@@ -51,8 +86,18 @@ const initializeSocket = (httpServer) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       socket._userId = decoded.id;
-      // Role will be set after first room-join event
-      socket._userRole = null;
+      if (decoded.role) {
+        socket._userRole = decoded.role;
+      } else if (mongoose.connection && mongoose.connection.readyState === 1) {
+        try {
+          const user = await User.findById(decoded.id).select('role').lean();
+          socket._userRole = user?.role || 'customer';
+        } catch {
+          socket._userRole = 'customer';
+        }
+      } else {
+        socket._userRole = 'customer';
+      }
       return next();
     } catch (err) {
       console.warn('[Socket.io] Invalid JWT token:', err.message);
@@ -77,14 +122,7 @@ const initializeSocket = (httpServer) => {
 
     // ── Client declares their role for broadcast rooms ──────
     socket.on('join:role', (role) => {
-      if (role === 'manager') {
-        socket.join('role:manager');
-        socket._userRole = 'manager';
-        console.log(`[Socket.io] User ${userId} joined role:manager room`);
-      } else if (role === 'customer') {
-        socket.join('role:customer');
-        socket._userRole = 'customer';
-      }
+      handleRoleJoin(socket, role);
     });
 
     // ── Client joins a specific order tracking room ─────────
@@ -231,6 +269,7 @@ const emitMenuUpdate = (menuItem) => {
 module.exports = {
   initializeSocket,
   getIO,
+  handleRoleJoin,
   emitOrderStatusUpdate,
   emitNewOrder,
   emitNotification,

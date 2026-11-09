@@ -1,5 +1,30 @@
 # Project Log
 
+## [2026-10-30] - Fix: Socket.io Role Authorization & Manager Room Protection (Safety Fix #2)
+
+- **Date**: 2026-10-30
+- **Title**: Fix: Socket.io Role Authorization & Manager Room Protection (Safety Fix #2)
+- **WHAT changed**:
+  - In `server/services/socketService.js`:
+    - Updated handshake middleware to verify JWT token and query MongoDB for the authenticated user's role (`socket._userRole`).
+    - Implemented `handleRoleJoin(socket, requestedRole)` with role verification.
+    - Rejects unauthorized requests to join `role:manager` with an `error:unauthorized` socket event unless `socket._userRole === 'manager'`.
+    - Exported `handleRoleJoin` for test verification.
+  - In `server/tests/socket.test.js`:
+    - Added 5 automated unit tests under `Security & RBAC Room Guards (Safety Fix #2)` verifying rejection of anonymous clients, rejection of customer roles, approval of verified managers, and denial of unknown roles.
+  - In `docs/SECURITY.md`:
+    - Documented vulnerability finding, remediation fix, and test coverage under Section 2.
+- **WHY (the problem or goal)**:
+  - Address Risk #8 and Recommendation #6 from `docs/REALITY_AUDIT.md`: Any connected client could previously emit `join:role('manager')` and eavesdrop on all kitchen tickets and manager alerts without authorization.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Integrated RBAC check directly into socket room handler, verifying against cryptographically signed JWT credentials and DB user record.
+- **HOW TO TEST**:
+  - Run `node node_modules/jest/bin/jest.js tests/socket.test.js` in `server/` -> all 13 tests pass.
+- **RISKS or follow-ups**:
+  - None; authentic managers logged into the dashboard continue receiving live kitchen dispatches seamlessly.
+
+---
+
 ## [2026-10-30] - Fix: Kitchen Display JSX Syntax, Expo Clipboard SDK Module, and Safe Wrapper
 
 - **Date**: 2026-10-30

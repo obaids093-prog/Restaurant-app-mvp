@@ -129,4 +129,66 @@ describe('Socket.io Real-Time WebSocket Service', () => {
       expect(() => socketService.emitNotification(undefined, {})).not.toThrow();
     });
   });
+
+  describe('Security & RBAC Room Guards (Safety Fix #2)', () => {
+    let mockSocket;
+
+    beforeEach(() => {
+      mockSocket = {
+        id: 'sock_test_123',
+        _userId: null,
+        _userRole: null,
+        join: jest.fn(),
+        emit: jest.fn(),
+      };
+    });
+
+    it('rejects unauthenticated client when attempting to join role:manager room', () => {
+      const allowed = socketService.handleRoleJoin(mockSocket, 'manager');
+      expect(allowed).toBe(false);
+      expect(mockSocket.join).not.toHaveBeenCalledWith('role:manager');
+      expect(mockSocket.emit).toHaveBeenCalledWith(
+        'error:unauthorized',
+        expect.objectContaining({ message: expect.stringMatching(/manager/i) })
+      );
+    });
+
+    it('rejects customer user when attempting to join role:manager room', () => {
+      mockSocket._userId = 'cust_111';
+      mockSocket._userRole = 'customer';
+
+      const allowed = socketService.handleRoleJoin(mockSocket, 'manager');
+      expect(allowed).toBe(false);
+      expect(mockSocket.join).not.toHaveBeenCalledWith('role:manager');
+      expect(mockSocket.emit).toHaveBeenCalledWith(
+        'error:unauthorized',
+        expect.objectContaining({ message: expect.stringMatching(/manager/i) })
+      );
+    });
+
+    it('allows verified manager user to join role:manager room', () => {
+      mockSocket._userId = 'mgr_999';
+      mockSocket._userRole = 'manager';
+
+      const allowed = socketService.handleRoleJoin(mockSocket, 'manager');
+      expect(allowed).toBe(true);
+      expect(mockSocket.join).toHaveBeenCalledWith('role:manager');
+      expect(mockSocket.emit).not.toHaveBeenCalledWith('error:unauthorized', expect.anything());
+    });
+
+    it('allows customer user to join role:customer room', () => {
+      mockSocket._userId = 'cust_222';
+      mockSocket._userRole = 'customer';
+
+      const allowed = socketService.handleRoleJoin(mockSocket, 'customer');
+      expect(allowed).toBe(true);
+      expect(mockSocket.join).toHaveBeenCalledWith('role:customer');
+    });
+
+    it('returns false and denies unknown room roles', () => {
+      const allowed = socketService.handleRoleJoin(mockSocket, 'superuser');
+      expect(allowed).toBe(false);
+      expect(mockSocket.join).not.toHaveBeenCalled();
+    });
+  });
 });
