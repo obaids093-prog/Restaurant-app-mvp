@@ -235,7 +235,7 @@ export default function KitchenDisplayScreen({ navigation }) {
           </Text>
         </View>
         <View style={styles.metricItem}>
-          <Text style={[styles.metricLabel, { color: colors.mutedText }]}>Rush Delay (>20m)</Text>
+          <Text style={[styles.metricLabel, { color: colors.mutedText }]}>{'Rush Delay (>20m)'}</Text>
           <Text
             style={[
               styles.metricValue,

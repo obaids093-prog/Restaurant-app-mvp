@@ -9,7 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Clipboard from 'expo-clipboard';
+import safeClipboard from '../../utils/safeClipboard';
 import { useTheme } from '../../context/ThemeContext';
 import { brand } from '../../config/brand';
 import { styles } from './digitalReceiptStyles';
@@ -77,11 +77,7 @@ export default function DigitalReceiptModal({
 
   const handleCopy = async () => {
     const text = compileWhatsAppText();
-    if (Clipboard?.setStringAsync) {
-      await Clipboard.setStringAsync(text);
-    } else if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(text);
-    }
+    await safeClipboard.setStringAsync(text);
     setCopiedToast(true);
     setTimeout(() => setCopiedToast(false), 2500);
   };
