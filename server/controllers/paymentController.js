@@ -115,6 +115,24 @@ const initiatePayment = async (req, res) => {
       orderId,
     } = req.body || {};
 
+    // Purge raw CVV from request body immediately to prevent accidental memory leaks
+    if (req.body && req.body.cardCvv) {
+      delete req.body.cardCvv;
+    }
+
+    // Safety Fix #5: Guard simulated online payments in production mode
+    if (
+      process.env.NODE_ENV === 'production' &&
+      !process.env.ALLOW_SIMULATED_PAYMENTS &&
+      method !== 'cash' &&
+      method !== 'pay_at_table'
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Online digital wallet and card payments are disabled in production mode. Please select Cash or Pay at Table.',
+      });
+    }
+
     const numericAmount = Number(amount);
     if (!numericAmount || numericAmount <= 0) {
       return res.status(400).json({
@@ -247,6 +265,14 @@ const initiatePayment = async (req, res) => {
 const verifyPaymentOtp = async (req, res) => {
   try {
     const { transactionRef, otp, orderId } = req.body || {};
+
+    // Safety Fix #5: Guard simulated payment verification in production mode
+    if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_SIMULATED_PAYMENTS) {
+      return res.status(403).json({
+        success: false,
+        message: 'Simulated payment verification is disabled in production mode.',
+      });
+    }
 
     if (!transactionRef) {
       return res.status(400).json({

@@ -198,3 +198,62 @@ describe('POST /api/payments/tokenize-card', () => {
     expect(res.body.brand).toBe('Mastercard');
   });
 });
+
+describe('Production Safety Guards (Safety Fix #5)', () => {
+  const originalEnv = process.env.NODE_ENV;
+  const originalAllow = process.env.ALLOW_SIMULATED_PAYMENTS;
+
+  afterEach(() => {
+    process.env.NODE_ENV = originalEnv;
+    process.env.ALLOW_SIMULATED_PAYMENTS = originalAllow;
+  });
+
+  it('rejects simulated online payments in production mode without explicit opt-in', async () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.ALLOW_SIMULATED_PAYMENTS;
+
+    const res = await request(app)
+      .post('/api/payments/initiate')
+      .send({
+        amount: 1500,
+        method: 'jazzcash',
+        accountNumber: '03001234567',
+      });
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/disabled in production mode/i);
+  });
+
+  it('allows cash and pay-at-table orders even in production mode', async () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.ALLOW_SIMULATED_PAYMENTS;
+
+    const res = await request(app)
+      .post('/api/payments/initiate')
+      .send({
+        amount: 2200,
+        method: 'cash',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.requiresOtp).toBe(false);
+  });
+
+  it('rejects verify-otp in production mode without explicit opt-in', async () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.ALLOW_SIMULATED_PAYMENTS;
+
+    const res = await request(app)
+      .post('/api/payments/verify-otp')
+      .send({
+        transactionRef: 'JC_TEST_123',
+        otp: '123456',
+      });
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/disabled in production mode/i);
+  });
+});

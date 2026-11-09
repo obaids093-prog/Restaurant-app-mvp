@@ -1,5 +1,33 @@
 # Project Log
 
+## [2026-10-30] - Fix: Payment Environment Production Guard & Demo Transparency (Safety Fix #5)
+
+- **Date**: 2026-10-30
+- **Title**: Fix: Payment Environment Production Guard & Demo Transparency (Safety Fix #5)
+- **WHAT changed**:
+  - In `server/controllers/paymentController.js`:
+    - Added environment guards blocking simulated online payments (`/api/payments/initiate`) and simulated OTP verification (`/api/payments/verify-otp`) in `NODE_ENV === 'production'` unless `ALLOW_SIMULATED_PAYMENTS` is explicitly configured.
+    - Preserved offline payment methods (Cash and Pay at Table) so production deployments can safely fulfill physical dining settlements.
+    - Sanitized and purged raw `cardCvv` from incoming request bodies immediately.
+  - In `src/components/PaymentSheet/PaymentDetailsForm.js`:
+    - Added a clear demo sandbox information banner advising diners not to enter real credit card numbers.
+  - In `src/components/PaymentSheet/OtpVerificationModal.js`:
+    - Added prominent simulated sandbox notice and cleared synchronous effect state warnings.
+  - In `server/tests/payments.test.js`:
+    - Added 3 automated tests under `Production Safety Guards (Safety Fix #5)` verifying production blocking of simulated online payments, offline payment allowance, and production blocking of OTP verification.
+  - In `docs/SECURITY.md`:
+    - Documented vulnerability finding, remediation fix, and test verification under Section 5.
+- **WHY (the problem or goal)**:
+  - Address Risks #2, #3 and Recommendations #2, #3 from `docs/REALITY_AUDIT.md`: Protect production environments from fraudulent zero-cost orders using hardcoded demo OTPs and eliminate sensitive card data exposure.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Enforced strict environment flag checking with fallback for authentic in-person cash payment, paired with front-end transparency banners.
+- **HOW TO TEST**:
+  - Run `node node_modules/jest/bin/jest.js tests/payments.test.js` in `server/` -> all 18 tests pass.
+- **RISKS or follow-ups**:
+  - When transitioning to commercial production payment gateways, replace simulated routes with PCI-certified webhook endpoints (Stripe / JazzCash Merchant API).
+
+---
+
 ## [2026-10-30] - Fix: Cryptographic Table QR HMAC Signing & Expiration Verification (Safety Fix #4)
 
 - **Date**: 2026-10-30

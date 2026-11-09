@@ -19,18 +19,16 @@ export default function OtpVerificationModal({
   isVerifying,
 }) {
   const { colors } = useTheme();
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState('123456');
   const [countdown, setCountdown] = useState(60);
 
   useEffect(() => {
-    if (visible) {
-      setOtp('123456'); // pre-fill demo OTP for convenience
-      setCountdown(60);
-      const timer = setInterval(() => {
-        setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
-      }, 1000);
-      return () => clearInterval(timer);
-    }
+    if (!visible) return;
+    setCountdown(60);
+    const timer = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
   }, [visible]);
 
   if (!visible) return null;
@@ -68,8 +66,11 @@ export default function OtpVerificationModal({
           </Text>
 
           <View style={[styles.demoNoticeBox, { backgroundColor: `${colors.primary}15` }]}>
-            <Text style={[styles.demoNoticeText, { color: colors.primary }]}>
-              Demo Sandbox Code: 123456
+            <Text style={[styles.demoNoticeText, { color: colors.primary, fontWeight: '700' }]}>
+              🛡️ SIMULATED SANDBOX • Demo OTP: 123456
+            </Text>
+            <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 4, textAlign: 'center' }}>
+              Simulated demonstration environment. No real funds are moved.
             </Text>
           </View>
 

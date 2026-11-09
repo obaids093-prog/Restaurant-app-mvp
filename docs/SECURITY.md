@@ -51,3 +51,21 @@ This document tracks all identified security vulnerabilities, their immediate re
     - Appended cryptographic signatures (`&sig=...`) and optional timestamp expiration (`&exp=...`) to generated table standee deep links.
     - Updated `POST /api/tables/verify-qr` to validate QR signatures: rejects tampered signatures or expired codes with 400 Bad Request. Returns `verifiedSignature: true` and `isTamperProof: true` for authentic standees.
 - **Automated Test**: `Table QR HMAC Cryptographic Signing (Safety Fix #4)` in `server/tests/tableQR.test.js` (6 unit tests verifying signature consistency, tampering rejection, expiration rejection, and standee signature inclusion).
+
+---
+
+## 5. Simulated Payment Production Fraud & CVV Exposure
+- **Vulnerability Finding**:
+  - Simulated payment endpoints (`/api/payments/initiate` and `/api/payments/verify-otp`) had hardcoded fake OTP `123456` and were active without production environment guards, creating a risk where bad actors in production could confirm orders without spending real money.
+  - Raw card CVVs passed in request bodies were not immediately scrubbed from request memory.
+  - The payment UI lacked explicit simulation disclaimers alerting users not to input authentic financial instruments.
+- **Remediation Fix**:
+  - In `server/controllers/paymentController.js`:
+    - Added production environment guards blocking online simulated payments and fake OTP verification when `NODE_ENV === 'production'` unless explicitly opted into via `ALLOW_SIMULATED_PAYMENTS`.
+    - Allowed offline payment methods (Cash and Pay at Table) to proceed normally.
+    - Immediately purged raw `cardCvv` from `req.body` upon receipt.
+  - In `src/components/PaymentSheet/PaymentDetailsForm.js`:
+    - Added a visible warning banner notifying users that the system operates in a simulated sandbox environment.
+  - In `src/components/PaymentSheet/OtpVerificationModal.js`:
+    - Enhanced the demo notice banner with clear simulation badges and disclaimer copy.
+- **Automated Test**: `Production Safety Guards (Safety Fix #5)` in `server/tests/payments.test.js` (3 unit tests verifying production rejection of simulated online payments, offline payment allowance, and production rejection of OTP verification).

@@ -25,6 +25,25 @@ export default function PaymentDetailsForm({
         { backgroundColor: colors.card, borderColor: colors.cardBorder },
       ]}
     >
+      {/* Demo Sandbox Alert */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: '#FFFBEB',
+          borderRadius: 8,
+          padding: 8,
+          marginBottom: 12,
+          borderWidth: 1,
+          borderColor: '#FDE68A',
+        }}
+      >
+        <Ionicons name="information-circle" size={16} color="#D97706" style={{ marginRight: 6 }} />
+        <Text style={{ fontSize: 11, color: '#B45309', flex: 1, fontWeight: '500' }}>
+          Simulated Sandbox Mode • Do not enter real credit card details.
+        </Text>
+      </View>
+
       {isWallet ? (
         <View>
           <View
