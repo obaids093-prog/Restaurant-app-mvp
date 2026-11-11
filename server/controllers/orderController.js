@@ -124,34 +124,13 @@ const placeOrder = async (req, res) => {
     if (req.body.promoCode && typeof req.body.promoCode === 'string' && req.body.promoCode.trim()) {
       const cleanCode = req.body.promoCode.trim().toUpperCase();
       try {
-        const validation = await voucherService.validateVoucher(cleanCode, subtotal, branchId);
+        const validation = await voucherService.validateVoucher(cleanCode, subtotal, branchId, req.user._id);
         discountAmount = validation.discountAmount;
         appliedPromoCode = validation.code;
       } catch (err) {
-        // Fallback for legacy hardcoded promo codes if not seeded in DB
-        const LEGACY_PROMO_CODES = {
-          WELCOME10: 10,
-          FEAST20: 20,
-          AURA10: 10,
-          AURA20: 20,
-          AURA30: 30,
-          AURA50: 50,
-          SAVE10: 10,
-          TASTY20: 20,
-          CHEF15: 15,
-          GOURMET30: 30,
-        };
-        if (err.status === 404 && LEGACY_PROMO_CODES[cleanCode]) {
-          const percent = LEGACY_PROMO_CODES[cleanCode];
-          discountAmount = Math.round(subtotal * (percent / 100));
-          appliedPromoCode = cleanCode;
-        } else {
-          return res.status(400).json({ message: err.message || 'Invalid voucher code' });
-        }
+        // Voucher errors are always 400 from the order perspective (bad client input)
+        return res.status(400).json({ message: err.message || 'Invalid voucher code' });
       }
-    } else if (Number(req.body.discountPercent) > 0) {
-      const discountPercent = Math.min(100, Math.max(0, Number(req.body.discountPercent)));
-      discountAmount = Math.round(subtotal * (discountPercent / 100));
     }
 
     // Points Redemption (1 Point = Rs. 1, max 50% order subtotal)
@@ -192,10 +171,10 @@ const placeOrder = async (req, res) => {
       branchId: branchId || 'lhr_gulberg',
       branchName: branchName || 'AURA • Gulberg III, Lahore',
       branchCity: branchCity || 'Lahore',
-      paymentMethod: req.body.paymentMethod || 'pay_at_table',
-      paymentStatus: req.body.paymentStatus || 'Pending',
-      paymentRef: req.body.paymentRef || '',
-      paidAt: req.body.paymentStatus === 'Paid' ? new Date() : null,
+      paymentMethod: req.body.paymentMethod === 'cash' ? 'cash' : 'pay_at_table',
+      paymentStatus: 'Pending',
+      paymentRef: '',
+      paidAt: null,
     });
 
     if (appliedPromoCode) {

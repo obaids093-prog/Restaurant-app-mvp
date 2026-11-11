@@ -148,7 +148,7 @@ export default function PrimaryContactCard({
           />
           <TextInput
             style={[styles.textInput, { color: isDark ? '#F5F5F5' : '#1A1B22' }]}
-            placeholder="yourname@gmail.com"
+            placeholder="you@example.com"
             placeholderTextColor={isDark ? '#777777' : '#999999'}
             keyboardType="email-address"
             autoCapitalize="none"

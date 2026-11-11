@@ -16,10 +16,9 @@ const userSchema = new mongoose.Schema(
       validate: {
         validator: function (v) {
           if (!v || typeof v !== 'string') return false;
-          if (v.endsWith('@customer.aura.pk') || v.endsWith('@apple.aura.pk') || v.endsWith('@privaterelay.appleid.com')) return true;
-          return /^[a-zA-Z0-9_.+-]+@(gmail\.com|googlemail\.com|apple\.com)$/.test(v);
+          return /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/.test(v);
         },
-        message: 'Please provide a valid Gmail or Apple address',
+        message: 'Please provide a valid email address',
       },
     },
     authProvider: {

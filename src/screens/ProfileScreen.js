@@ -115,8 +115,9 @@ export default function ProfileScreen({ navigation }) {
       setEditError('Please enter your full name.');
       return;
     }
-    if (trimmedEmail && (!trimmedEmail.includes('@') || !trimmedEmail.toLowerCase().endsWith('@gmail.com'))) {
-      setEditError('Only Google Mail accounts (@gmail.com) are accepted.');
+    const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+    if (trimmedEmail && !emailRegex.test(trimmedEmail)) {
+      setEditError('Please enter a valid email address.');
       return;
     }
 
@@ -698,10 +699,10 @@ export default function ProfileScreen({ navigation }) {
               />
 
               <Input
-                label="Gmail / Email Address"
+                label="Email Address"
                 value={editEmail}
                 onChangeText={setEditEmail}
-                placeholder="yourname@gmail.com"
+                placeholder="you@example.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 icon={<Ionicons name="mail-outline" size={18} color={colors.mutedText} />}

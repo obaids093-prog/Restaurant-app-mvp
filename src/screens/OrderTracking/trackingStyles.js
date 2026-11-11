@@ -1,7 +1,9 @@
 import { StyleSheet } from 'react-native';
 
+import { CANCEL_WINDOW_MINUTES, POLLING_INTERVAL_MS } from '../../config/constants';
+
 export const ACTIVE_STATUSES = ['Pending', 'Preparing', 'Ready'];
-export const CANCEL_WINDOW_MINUTES = 10;
+export { CANCEL_WINDOW_MINUTES, POLLING_INTERVAL_MS };
 
 export const styles = StyleSheet.create({
   container: {

@@ -50,8 +50,8 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Password must contain at least one digit' });
     }
 
-    if (!EMAIL_REGEX.test(cleanEmail) || !cleanEmail.endsWith('@gmail.com') || cleanEmail.length > 100) {
-      return res.status(400).json({ message: 'Only Google Mail (@gmail.com) addresses are permitted for registration' });
+    if (!EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 100) {
+      return res.status(400).json({ message: 'A valid email address is required' });
     }
 
     // Check if user already exists
@@ -177,8 +177,8 @@ const applyEmailUpdate = async (user, email) => {
   const cleanEmail = email.toLowerCase().trim();
   if (cleanEmail === user.email) return null;
 
-  if (!EMAIL_REGEX.test(cleanEmail) || !cleanEmail.endsWith('@gmail.com') || cleanEmail.length > 100) {
-    return { status: 400, message: 'Only Google Mail (@gmail.com) addresses are permitted' };
+  if (!EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 100) {
+    return { status: 400, message: 'A valid email address is required' };
   }
 
   const existingUser = await User.findOne({
@@ -313,8 +313,8 @@ const createStaffAccount = async (req, res) => {
       return res.status(400).json({ message: 'Password must contain at least one digit' });
     }
 
-    if (!EMAIL_REGEX.test(cleanEmail) || !cleanEmail.endsWith('@gmail.com') || cleanEmail.length > 100) {
-      return res.status(400).json({ message: 'Only Google Mail (@gmail.com) addresses are permitted for staff accounts' });
+    if (!EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 100) {
+      return res.status(400).json({ message: 'A valid email address is required for staff accounts' });
     }
 
     const existingUser = await User.findOne({ email: cleanEmail });
@@ -356,7 +356,8 @@ const getStaff = async (req, res) => {
   try {
     const staff = await User.find({ role: 'manager' })
       .select('name email role isActive')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(100);
 
     res.status(200).json(staff);
   } catch (error) {

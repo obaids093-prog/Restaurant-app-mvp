@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useOrders } from '../../context/OrdersContext';
 import { LiveSocketBadge } from '../../components/LiveSocketBadge';
+import { POLLING_INTERVAL_MS } from '../../config/constants';
 import { styles } from './kdsStyles';
 
 const STATIONS = [
@@ -37,11 +38,11 @@ export default function KitchenDisplayScreen({ navigation }) {
     return () => clearInterval(timer);
   }, []);
 
-  // Polling kitchen tickets every 5 seconds
+  // Polling kitchen tickets as fallback
   useEffect(() => {
     const poll = setInterval(() => {
       if (fetchOrders) fetchOrders().catch(() => {});
-    }, 5000);
+    }, POLLING_INTERVAL_MS);
     return () => clearInterval(poll);
   }, [fetchOrders]);
 

@@ -78,44 +78,47 @@ describe('Feature: Phone OTP & Gmail Auth Rule Enforcement', () => {
     });
   });
 
-  describe('Strict Email Registration (@gmail.com Enforcement)', () => {
-    it('rejects registration with non-gmail addresses (e.g. @yahoo.com)', async () => {
+  describe('Email Domain Rule: Any valid email is accepted', () => {
+    it('rejects registration with malformed email', async () => {
       const res = await request(app)
         .post('/api/auth/register')
         .send({
           name: 'Imran Ali',
-          email: 'imran@yahoo.com',
+          email: 'not-an-email',
           password: 'Password123',
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toMatch(/@gmail\.com/i);
+      expect(res.body.message).toMatch(/valid email/i);
     });
 
-    it('rejects registration with @customer.aura.pk submitted directly', async () => {
+    it('rejects email exceeding maximum length (100 chars)', async () => {
+      const longEmail = `${'a'.repeat(95)}@example.com`;
       const res = await request(app)
         .post('/api/auth/register')
         .send({
-          name: 'Hacker User',
-          email: 'fake@customer.aura.pk',
+          name: 'Long User',
+          email: longEmail,
           password: 'Password123',
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toMatch(/@gmail\.com/i);
+      expect(res.body.message).toMatch(/valid email/i);
     });
 
-    it('successfully registers with a valid @gmail.com address', async () => {
+    it('successfully registers with any standard email provider (e.g. @yahoo.com or @outlook.com)', async () => {
+      await User.deleteMany({ email: 'imran.test@yahoo.com' });
       const res = await request(app)
         .post('/api/auth/register')
         .send({
-          name: 'Phone Test User',
-          email: 'phone.test.user@gmail.com',
+          name: 'Imran Test',
+          email: 'imran.test@yahoo.com',
           password: 'Password123',
         });
 
       expect(res.status).toBe(201);
-      expect(res.body.user.email).toBe('phone.test.user@gmail.com');
+      expect(res.body.user.email).toBe('imran.test@yahoo.com');
+      await User.deleteMany({ email: 'imran.test@yahoo.com' });
     });
   });
 
@@ -134,35 +137,35 @@ describe('Feature: Phone OTP & Gmail Auth Rule Enforcement', () => {
     });
 
     afterAll(async () => {
-      await User.deleteMany({ email: { $in: ['staff.mgr.test@gmail.com', 'new.staff@gmail.com'] } });
+      await User.deleteMany({ email: { $in: ['staff.mgr.test@gmail.com', 'new.staff@aura.pk'] } });
     });
 
-    it('returns clean 400 when attempting to create staff with a non-gmail address', async () => {
+    it('returns clean 400 when attempting to create staff with a malformed email', async () => {
       const res = await request(app)
         .post('/api/auth/staff')
         .set('Authorization', `Bearer ${mgrToken}`)
         .send({
           name: 'Chef Asad',
-          email: 'asad@restaurant.pk',
+          email: 'not-valid-email',
           password: 'Password123',
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toMatch(/@gmail\.com/i);
+      expect(res.body.message).toMatch(/valid email/i);
     });
 
-    it('creates staff account when a valid @gmail.com address is provided', async () => {
+    it('creates staff account when any valid email is provided (e.g. custom domain)', async () => {
       const res = await request(app)
         .post('/api/auth/staff')
         .set('Authorization', `Bearer ${mgrToken}`)
         .send({
           name: 'Chef Asad',
-          email: 'new.staff@gmail.com',
+          email: 'new.staff@aura.pk',
           password: 'Password123',
         });
 
       expect(res.status).toBe(201);
-      expect(res.body.user.email).toBe('new.staff@gmail.com');
+      expect(res.body.user.email).toBe('new.staff@aura.pk');
       expect(res.body.user.role).toBe('manager');
     });
   });

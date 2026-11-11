@@ -16,14 +16,14 @@ import { useCart } from '../../context/CartContext';
 import { useMenu } from '../../context/MenuContext';
 import { useTheme } from '../../context/ThemeContext';
 import FilterTabs from '../../components/ui/FilterTabs';
-import { styles, ACTIVE_STATUSES, CANCEL_WINDOW_MINUTES } from './trackingStyles';
+import { styles, ACTIVE_STATUSES, CANCEL_WINDOW_MINUTES, POLLING_INTERVAL_MS } from './trackingStyles';
 import { showTrackingAlert, getOrderListTitle, reorderDishes } from './trackingHelpers';
 import ActiveOrderHero from './ActiveOrderHero';
 import PastOrderCard from './PastOrderCard';
 import TrackingEmptyState from './TrackingEmptyState';
 import RateOrderModal from '../../components/RateOrderModal';
 
-export { ACTIVE_STATUSES, CANCEL_WINDOW_MINUTES };
+export { ACTIVE_STATUSES, CANCEL_WINDOW_MINUTES, POLLING_INTERVAL_MS };
 
 export default function OrderTrackingScreen({ route, navigation }) {
   const { colors, isDark, shadows, typography, fonts } = useTheme();
@@ -120,7 +120,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
 
     const pollingInterval = setInterval(() => {
       fetchOrders?.().catch(() => {});
-    }, 10000);
+    }, POLLING_INTERVAL_MS);
 
     return () => {
       clearInterval(pollingInterval);

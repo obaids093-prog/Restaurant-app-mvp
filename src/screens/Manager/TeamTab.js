@@ -49,7 +49,7 @@ export default function TeamTab({
 
         <Input
           label="Email Address"
-          placeholder="e.g. asad@gmail.com"
+          placeholder="e.g. staff@example.com"
           value={staffEmail}
           onChangeText={setStaffEmail}
           keyboardType="email-address"

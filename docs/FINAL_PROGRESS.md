@@ -5,7 +5,7 @@ Tracking progress across all phases for Release Candidate hardening, verificatio
 | Part | Description | Status | Commit | Server Tests |
 | :--- | :--- | :---: | :---: | :---: |
 | **PART A** | Finish Safety Fixes & Remove Simulations (Payments, Sockets, Table QR, Inventory, Rider Tracking, SMS) | COMPLETED | `d1bd010` | 15 suites, 154 passed |
-| **PART B** | Verify Every Feature & Comprehensive Fixes (Auth, Staff, Menu, Vouchers, Reservations, Pagination, etc.) | PENDING | - | - |
+| **PART B** | Verify Every Feature & Comprehensive Fixes (Auth, Staff, Menu, Vouchers, Reservations, Pagination, etc.) | COMPLETED | Pending commit | 15 suites, 154 passed |
 | **PART C** | Security Hardening (Zod validation, Refresh Tokens, Rate Limits, Magic Bytes, Helmet, Logging, CI) | PENDING | - | - |
 | **PART D** | Play Store & Customer Trust (Account Deletion, Legal Screens, Offline Handling, App Icons) | PENDING | - | - |
 | **PART E** | Password Reset & Email (SMTP / Nodemailer optional environment integration) | PENDING | - | - |
@@ -23,3 +23,12 @@ Tracking progress across all phases for Release Candidate hardening, verificatio
   - Completely purged simulated courier/rider GPS tracking (`riderTrackingService.js`, `riderTracking.test.js`, and client screens `RiderTracking/*`, `useRiderTracking.js`).
   - Removed simulated SMS receipts from `receiptService.js` and `DigitalReceiptModal.js`, retaining WhatsApp receipt deep linking.
   - Eliminated simulated payment form components (`PaymentDetailsForm.js`, `OtpVerificationModal.js`).
+- **PART B Finished**:
+  - Email domain rule: relaxed restrictive `@gmail.com` checks across backend (`authController.js`, `User.js` model) and frontend (`LoginScreen.js`, `ProfileScreen.js`) to allow any RFC 5322 compliant email domain, and sanitized email input placeholders (`you@example.com`).
+  - Shared constants: created `src/config/constants.js` and synchronized `server/config/constants.js` with `CANCEL_WINDOW_MINUTES = 10` and `POLLING_INTERVAL_MS = 10000`, wired into tracking and kitchen display screens.
+  - Pagination enforcement: added pagination limits on `getMyReviews` (100) and manager staff directory (100) queries, ensuring zero unbounded database finds across production endpoints.
+  - Purged hardcoded demo promo code fallbacks (`LEGACY_PROMO_CODES`) from `orderController.js`, strictly enforcing real database voucher validation and usage limits.
+  - Sanitized payment handling during checkout: removed client-specified `paymentStatus: 'Paid'` and client arbitrary `discountPercent`, enforcing server-computed totals and authoritative pending status.
+  - Verified atomic loyalty points quote, deduction, and automatic refund on order cancellation.
+  - Verified reservation capacity checks and 409 conflict handling on duplicate table slot bookings.
+  - Verified dish reviews restricted strictly to served orders with one-review-per-dish-per-order guarantee.

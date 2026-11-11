@@ -1,5 +1,31 @@
 # Project Log
 
+## [2026-11-09] - Release Candidate Part B: Verify Every Feature & Comprehensive Fixes
+
+- **Date**: 2026-11-09
+- **Title**: Release Candidate Part B: Verify Every Feature & Comprehensive Fixes
+- **WHAT changed**:
+  - Removed restrictive `@gmail.com` constraint across `server/controllers/authController.js`, `server/models/User.js`, `src/screens/Login/LoginScreen.js`, and `src/screens/ProfileScreen.js` to accept any RFC 5322 compliant email address.
+  - Updated all UI email placeholders from `yourname@gmail.com` to `you@example.com` (`EmailPasswordForm.js`, `TeamTab.js`, `PrimaryContactCard.js`, `ProfileScreen.js`).
+  - Added shared configuration constants `CANCEL_WINDOW_MINUTES = 10` and `POLLING_INTERVAL_MS = 10000` in `src/config/constants.js` and `server/config/constants.js`.
+  - Replaced hardcoded polling intervals in `OrderTrackingScreen.js`, `trackingStyles.js`, and `KitchenDisplayScreen.js` with `POLLING_INTERVAL_MS`.
+  - Added pagination limits to `reviewService.js` (`getMyReviews` limit 100) and `authController.js` (`getStaff` limit 100).
+  - Purged hardcoded demo promo code fallback dictionary (`LEGACY_PROMO_CODES`) from `orderController.js` to ensure only authentic database vouchers with valid expiry and quota are accepted.
+  - Fixed client payment status and discount injection vulnerability in `orderController.js`: server ignores client-submitted `paymentStatus: 'Paid'` and client arbitrary `discountPercent`, setting authoritative `paymentStatus: 'Pending'` and server-validated vouchers/loyalty totals.
+  - Normalized voucher validation errors in `orderController.js` to return HTTP 400 Bad Request instead of bubbling 404.
+  - Verified atomic loyalty points redemption, refund on cancellation, reservation capacity checks with 409 conflict detection, and reviews restricted to served orders.
+- **WHY (the problem or goal)**:
+  - Fulfill Part B requirements: audit and verify every feature end-to-end, fix bugs with minimal diffs, ensure no hardcoded demo promo codes bypass server rules, unify cross-platform timing constants, and enforce pagination.
+- **HOW (approach, files, key decisions and rejected alternatives)**:
+  - Validated all backend endpoints against business logic invariants; updated tests to reflect generalized email regex and verified all 15 test suites pass.
+- **HOW TO TEST**:
+  - Run `cd server; node node_modules/jest/bin/jest.js --runInBand --forceExit` -> all 15 suites (154 tests) pass.
+  - Run `node node_modules/eslint/bin/eslint.js src/ --quiet` -> 0 errors.
+- **RISKS or follow-ups**:
+  - Part C will apply Zod schema validation across all request params, bodies, and queries, plus refresh token rotation and magic bytes upload validation.
+
+---
+
 ## [2026-11-09] - Release Candidate Part A: Finish Safety Fixes & Purge Simulations
 
 - **Date**: 2026-11-09

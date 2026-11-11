@@ -142,6 +142,7 @@ async function getMenuItemReviews(menuItemId, { page = 1, limit = 10 } = {}) {
 async function getMyReviews(userId) {
   return Review.find({ user: userId })
     .sort({ createdAt: -1 })
+    .limit(100)
     .populate('menuItem', 'name image category price ratingAverage ratingCount')
     .populate('order', 'status createdAt totalAmount')
     .lean();
