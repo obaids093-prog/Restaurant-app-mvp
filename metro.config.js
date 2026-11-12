@@ -16,6 +16,12 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       type: 'sourceFile',
     };
   }
+  if (moduleName === 'react-native-web/dist/exports/AssetRegistry' || moduleName.endsWith('react-native-web/dist/exports/AssetRegistry')) {
+    return {
+      filePath: require.resolve('react-native-web/dist/modules/AssetRegistry/index.js'),
+      type: 'sourceFile',
+    };
+  }
   if (moduleName === 'react-native/unstable-internals-do-not-use') {
     return {
       filePath: path.resolve(__dirname, 'src/shims/reactNativeUnstableInternals.js'),
