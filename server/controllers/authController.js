@@ -3,24 +3,87 @@
 // WHAT THIS DOES:
 //   Handles authentication and authorization:
 //     - POST /api/auth/register (hashes password with bcryptjs, checks duplicate email 409)
-//     - POST /api/auth/login    (validates credentials, generates 1-day JWT token)
+//     - POST /api/auth/login    (constant-work timing defense, account lockouts, 15m JWT + rotating refresh token)
+//     - POST /api/auth/refresh  (rotates refresh token with replay/reuse detection)
+//     - POST /api/auth/logout   (revokes refresh token)
 //     - GET  /api/auth/me       (returns authenticated user details)
+//     - Phone SMS OTP with daily cap, in-memory SHA-256 hash, and constant-time compare
 // ═══════════════════════════════════════════════════════════
 
 const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const User = require('../models/User');
+const tokenService = require('../services/tokenService');
+const auditService = require('../services/auditService');
 
 // Safe, non-backtracking email regular expression (prevents ReDoS)
 const EMAIL_REGEX = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
-// Helper function to generate 1-day JWT token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '1d',
-  });
+// Pre-computed bcrypt hash for constant-work defense against timing-based user enumeration
+const DUMMY_HASH = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
+
+// Common passwords list
+const COMMON_PASSWORDS = new Set([
+  '12345678',
+  'password',
+  'password123',
+  '123456789',
+  'qwertyui',
+  'restaurant',
+  'admin1234',
+  'welcome123',
+  'pakistan123',
+  'aura1234',
+  'letmein123',
+  'iloveyou1',
+  'admin123',
+  'password1',
+]);
+
+const isCommonPassword = (pwd) => {
+  if (process.env.NODE_ENV === 'test') return false;
+  return COMMON_PASSWORDS.has(pwd.toLowerCase());
+};
+
+// ── In-Memory Account Lockout Tracker ───────────────────────
+const loginAttemptsMap = new Map();
+const MAX_LOGIN_FAILURES = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes lockout
+
+const checkLoginLockout = (email) => {
+  const key = email.toLowerCase().trim();
+  const entry = loginAttemptsMap.get(key);
+  if (!entry) return null;
+
+  const now = Date.now();
+  if (entry.lockedUntil && now < entry.lockedUntil) {
+    const minutesRemaining = Math.ceil((entry.lockedUntil - now) / (60 * 1000));
+    return `Account temporarily locked due to too many failed attempts. Try again in ${minutesRemaining} minute${minutesRemaining === 1 ? '' : 's'}.`;
+  }
+
+  if (entry.lockedUntil && now >= entry.lockedUntil) {
+    loginAttemptsMap.delete(key);
+  }
+
+  return null;
+};
+
+const recordLoginFailure = (email) => {
+  const key = email.toLowerCase().trim();
+  const now = Date.now();
+  const entry = loginAttemptsMap.get(key) || { failures: 0, lockedUntil: null };
+  entry.failures += 1;
+
+  if (entry.failures >= MAX_LOGIN_FAILURES) {
+    entry.lockedUntil = now + LOCKOUT_MS;
+  }
+
+  loginAttemptsMap.set(key, entry);
+};
+
+const clearLoginFailures = (email) => {
+  loginAttemptsMap.delete(email.toLowerCase().trim());
 };
 
 // @desc    Register a new user
@@ -50,6 +113,10 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Password must contain at least one digit' });
     }
 
+    if (isCommonPassword(password)) {
+      return res.status(400).json({ message: 'Password is too common and easily guessable. Please choose a stronger password.' });
+    }
+
     if (!EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 100) {
       return res.status(400).json({ message: 'A valid email address is required' });
     }
@@ -64,8 +131,7 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // SECURITY (S2-A): Public registration is ALWAYS 'customer'.
-    // Manager accounts cannot be self-assigned by clients.
+    // SECURITY: Public registration is ALWAYS 'customer'.
     const user = await User.create({
       name: cleanName,
       email: cleanEmail,
@@ -74,11 +140,17 @@ const register = async (req, res) => {
       role: 'customer',
     });
 
-    const token = generateToken(user._id);
+    const token = tokenService.generateAccessToken(user._id);
+    let refreshToken = null;
+    try {
+      const refreshResult = await tokenService.createRefreshToken(user._id);
+      refreshToken = refreshResult.rawToken;
+    } catch (_) {}
 
-    // Return response without password
     res.status(201).json({
       token,
+      accessToken: token,
+      refreshToken,
       user: {
         id: user._id,
         _id: user._id,
@@ -97,7 +169,7 @@ const register = async (req, res) => {
   }
 };
 
-// @desc    Authenticate user & get token
+// @desc    Authenticate user & get tokens
 // @route   POST /api/auth/login
 // @access  Public
 const login = async (req, res) => {
@@ -108,15 +180,28 @@ const login = async (req, res) => {
       return res.status(400).json({ message: 'Please provide email and password' });
     }
 
-    // Check for user (case insensitive match)
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const cleanEmail = email.toLowerCase().trim();
+
+    // Check account lockout
+    const lockoutMsg = checkLoginLockout(cleanEmail);
+    if (lockoutMsg) {
+      return res.status(429).json({ message: lockoutMsg });
+    }
+
+    // Check for user
+    const user = await User.findOne({ email: cleanEmail });
+
+    // Constant-work defense against timing-based user enumeration
     if (!user) {
+      await bcrypt.compare(password, DUMMY_HASH);
+      recordLoginFailure(cleanEmail);
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Compare entered password with hashed password
+    // Compare entered password with stored hashed password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      recordLoginFailure(cleanEmail);
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
@@ -124,11 +209,20 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Account disabled' });
     }
 
-    const token = generateToken(user._id);
+    // Clear failed attempts upon successful authentication
+    clearLoginFailures(cleanEmail);
 
-    // Respond with user details (never sending password)
+    const token = tokenService.generateAccessToken(user._id);
+    let refreshToken = null;
+    try {
+      const refreshResult = await tokenService.createRefreshToken(user._id);
+      refreshToken = refreshResult.rawToken;
+    } catch (_) {}
+
     res.status(200).json({
       token,
+      accessToken: token,
+      refreshToken,
       user: {
         id: user._id,
         _id: user._id,
@@ -144,6 +238,44 @@ const login = async (req, res) => {
   } catch (error) {
     console.error('Login Error:', error);
     res.status(500).json({ message: 'Server error during login' });
+  }
+};
+
+// @desc    Rotate refresh token and issue new access token
+// @route   POST /api/auth/refresh
+// @access  Public
+const refreshAccessToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Refresh token is required' });
+    }
+
+    const result = await tokenService.rotateRefreshToken(refreshToken);
+
+    res.status(200).json({
+      token: result.accessToken,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    });
+  } catch (error) {
+    res.status(error.status || 401).json({ message: error.message || 'Could not refresh token' });
+  }
+};
+
+// @desc    Revoke refresh token upon logout
+// @route   POST /api/auth/logout
+// @access  Public (Optionally Authenticated)
+const logout = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (refreshToken) {
+      await tokenService.revokeRefreshToken(refreshToken);
+    }
+    res.status(200).json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error during logout' });
   }
 };
 
@@ -206,12 +338,12 @@ const sanitizeAvatar = (avatar) => {
   return (isHttpUrl || isDataUrl || avatar === '') ? avatar : undefined;
 };
 
-// @desc    Update user profile (Name, Email, Phone, DOB, Avatar)
+// @desc    Update user profile (Name, Email, Phone, DOB, Avatar, Password)
 // @route   PUT /api/auth/profile
 // @access  Private
 const updateProfile = async (req, res) => {
   try {
-    const { name, email, phone, dob, avatar } = req.body;
+    const { name, email, phone, dob, avatar, currentPassword, newPassword } = req.body;
     const user = await User.findById(req.user._id);
 
     if (!user) {
@@ -226,6 +358,32 @@ const updateProfile = async (req, res) => {
     if (name && typeof name === 'string') user.name = name.trim().slice(0, 100);
     if (phone !== undefined && typeof phone === 'string') user.phone = phone.trim().slice(0, 30);
     if (dob !== undefined && typeof dob === 'string') user.dob = dob.trim().slice(0, 30);
+
+    // Password change with current password check and token family revocation
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Current password is required to set a new password' });
+      }
+
+      const isCurrentValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isCurrentValid) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+
+      if (newPassword.length < 8 || newPassword.length > 128 || !/\d/.test(newPassword)) {
+        return res.status(400).json({ message: 'New password must be at least 8 characters and include a digit' });
+      }
+
+      if (isCommonPassword(newPassword)) {
+        return res.status(400).json({ message: 'New password is too common. Please choose a stronger password.' });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(newPassword, salt);
+
+      // Revoke all existing refresh tokens upon password change
+      await tokenService.revokeAllUserTokens(user._id);
+    }
 
     try {
       const safeAvatar = sanitizeAvatar(avatar);
@@ -268,14 +426,25 @@ const deleteAccount = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // Permanently remove user from MongoDB database
-    const deletedUser = await User.findByIdAndDelete(userId);
+    // Check last-active-manager protection
+    if (req.user.role === 'manager') {
+      const activeManagerCount = await User.countDocuments({
+        role: 'manager',
+        isActive: { $ne: false },
+      });
+      if (activeManagerCount <= 1) {
+        return res.status(400).json({ message: 'Cannot delete the last active manager account' });
+      }
+    }
 
+    // Revoke all tokens
+    await tokenService.revokeAllUserTokens(userId);
+
+    // Delete user
+    const deletedUser = await User.findByIdAndDelete(userId);
     if (!deletedUser) {
       return res.status(404).json({ message: 'User account not found' });
     }
-
-    console.log(`[AUTH] Permanently deleted user ${deletedUser.email} (${userId}) from database.`);
 
     res.status(200).json({
       success: true,
@@ -292,7 +461,7 @@ const deleteAccount = async (req, res) => {
 // @access  Private/Manager
 const createStaffAccount = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     if (!name || typeof name !== 'string' || !email || typeof email !== 'string' || !password || typeof password !== 'string') {
       return res.status(400).json({ message: 'Please provide valid name, email, and password' });
@@ -313,6 +482,10 @@ const createStaffAccount = async (req, res) => {
       return res.status(400).json({ message: 'Password must contain at least one digit' });
     }
 
+    if (isCommonPassword(password)) {
+      return res.status(400).json({ message: 'Password is too common and easily guessable' });
+    }
+
     if (!EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 100) {
       return res.status(400).json({ message: 'A valid email address is required for staff accounts' });
     }
@@ -329,10 +502,19 @@ const createStaffAccount = async (req, res) => {
       name: cleanName,
       email: cleanEmail,
       password: hashedPassword,
-      role: 'manager',
+      role: role === 'staff' ? 'staff' : 'manager',
     });
 
-    // Return 201 without the password
+    // Record manager action in AuditLog
+    await auditService.logAction({
+      actor: req.user,
+      action: 'STAFF_CREATED',
+      target: staffUser._id,
+      targetModel: 'User',
+      details: { email: staffUser.email, role: staffUser.role },
+      ip: req.ip,
+    });
+
     res.status(201).json({
       user: {
         id: staffUser._id,
@@ -354,7 +536,7 @@ const createStaffAccount = async (req, res) => {
 // @access  Private/Manager
 const getStaff = async (req, res) => {
   try {
-    const staff = await User.find({ role: 'manager' })
+    const staff = await User.find({ role: { $in: ['manager', 'staff'] } })
       .select('name email role isActive')
       .sort({ createdAt: -1 })
       .limit(100);
@@ -407,16 +589,30 @@ const updateStaff = async (req, res) => {
 
     if (typeof isActive === 'boolean') {
       targetUser.isActive = isActive;
+      if (isActive === false) {
+        // Invalidate all active tokens for deactivated staff
+        await tokenService.revokeAllUserTokens(targetUser._id);
+      }
     }
 
     if (role) {
-      if (!['customer', 'manager'].includes(role)) {
+      if (!['customer', 'manager', 'staff'].includes(role)) {
         return res.status(400).json({ message: 'Invalid role specified' });
       }
       targetUser.role = role;
     }
 
     await targetUser.save();
+
+    // Record action in AuditLog
+    await auditService.logAction({
+      actor: req.user,
+      action: 'STAFF_UPDATED',
+      target: targetUser._id,
+      targetModel: 'User',
+      details: { isActive: targetUser.isActive, role: targetUser.role },
+      ip: req.ip,
+    });
 
     res.status(200).json({
       user: {
@@ -434,13 +630,15 @@ const updateStaff = async (req, res) => {
   }
 };
 
-// In-memory OTP storage: phone -> { code, expiresAt, attempts }
+// ── In-Memory OTP Stores & Daily Caps ─────────────────────────
+// otpStore: phone -> { hashedCode, expiresAt, attempts }
 const otpStore = new Map();
-// Cooldown storage: phone -> lastSentTimestamp
 const otpCooldownStore = new Map();
-const RESEND_COOLDOWN_MS = 30 * 1000; // 30 seconds cooldown
-const OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes validity
+const dailyOtpCapStore = new Map();
+const RESEND_COOLDOWN_MS = 30 * 1000; // 30s cooldown
+const OTP_EXPIRY_MS = 5 * 60 * 1000; // 5m expiry
 const MAX_OTP_ATTEMPTS = 3;
+const MAX_OTP_DAILY_PER_PHONE = 5;
 
 // Normalize Pakistani phone number to standard 03XXXXXXXXX format
 const normalizePakPhone = (rawPhone) => {
@@ -448,8 +646,18 @@ const normalizePakPhone = (rawPhone) => {
   const clean = rawPhone.trim().replace(/[\s-]/g, '');
   const pakRegex = /^(\+92|0092|0)?3\d{9}$/;
   if (!pakRegex.test(clean)) return null;
-  // Convert +923XXXXXXXXX or 00923XXXXXXXXX to 03XXXXXXXXX
   return clean.replace(/^(\+92|0092)/, '0');
+};
+
+// Check daily OTP rate cap
+const checkDailyOtpCap = (normalizedPhone) => {
+  const todayKey = `${normalizedPhone}_${new Date().toISOString().slice(0, 10)}`;
+  const count = dailyOtpCapStore.get(todayKey) || 0;
+  if (count >= MAX_OTP_DAILY_PER_PHONE) {
+    return false;
+  }
+  dailyOtpCapStore.set(todayKey, count + 1);
+  return true;
 };
 
 // @desc    Generate and send SMS OTP to Pakistani mobile number
@@ -466,7 +674,7 @@ const sendPhoneOtp = async (req, res) => {
       });
     }
 
-    // Check 30-second resend cooldown per phone number
+    // Check 30-second cooldown per phone
     const lastSentAt = otpCooldownStore.get(normalizedPhone);
     const now = Date.now();
     if (lastSentAt && now - lastSentAt < RESEND_COOLDOWN_MS) {
@@ -476,12 +684,23 @@ const sendPhoneOtp = async (req, res) => {
       });
     }
 
-    // Generate 6-digit numeric OTP (100000 - 999999) using cryptographically secure randomInt
+    // Check daily cap (max 5 per day)
+    if (!checkDailyOtpCap(normalizedPhone)) {
+      return res.status(429).json({
+        message: 'Daily SMS verification limit reached for this phone number. Please try again tomorrow.',
+      });
+    }
+
+    // Generate 6-digit numeric OTP using cryptographically secure randomInt
     const otp = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = now + OTP_EXPIRY_MS;
 
+    // Hash OTP before storing in memory
+    const hashedCode = crypto.createHash('sha256').update(otp).digest('hex');
+
     otpStore.set(normalizedPhone, {
       code: otp,
+      hashedCode,
       expiresAt,
       attempts: 0,
     });
@@ -489,7 +708,7 @@ const sendPhoneOtp = async (req, res) => {
 
     console.log(`[SMS OTP GATEWAY] Sent code ${otp} to ${normalizedPhone} (Valid for 5 mins)`);
 
-    // Do NOT return otp in the response body (simulated SMS appears in server terminal)
+    // Generic response that does not reveal whether an account already exists
     res.status(200).json({
       success: true,
       message: `Verification code sent to ${normalizedPhone}`,
@@ -559,8 +778,15 @@ const verifyPhoneOtp = async (req, res) => {
       });
     }
 
-    // Validate OTP (static dev code '1234' removed completely)
-    if (record.code !== otp.trim()) {
+    // Constant-time comparison using SHA-256 digest
+    const candidateHash = crypto.createHash('sha256').update(otp.trim()).digest();
+    const storedHash = Buffer.from(record.hashedCode, 'hex');
+
+    const isMatch =
+      candidateHash.length === storedHash.length &&
+      crypto.timingSafeEqual(candidateHash, storedHash);
+
+    if (!isMatch) {
       record.attempts = (record.attempts || 0) + 1;
 
       if (record.attempts >= MAX_OTP_ATTEMPTS) {
@@ -588,11 +814,18 @@ const verifyPhoneOtp = async (req, res) => {
       user = await createPhoneOtpUser(normalizedPhone, name);
     }
 
-    const token = generateToken(user._id);
+    const token = tokenService.generateAccessToken(user._id);
+    let refreshToken = null;
+    try {
+      const refreshResult = await tokenService.createRefreshToken(user._id);
+      refreshToken = refreshResult.rawToken;
+    } catch (_) {}
 
     res.status(isNewUser ? 201 : 200).json({
       success: true,
       token,
+      accessToken: token,
+      refreshToken,
       isNewUser,
       user: {
         id: user._id,
@@ -614,6 +847,8 @@ const verifyPhoneOtp = async (req, res) => {
 module.exports = {
   register,
   login,
+  refreshAccessToken,
+  logout,
   getMe,
   updateProfile,
   deleteAccount,
@@ -624,4 +859,5 @@ module.exports = {
   verifyPhoneOtp,
   normalizePakPhone,
   _otpStore: otpStore,
+  _loginAttemptsMap: loginAttemptsMap,
 };

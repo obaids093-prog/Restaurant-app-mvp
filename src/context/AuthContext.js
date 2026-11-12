@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import safeStorage from '../utils/safeStorage';
-import { apiClient, TOKEN_KEY } from '../api/client';
+import { apiClient, TOKEN_KEY, REFRESH_TOKEN_KEY } from '../api/client';
 import { toPakServerPhone } from '../utils/phone';
 
 export { toPakServerPhone };
@@ -64,13 +64,16 @@ export const AuthProvider = ({ children }) => {
         body: { email: cleanEmail, password: cleanPass },
       });
 
-      const { token: receivedToken, user: receivedUser } = response;
+      const { token: receivedToken, refreshToken: receivedRefreshToken, user: receivedUser } = response;
 
       setToken(receivedToken);
       setUser(receivedUser);
 
-      // Persist token and user profile in AsyncStorage
+      // Persist token and user profile in storage
       await safeStorage.setItem(TOKEN_KEY, receivedToken);
+      if (receivedRefreshToken) {
+        await safeStorage.setItem(REFRESH_TOKEN_KEY, receivedRefreshToken);
+      }
       await safeStorage.setItem(AUTH_USER_KEY, JSON.stringify(receivedUser));
 
       return receivedUser;
@@ -94,13 +97,16 @@ export const AuthProvider = ({ children }) => {
         },
       });
 
-      const { token: receivedToken, user: receivedUser } = response;
+      const { token: receivedToken, refreshToken: receivedRefreshToken, user: receivedUser } = response;
 
       setToken(receivedToken);
       setUser(receivedUser);
 
-      // Persist token and user in AsyncStorage
+      // Persist token and user in storage
       await safeStorage.setItem(TOKEN_KEY, receivedToken);
+      if (receivedRefreshToken) {
+        await safeStorage.setItem(REFRESH_TOKEN_KEY, receivedRefreshToken);
+      }
       await safeStorage.setItem(AUTH_USER_KEY, JSON.stringify(receivedUser));
 
       return receivedUser;
@@ -154,6 +160,15 @@ export const AuthProvider = ({ children }) => {
    */
   const logout = async () => {
     try {
+      const storedRefreshToken = await safeStorage.getItem(REFRESH_TOKEN_KEY);
+      if (storedRefreshToken) {
+        apiClient('/api/auth/logout', {
+          method: 'POST',
+          body: { refreshToken: storedRefreshToken },
+        }).catch(() => {});
+      }
+    } catch (_) {}
+    try {
       const { unregisterPushTokenFromBackend } = require('../services/pushNotificationService');
       await unregisterPushTokenFromBackend();
     } catch {
@@ -163,6 +178,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     try {
       await safeStorage.removeItem(TOKEN_KEY);
+      await safeStorage.removeItem(REFRESH_TOKEN_KEY);
       await safeStorage.removeItem(AUTH_USER_KEY);
     } catch (e) {
       console.warn('Failed to clear auth session:', e);
@@ -198,11 +214,14 @@ export const AuthProvider = ({ children }) => {
         },
       });
 
-      const { token: receivedToken, user: receivedUser, isNewUser } = response;
+      const { token: receivedToken, refreshToken: receivedRefreshToken, user: receivedUser, isNewUser } = response;
 
       // Always set token in state & storage so subsequent authorized calls succeed
       setToken(receivedToken);
       await safeStorage.setItem(TOKEN_KEY, receivedToken);
+      if (receivedRefreshToken) {
+        await safeStorage.setItem(REFRESH_TOKEN_KEY, receivedRefreshToken);
+      }
 
       // Check if user is newly registered or still has temporary "Customer XXXX" name
       const hasPlaceholderName =

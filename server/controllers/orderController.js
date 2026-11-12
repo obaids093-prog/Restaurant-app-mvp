@@ -19,6 +19,7 @@ const loyaltyService = require('../services/loyaltyService');
 const notificationService = require('../services/notificationService');
 const receiptService = require('../services/receiptService');
 const inventoryService = require('../services/inventoryService');
+const auditService = require('../services/auditService');
 const { emitNewOrder, emitOrderStatusUpdate } = require('../services/socketService');
 const { CANCEL_WINDOW_MINUTES } = require('../config/constants');
 
@@ -393,6 +394,17 @@ const updateOrderStatus = async (req, res) => {
 
     // Broadcast status progression via WebSocket
     emitOrderStatusUpdate(order);
+
+    if (isManager) {
+      await auditService.logAction({
+        actor: req.user,
+        action: 'ORDER_STATUS_UPDATED',
+        target: order._id,
+        targetModel: 'Order',
+        details: { from: currentStatus, to: targetStatus },
+        ip: req.ip,
+      });
+    }
 
     res.status(200).json(order);
   } catch (error) {

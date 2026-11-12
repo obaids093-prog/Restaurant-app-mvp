@@ -1,5 +1,29 @@
 # Project Log
 
+## [2026-11-12] - Release Candidate Part C: Security Hardening & Zero-Trust Defense
+
+- **Date**: 2026-11-12
+- **Title**: Release Candidate Part C: Security Hardening & Zero-Trust Defense
+- **WHAT changed**:
+  - Implemented strict Zod validation schemas (`server/validators/schemas.js`) and middleware (`server/middleware/validate.js`) with `.strict()` rejection of unrecognized fields across all routes (auth, menu, orders, reservations, tables, reviews, vouchers, loyalty, inventory, analytics).
+  - Implemented short-lived 15-minute access tokens and rotating SHA-256 hashed refresh tokens (`server/models/RefreshToken.js`, `server/services/tokenService.js`). Added token family tracking with replay/reuse detection that invalidates the entire family upon re-use of an expired/revoked token.
+  - Implemented constant-work password comparison (`bcrypt.compare(password, DUMMY_HASH)`) on login to mitigate timing-based user enumeration, plus a 15-minute account lockout after 5 consecutive failures.
+  - Added magic bytes file inspection in `server/controllers/uploadController.js` verifying actual JPEG, PNG, and WebP signatures with random 16-byte hex filenames and `X-Content-Type-Options: nosniff`.
+  - Created manager action audit logging (`server/models/AuditLog.js`, `server/services/auditService.js`, `server/controllers/auditLogController.js`, `server/routes/auditLogRoutes.js`) with authenticated, manager-only endpoint `GET /api/audit-logs`.
+  - Added HTTP Parameter Pollution (`hpp`) protection, 30-second request timeouts, crossOriginResourcePolicy header configuration in Helmet, and global API rate limiting in `server/server.js`.
+  - Wired client silent refresh on HTTP 401 in `src/api/client.js` with SecureStore token persistence in `src/context/AuthContext.js`.
+  - Added GitHub Actions CI pipeline (`.github/workflows/ci.yml`), Dependabot schedule (`.github/dependabot.yml`), and Gitleaks secret scanning (`.github/workflows/gitleaks.yml`).
+  - Added dedicated test suite `server/tests/securityHardening.test.js` (8 tests) and updated `docs/SECURITY.md` with route-by-route authorization matrix table.
+- **WHY (the problem or goal)**:
+  - Fulfill Part C requirements: Zero-trust architecture, prevent token replay attacks, secure file uploads, protect against brute-force and timing attacks, establish an administrative audit trail, and automate security checks in CI.
+- **HOW TO TEST**:
+  - Run `cd server; node node_modules/jest/bin/jest.js --runInBand --forceExit` (16 suites, 162 tests passing).
+  - Run `node --check server/server.js` and controller files (all pass).
+- **RISKS or follow-ups**:
+  - Proceed to Part D: Play Store & customer trust features (account deletion with anonymization, legal screens, offline/server waking screens, app icons).
+
+---
+
 ## [2026-11-09] - Release Candidate Part B: Verify Every Feature & Comprehensive Fixes
 
 - **Date**: 2026-11-09

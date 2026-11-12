@@ -6,7 +6,7 @@ Tracking progress across all phases for Release Candidate hardening, verificatio
 | :--- | :--- | :---: | :---: | :---: |
 | **PART A** | Finish Safety Fixes & Remove Simulations (Payments, Sockets, Table QR, Inventory, Rider Tracking, SMS) | COMPLETED | `d1bd010` | 15 suites, 154 passed |
 | **PART B** | Verify Every Feature & Comprehensive Fixes (Auth, Staff, Menu, Vouchers, Reservations, Pagination, etc.) | COMPLETED | `0adbb8b` | 15 suites, 154 passed |
-| **PART C** | Security Hardening (Zod validation, Refresh Tokens, Rate Limits, Magic Bytes, Helmet, Logging, CI) | PENDING | - | - |
+| **PART C** | Security Hardening (Zod validation, Refresh Tokens, Rate Limits, Magic Bytes, Helmet, Logging, CI) | COMPLETED | Pending commit | 16 suites, 162 passed |
 | **PART D** | Play Store & Customer Trust (Account Deletion, Legal Screens, Offline Handling, App Icons) | PENDING | - | - |
 | **PART E** | Password Reset & Email (SMTP / Nodemailer optional environment integration) | PENDING | - | - |
 | **PART F** | Final QA, Lint, Bundle Export & Documentation Sync | PENDING | - | - |
@@ -32,3 +32,13 @@ Tracking progress across all phases for Release Candidate hardening, verificatio
   - Verified atomic loyalty points quote, deduction, and automatic refund on order cancellation.
   - Verified reservation capacity checks and 409 conflict handling on duplicate table slot bookings.
   - Verified dish reviews restricted strictly to served orders with one-review-per-dish-per-order guarantee.
+- **PART C Finished**:
+  - Comprehensive Zod input validation schemas (.strict()) applied across auth, menu, orders, reservations, tables, reviews, vouchers, loyalty, inventory, and analytics routes.
+  - Short-lived 15m access tokens and rotating SHA-256 hashed refresh tokens with family reuse detection (revokes entire token family upon replay attack).
+  - Constant-work timing defense on login (`bcrypt.compare(password, DUMMY_HASH)`) and 5-failure account lockout (15 minutes).
+  - Magic bytes file upload inspection verifying JPEG, PNG, and WebP signatures with random 16-byte hex filenames and `X-Content-Type-Options: nosniff`.
+  - Administrative audit logging model and service recording actor ID, email, role, action, and target for manager changes, exposed via `GET /api/audit-logs`.
+  - Modern security headers with Helmet (`crossOriginResourcePolicy: { policy: 'cross-origin' }`), HTTP parameter pollution (`hpp`), 30-second request timeouts, and global API rate limiting.
+  - Client silent refresh on HTTP 401 using stored refresh token with automatic retry.
+  - GitHub Actions CI workflow (`.github/workflows/ci.yml`), Gitleaks scan (`.github/workflows/gitleaks.yml`), and Dependabot config (`.github/dependabot.yml`).
+  - Added new automated test suite `server/tests/securityHardening.test.js` (8 passing unit tests).

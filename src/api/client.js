@@ -23,6 +23,7 @@ export const BASE_URL = __DEV__
   : 'https://aura-app-49n0.onrender.com';
 
 export const TOKEN_KEY = '@restaurant_app_auth_token';
+export const REFRESH_TOKEN_KEY = '@restaurant_app_refresh_token';
 
 // Cold start constants
 export const TIMEOUT_MS = 45000;
@@ -172,6 +173,39 @@ export const apiClient = async (endpoint, options = {}) => {
     const data = await parseResponseBody(response);
 
     if (!response.ok) {
+      if (
+        response.status === 401 &&
+        !options._isRefreshRetry &&
+        !cleanEndpoint.includes('/auth/login') &&
+        !cleanEndpoint.includes('/auth/register') &&
+        !cleanEndpoint.includes('/auth/refresh')
+      ) {
+        try {
+          const storedRefreshToken = await safeStorage.getItem(REFRESH_TOKEN_KEY);
+          if (storedRefreshToken) {
+            const refreshRes = await fetch(`${BASE_URL}/api/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken: storedRefreshToken }),
+            });
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              if (refreshData.accessToken) {
+                await safeStorage.setItem(TOKEN_KEY, refreshData.accessToken);
+                if (refreshData.refreshToken) {
+                  await safeStorage.setItem(REFRESH_TOKEN_KEY, refreshData.refreshToken);
+                }
+                return apiClient(endpoint, {
+                  ...options,
+                  token: refreshData.accessToken,
+                  _isRefreshRetry: true,
+                });
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
       const error = new Error(extractErrorMessage(data, response.status));
       error.status = response.status;
       error.data = data;

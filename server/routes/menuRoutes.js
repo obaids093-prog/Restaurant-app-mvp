@@ -1,16 +1,4 @@
 // routes/menuRoutes.js
-// ═══════════════════════════════════════════════════════════
-// WHAT THIS DOES:
-//   Maps HTTP routes to menuController methods.
-//   Public endpoints:
-//     GET /api/menu
-//     GET /api/menu/:id
-//   Manager-protected endpoints:
-//     POST   /api/menu
-//     PUT    /api/menu/:id
-//     DELETE /api/menu/:id
-// ═══════════════════════════════════════════════════════════
-
 const express = require('express');
 const router = express.Router();
 const {
@@ -22,18 +10,25 @@ const {
 } = require('../controllers/menuController');
 const { getMenuItemReviews } = require('../controllers/reviewController');
 const { protect, managerOnly } = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const {
+  idParamSchema,
+  menuItemCreateSchema,
+  menuItemUpdateSchema,
+  menuQuerySchema,
+} = require('../validators/schemas');
 
 router
   .route('/')
-  .get(getMenuItems)
-  .post(protect, managerOnly, createMenuItem);
+  .get(validate({ query: menuQuerySchema }), getMenuItems)
+  .post(protect, managerOnly, validate({ body: menuItemCreateSchema }), createMenuItem);
 
-router.get('/:id/reviews', getMenuItemReviews);
+router.get('/:id/reviews', validate({ params: idParamSchema }), getMenuItemReviews);
 
 router
   .route('/:id')
-  .get(getMenuItemById)
-  .put(protect, managerOnly, updateMenuItem)
-  .delete(protect, managerOnly, deleteMenuItem);
+  .get(validate({ params: idParamSchema }), getMenuItemById)
+  .put(protect, managerOnly, validate({ params: idParamSchema, body: menuItemUpdateSchema }), updateMenuItem)
+  .delete(protect, managerOnly, validate({ params: idParamSchema }), deleteMenuItem);
 
 module.exports = router;

@@ -12,6 +12,7 @@
 
 const mongoose = require('mongoose');
 const MenuItem = require('../models/MenuItem');
+const auditService = require('../services/auditService');
 
 // Safe regex string escaper to prevent NoSQL regex injection / ReDoS (S1-B)
 const escapeRegex = (str) => {
@@ -101,6 +102,17 @@ const createMenuItem = async (req, res) => {
       tag: tag ? String(tag).trim().slice(0, 50) : '',
     });
 
+    if (req.user) {
+      await auditService.logAction({
+        actor: req.user,
+        action: 'MENU_ITEM_CREATED',
+        target: newItem._id,
+        targetModel: 'MenuItem',
+        details: { name: newItem.name, price: newItem.price },
+        ip: req.ip,
+      });
+    }
+
     res.status(201).json(newItem);
   } catch (error) {
     console.error('Error creating menu item:', error);
@@ -151,6 +163,17 @@ const updateMenuItem = async (req, res) => {
       return res.status(404).json({ message: 'Menu item not found to update' });
     }
 
+    if (req.user) {
+      await auditService.logAction({
+        actor: req.user,
+        action: 'MENU_ITEM_UPDATED',
+        target: updatedItem._id,
+        targetModel: 'MenuItem',
+        details: allowedUpdates,
+        ip: req.ip,
+      });
+    }
+
     res.status(200).json(updatedItem);
   } catch (error) {
     console.error('Error updating menu item:', error);
@@ -176,6 +199,17 @@ const deleteMenuItem = async (req, res) => {
 
     if (!deletedItem) {
       return res.status(404).json({ message: 'Menu item not found to delete' });
+    }
+
+    if (req.user) {
+      await auditService.logAction({
+        actor: req.user,
+        action: 'MENU_ITEM_DELETED',
+        target: deletedItem._id,
+        targetModel: 'MenuItem',
+        details: { name: deletedItem.name },
+        ip: req.ip,
+      });
     }
 
     res.status(200).json({ message: 'Menu item deleted successfully', id: deletedItem._id });

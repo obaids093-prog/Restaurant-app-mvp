@@ -17,13 +17,25 @@ const {
   updateReservationStatus,
 } = require('../controllers/reservationController');
 const { protect, managerOnly } = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const {
+  reservationCreateSchema,
+  reservationStatusUpdateSchema,
+  idParamSchema,
+} = require('../validators/schemas');
 
 router
   .route('/')
-  .post(protect, createReservation)
+  .post(protect, validate(reservationCreateSchema), createReservation)
   .get(protect, managerOnly, getAllReservations);
 
 router.get('/my', protect, getMyReservations);
-router.patch('/:id', protect, updateReservationStatus);
+router.patch(
+  '/:id',
+  protect,
+  validate(idParamSchema, 'params'),
+  validate(reservationStatusUpdateSchema),
+  updateReservationStatus
+);
 
 module.exports = router;

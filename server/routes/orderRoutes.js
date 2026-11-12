@@ -1,13 +1,4 @@
 // routes/orderRoutes.js
-// ═══════════════════════════════════════════════════════════
-// WHAT THIS DOES:
-//   Maps URL endpoints to orderController methods:
-//     POST  /api/orders             (Place order, Customer)
-//     GET   /api/orders/my          (Get user orders, Customer)
-//     GET   /api/orders             (Get all orders, Manager)
-//     PATCH /api/orders/:id/status  (Update status, Manager)
-// ═══════════════════════════════════════════════════════════
-
 const express = require('express');
 const router = express.Router();
 const {
@@ -18,14 +9,20 @@ const {
   getOrderReceipt,
 } = require('../controllers/orderController');
 const { protect, managerOnly } = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const {
+  idParamSchema,
+  orderCreateSchema,
+  orderStatusUpdateSchema,
+} = require('../validators/schemas');
 
 router
   .route('/')
-  .post(protect, placeOrder)
+  .post(protect, validate({ body: orderCreateSchema }), placeOrder)
   .get(protect, managerOnly, getAllOrders);
 
 router.get('/my', protect, getMyOrders);
-router.patch('/:id/status', protect, updateOrderStatus);
-router.get('/:id/receipt', protect, getOrderReceipt);
+router.patch('/:id/status', protect, validate({ params: idParamSchema, body: orderStatusUpdateSchema }), updateOrderStatus);
+router.get('/:id/receipt', protect, validate({ params: idParamSchema }), getOrderReceipt);
 
 module.exports = router;

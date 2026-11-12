@@ -9,6 +9,8 @@ const {
   registerPushToken,
   unregisterPushToken,
 } = require('../controllers/notificationController');
+const validate = require('../middleware/validate');
+const { idParamSchema } = require('../validators/schemas');
 
 // All notification routes require authenticated user session
 router.use(protect);
@@ -16,7 +18,7 @@ router.use(protect);
 router.get('/', getMyNotifications);
 router.get('/unread-count', getUnreadCount);
 router.patch('/read-all', markAllRead);
-router.patch('/:id/read', markAsRead);
+router.patch('/:id/read', validate(idParamSchema, 'params'), markAsRead);
 router.post('/push-token', registerPushToken);
 router.delete('/push-token', unregisterPushToken);
 

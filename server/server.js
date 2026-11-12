@@ -18,11 +18,13 @@ const express = require('express');
 const http = require('node:http');
 const cors = require('cors');
 const helmet = require('helmet');
+const hpp = require('hpp');
 const mongoSanitize = require('express-mongo-sanitize');
 const dotenv = require('dotenv');
 const path = require('node:path');
 const connectDB = require('./config/db');
 const { initializeSocket } = require('./services/socketService');
+const errorHandler = require('./middleware/errorHandler');
 
 // Load .env variables into process.env
 dotenv.config();
@@ -52,8 +54,25 @@ const app = express();
 
 // ── Security Headers Middleware (S5-B) ──────────────────────
 // helmet() sets many security headers including X-Content-Type-Options,
-// X-Frame-Options, Strict-Transport-Security, etc.
-app.use(helmet());
+// X-Frame-Options, Strict-Transport-Security, and crossOriginResourcePolicy
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
+
+// ── HTTP Parameter Pollution Protection ───────────────────────
+app.use(hpp());
+
+// ── Request Timeout Protection (30s) ──────────────────────────
+app.use((req, res, next) => {
+  req.setTimeout(30000, () => {
+    if (!res.headersSent) {
+      res.status(408).json({ message: 'Request timeout' });
+    }
+  });
+  next();
+});
 
 // ── CORS Policy (S5-A) ──────────────────────────────────────
 const defaultOrigins = [
@@ -115,6 +134,32 @@ app.use((req, res, next) => {
   next();
 });
 
+// ── Global API Rate Limiter ──────────────────────────────────
+const globalRateMap = new Map();
+const globalRateLimiter = (req, res, next) => {
+  if (process.env.NODE_ENV === 'test' || req.path === '/health') return next();
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000;
+  const maxRequests = 300;
+
+  const entry = globalRateMap.get(ip) || { count: 0, resetTime: now + windowMs };
+  if (now > entry.resetTime) {
+    entry.count = 1;
+    entry.resetTime = now + windowMs;
+  } else {
+    entry.count += 1;
+  }
+  globalRateMap.set(ip, entry);
+
+  if (entry.count > maxRequests) {
+    return res.status(429).json({ message: 'Too many requests. Please try again later.' });
+  }
+  next();
+};
+
+app.use('/api', globalRateLimiter);
+
 // ── In-Memory Auth Rate Limiter (S3-B) ───────────────────────
 const authRateMap = new Map();
 const authRateLimiter = (req, res, next) => {
@@ -171,18 +216,15 @@ app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/inventory', require('./routes/inventoryRoutes'));
+app.use('/api/audit-logs', require('./routes/auditLogRoutes'));
 
 // ── 404 Handler ─────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// ── Global Error Handler (S5-C) ─────────────────────────────
-// Never leak error stack or raw error.message to the client
-app.use((err, req, res, _next) => {
-  console.error('[SERVER ERROR]', err.stack || err.message);
-  res.status(500).json({ message: 'Internal Server Error' });
-});
+// ── Central Error Handler ───────────────────────────────────
+app.use(errorHandler);
 
 // ── Start Server ─────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
