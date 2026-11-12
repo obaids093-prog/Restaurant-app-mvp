@@ -110,14 +110,21 @@ const placeOrder = async (req, res) => {
     let finalOrderType = 'Dine-in';
     if (orderType) {
       const lower = String(orderType).toLowerCase();
-      if (lower.includes('takeaway') || lower.includes('curbside')) {
+      if (lower.includes('delivery')) {
+        finalOrderType = 'Delivery';
+      } else if (lower.includes('takeaway') || lower.includes('curbside')) {
         finalOrderType = 'Takeaway';
       } else {
         finalOrderType = 'Dine-in';
       }
     }
 
-    // Compute financial totals: subtotal, discount, 5% service charge, 15% tax, nothing else
+    // Delivery Fee calculation (Standard flat Rs. 150 for Delivery orders)
+    const deliveryFee = finalOrderType === 'Delivery' ? 150 : 0;
+    const deliveryAddress = typeof req.body.deliveryAddress === 'string' ? req.body.deliveryAddress.trim().slice(0, 300) : '';
+    const contactPhone = typeof req.body.phone === 'string' ? req.body.phone.trim().slice(0, 30) : (req.user.phone || '');
+
+    // Compute financial totals: subtotal, discount, 5% service charge, 15% tax, delivery fee
     const subtotal = calculatedTotal;
     let discountAmount = 0;
     let appliedPromoCode = null;
@@ -151,7 +158,7 @@ const placeOrder = async (req, res) => {
     const discountedSubtotal = Math.max(0, subtotal - totalDiscount);
     const serviceCharge = discountedSubtotal * 0.05; // 5% Service Charge
     const salesTax = discountedSubtotal * 0.15;      // 15% Sales Tax
-    const finalTotalAmount = discountedSubtotal + serviceCharge + salesTax;
+    const finalTotalAmount = discountedSubtotal + serviceCharge + salesTax + deliveryFee;
 
     const newOrder = await Order.create({
       user: req.user._id,
@@ -164,6 +171,9 @@ const placeOrder = async (req, res) => {
       promoCode: appliedPromoCode,
       serviceCharge,
       salesTax,
+      deliveryFee,
+      deliveryAddress,
+      phone: contactPhone,
       totalAmount: Math.round(finalTotalAmount * 100) / 100,
       orderType: finalOrderType,
       tableNumber: typeof tableNumber === 'string' ? tableNumber.trim().slice(0, 80) : '',

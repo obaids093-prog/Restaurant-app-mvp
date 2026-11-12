@@ -150,6 +150,9 @@ const orderCreateSchema = z
     items: z.array(orderItemSchema).min(1, 'Order must contain at least 1 item').max(50, 'Cannot order more than 50 items'),
     orderType: z.string().trim().max(50).optional(),
     tableNumber: z.string().trim().max(80).optional(),
+    deliveryAddress: z.string().trim().max(300).optional(),
+    deliveryFee: z.coerce.number().min(0).max(50000).optional(),
+    phone: z.string().trim().max(30).optional(),
     notes: z.string().trim().max(500).optional(),
     branchId: z.string().trim().max(80).optional(),
     branchName: z.string().trim().max(150).optional(),
@@ -162,7 +165,7 @@ const orderCreateSchema = z
 
 const orderStatusUpdateSchema = z
   .object({
-    status: z.enum(['Pending', 'Preparing', 'Ready', 'Served', 'Cancelled']),
+    status: z.enum(['Pending', 'Preparing', 'Ready', 'On The Way', 'Served', 'Cancelled']),
   })
   .strict();
 

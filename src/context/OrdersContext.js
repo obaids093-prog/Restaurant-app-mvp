@@ -118,6 +118,8 @@ export const OrdersProvider = ({ children }) => {
         })),
         orderType: orderData.orderType || orderData.type || 'Dine-in',
         tableNumber: orderData.tableNumber || '',
+        deliveryAddress: orderData.deliveryAddress || '',
+        phone: orderData.phone || '',
         notes: orderData.notes || '',
         promoCode: orderData.promoCode || null,
         discountPercent: orderData.discountPercent || 0,

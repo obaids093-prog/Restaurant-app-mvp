@@ -49,21 +49,28 @@ const buildOrderPayload = (
   pickupTime,
   getItemPrice,
   activeBranch,
+  deliveryAddress = '',
+  phone = '',
   paymentMethod = 'pay_at_table',
   paymentStatus = 'Pending',
   paymentRef = ''
 ) => {
+  const isDelivery = String(orderType || '').toLowerCase().includes('delivery');
   const isTakeaway =
     String(orderType || '').toLowerCase().includes('takeaway') ||
     String(orderType || '').toLowerCase().includes('curbside');
-  const normalizedType = isTakeaway ? 'Takeaway' : 'Dine-in';
+  const normalizedType = isDelivery ? 'Delivery' : isTakeaway ? 'Takeaway' : 'Dine-in';
 
   return {
     customerId: user?.id || user?._id || 'guest',
     customerName: user?.name || 'Valued Guest',
     type: normalizedType,
-    tableNumber: isTakeaway ? 'Takeaway Counter' : (tableNumber || 'Table A-01'),
+    orderType: normalizedType,
+    tableNumber: isDelivery ? 'Home Delivery' : isTakeaway ? 'Takeaway Counter' : (tableNumber || 'Table A-01'),
     pickupTime: isTakeaway ? (pickupTime || 'In 25 minutes') : null,
+    deliveryAddress: isDelivery ? deliveryAddress : '',
+    deliveryFee: isDelivery ? 150 : 0,
+    phone: phone || user?.phone || '',
     branchId: activeBranch?.id || 'lhr_gulberg',
     branchName: activeBranch?.fullName || 'AURA • Gulberg III, Lahore',
     branchCity: activeBranch?.city || 'Lahore',
@@ -128,19 +135,32 @@ export default function OrderSummaryScreen({ route, navigation }) {
     pickupTime = 'In 25 minutes',
   } = route.params || {};
 
-  // Interactive dining type switcher
+  // Interactive dining type switcher: 'Dine-in' | 'Takeaway' | 'Delivery'
   const [activeDiningType, setActiveDiningType] = useState(
-    String(initialOrderType).toLowerCase().includes('takeaway') ? 'Takeaway' : 'Dine-in'
+    String(initialOrderType).toLowerCase().includes('delivery')
+      ? 'Delivery'
+      : String(initialOrderType).toLowerCase().includes('takeaway')
+      ? 'Takeaway'
+      : 'Dine-in'
   );
+
+  const [deliveryAddress, setDeliveryAddress] = useState(
+    user?.address || 'Gulberg III, Lahore, Pakistan'
+  );
+  const [contactPhone, setContactPhone] = useState(user?.phone || '03001234567');
 
   // Settlement preference (real cash or pay at table only)
   const [paymentMethod, setPaymentMethod] = useState(
-    String(initialOrderType).toLowerCase().includes('takeaway') ? 'cash' : 'pay_at_table'
+    String(initialOrderType).toLowerCase().includes('takeaway') || String(initialOrderType).toLowerCase().includes('delivery')
+      ? 'cash'
+      : 'pay_at_table'
   );
 
   const isDineIn = activeDiningType === 'Dine-in';
+  const isDelivery = activeDiningType === 'Delivery';
+  const isTakeaway = activeDiningType === 'Takeaway';
   const userName = user?.name || 'Valued Guest';
-  const phoneText = user?.phone || 'No phone linked (Update in Profile)';
+  const phoneText = contactPhone || user?.phone || 'No phone linked (Update in Profile)';
 
   // Live calculations reflecting latest fetched menu prices
   const calculations = useMemo(() => {
@@ -154,7 +174,8 @@ export default function OrderSummaryScreen({ route, navigation }) {
 
     const serviceCharge = discountedSubtotal * SERVICE_CHARGE_RATE;
     const salesTax = discountedSubtotal * SALES_TAX_RATE;
-    const grandTotal = discountedSubtotal + serviceCharge + salesTax;
+    const deliveryFee = isDelivery ? 150 : 0;
+    const grandTotal = discountedSubtotal + serviceCharge + salesTax + deliveryFee;
 
     return {
       subtotal,
@@ -162,9 +183,10 @@ export default function OrderSummaryScreen({ route, navigation }) {
       discountedSubtotal,
       serviceCharge,
       salesTax,
+      deliveryFee,
       grandTotal,
     };
-  }, [cartState?.items, cartState?.discountPercent, getItemPrice]);
+  }, [cartState?.items, cartState?.discountPercent, getItemPrice, isDelivery]);
 
   const handlePlaceOrder = async () => {
     if (isSubmitting) return;
@@ -197,6 +219,8 @@ export default function OrderSummaryScreen({ route, navigation }) {
         pickupTime,
         getItemPrice,
         activeBranch,
+        deliveryAddress,
+        contactPhone,
         paymentMethod,
         'Pending',
         ''
@@ -246,7 +270,7 @@ export default function OrderSummaryScreen({ route, navigation }) {
           <BranchChip compact />
         </View>
 
-        {/* Dine-in vs Takeaway Segmented Pill Switcher */}
+        {/* Dine-in vs Takeaway vs Delivery 3-way Segmented Switcher */}
         <View style={[styles.diningPillContainer, { backgroundColor: colors.surfaceSubtle }]}>
           <TouchableOpacity
             onPress={() => setActiveDiningType('Dine-in')}
@@ -258,9 +282,9 @@ export default function OrderSummaryScreen({ route, navigation }) {
           >
             <Ionicons
               name="restaurant"
-              size={16}
+              size={15}
               color={isDineIn ? colors.onPrimary : colors.textSecondary}
-              style={{ marginRight: 6 }}
+              style={{ marginRight: 4 }}
             />
             <Text
               style={[
@@ -276,28 +300,52 @@ export default function OrderSummaryScreen({ route, navigation }) {
             onPress={() => setActiveDiningType('Takeaway')}
             style={[
               styles.diningPillBtn,
-              !isDineIn && { backgroundColor: colors.primary },
+              isTakeaway && { backgroundColor: colors.primary },
             ]}
             activeOpacity={0.85}
           >
             <Ionicons
               name="bag-handle"
-              size={16}
-              color={!isDineIn ? colors.onPrimary : colors.textSecondary}
-              style={{ marginRight: 6 }}
+              size={15}
+              color={isTakeaway ? colors.onPrimary : colors.textSecondary}
+              style={{ marginRight: 4 }}
             />
             <Text
               style={[
                 styles.diningPillText,
-                { color: !isDineIn ? colors.onPrimary : colors.textSecondary },
+                { color: isTakeaway ? colors.onPrimary : colors.textSecondary },
               ]}
             >
               Takeaway
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setActiveDiningType('Delivery')}
+            style={[
+              styles.diningPillBtn,
+              isDelivery && { backgroundColor: colors.primary },
+            ]}
+            activeOpacity={0.85}
+          >
+            <Ionicons
+              name="bicycle"
+              size={15}
+              color={isDelivery ? colors.onPrimary : colors.textSecondary}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.diningPillText,
+                { color: isDelivery ? colors.onPrimary : colors.textSecondary },
+              ]}
+            >
+              Delivery
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Table Allocation / Pickup Card */}
+        {/* Table Allocation / Pickup / Delivery Address Card */}
         <View
           style={[
             styles.summaryCard,
@@ -308,30 +356,46 @@ export default function OrderSummaryScreen({ route, navigation }) {
           <View style={styles.cardHeaderWithAction}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons
-                name={isDineIn ? 'restaurant-outline' : 'time-outline'}
+                name={isDineIn ? 'restaurant-outline' : isDelivery ? 'location-outline' : 'time-outline'}
                 size={18}
                 color={colors.primary}
                 style={{ marginRight: 6 }}
               />
               <Text style={[styles.cardHeading, { color: colors.mutedText }]}>
-                {isDineIn ? 'TABLE ALLOCATION' : 'PICKUP SCHEDULE'}
+                {isDineIn ? 'TABLE ALLOCATION' : isDelivery ? 'DELIVERY DESTINATION' : 'PICKUP SCHEDULE'}
               </Text>
             </View>
             <Text style={[typography.caption, { color: colors.primary, fontWeight: '600' }]}>
-              {isDineIn ? 'Atrium Window' : 'Express'}
+              {isDineIn ? 'Atrium Window' : isDelivery ? 'Doorstep Express' : 'Express'}
             </Text>
           </View>
 
           <View style={[styles.detailTile, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
             <Text style={[typography.headingSm, { color: colors.textPrimary, fontWeight: '700' }]}>
-              {isDineIn ? tableNumber : 'Takeaway Express Pickup'}
+              {isDineIn ? tableNumber : isDelivery ? 'AURA Doorstep Delivery' : 'Takeaway Express Pickup'}
             </Text>
             <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
               {isDineIn
                 ? `Sanctuary: ${activeBranch?.fullName || 'AURA Dining'}`
+                : isDelivery
+                ? `Dispatched from: ${activeBranch?.fullName || brand.restaurantName}`
                 : `Pickup at: ${activeBranch?.address || brand.address}`}
             </Text>
           </View>
+
+          {isDelivery && (
+            <View style={{ marginTop: 12 }}>
+              <Text style={[typography.caption, { color: colors.mutedText, marginBottom: 4, textTransform: 'uppercase' }]}>
+                Delivery Street Address
+              </Text>
+              <View style={[styles.inputContainer, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surfaceBorder }]}>
+                <Ionicons name="home-outline" size={16} color={colors.primary} style={{ marginRight: 8 }} />
+                <Text style={[typography.body, { color: colors.textPrimary, flex: 1 }]}>
+                  {deliveryAddress}
+                </Text>
+              </View>
+            </View>
+          )}
 
           <View style={styles.gridThreeCol}>
             <View style={[styles.colTile, { backgroundColor: colors.surfaceSubtle }]}>
@@ -343,13 +407,13 @@ export default function OrderSummaryScreen({ route, navigation }) {
             <View style={[styles.colTile, { backgroundColor: colors.surfaceSubtle }]}>
               <Text style={[styles.colTileLabel, { color: colors.mutedText }]}>Service</Text>
               <Text style={[styles.colTileValue, { color: colors.textPrimary }]}>
-                {isDineIn ? 'Dine-In' : 'Takeaway'}
+                {isDineIn ? 'Dine-In' : isDelivery ? 'Delivery' : 'Takeaway'}
               </Text>
             </View>
             <View style={[styles.colTile, { backgroundColor: colors.surfaceSubtle }]}>
               <Text style={[styles.colTileLabel, { color: colors.mutedText }]}>Est. Time</Text>
               <Text style={[styles.colTileValue, { color: colors.primary }]}>
-                ~20 mins
+                {isDelivery ? '~35 mins' : '~20 mins'}
               </Text>
             </View>
           </View>
@@ -516,6 +580,16 @@ export default function OrderSummaryScreen({ route, navigation }) {
             </Text>
           </View>
 
+          {calculations.deliveryFee > 0 && (
+            <View style={styles.calcRow}>
+              <Text style={[styles.calcLabel, { color: colors.primary, fontWeight: '600' }]}>
+                AURA Express Delivery Fee
+              </Text>
+              <Text style={[styles.calcValue, { color: colors.primary, fontWeight: '700' }]}>
+                {brand.formatPrice(calculations.deliveryFee)}
+              </Text>
+            </View>
+          )}
 
           <View style={[styles.divider, { backgroundColor: colors.surfaceBorder }]} />
 

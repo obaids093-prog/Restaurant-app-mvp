@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { brand } from '../../config/brand';
 import OrderStepper from '../../components/ui/OrderStepper';
+import DeliveryTracker from '../../components/DeliveryTracker';
 import { styles } from './trackingStyles';
 
 export default function ActiveOrderHero({
@@ -62,10 +63,16 @@ export default function ActiveOrderHero({
         </View>
       </View>
 
-      {/* Order Stepper Component */}
-      <View style={styles.stepperWrapper}>
-        <OrderStepper currentStatus={activeOrder.status} />
-      </View>
+      {/* Order Stepper Component or Delivery Tracker Component */}
+      {String(activeOrder.orderType || '').toLowerCase().includes('delivery') || activeOrder.status === 'On The Way' ? (
+        <View style={{ marginTop: 12 }}>
+          <DeliveryTracker order={activeOrder} />
+        </View>
+      ) : (
+        <View style={styles.stepperWrapper}>
+          <OrderStepper currentStatus={activeOrder.status} />
+        </View>
+      )}
 
       {/* Order Items Preview */}
       {activeOrder.items && activeOrder.items.length > 0 && (

@@ -116,9 +116,15 @@ export default function KitchenDisplayScreen({ navigation }) {
     setBumpingOrderId(orderId);
 
     let nextStatus = 'Preparing';
-    if (order.status === 'Pending') nextStatus = 'Preparing';
-    else if (order.status === 'Preparing') nextStatus = 'Ready';
-    else if (order.status === 'Ready') nextStatus = 'Served';
+    const isDelivery = String(order.orderType || '').toLowerCase().includes('delivery');
+
+    if (order.status === 'Pending') {
+      nextStatus = 'Preparing';
+    } else if (order.status === 'Preparing') {
+      nextStatus = isDelivery ? 'On The Way' : 'Ready';
+    } else if (order.status === 'Ready' || order.status === 'On The Way') {
+      nextStatus = 'Served';
+    }
 
     try {
       await updateOrderStatus(orderId, nextStatus);

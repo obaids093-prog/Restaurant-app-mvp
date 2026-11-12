@@ -97,9 +97,24 @@ const orderSchema = new mongoose.Schema(
       required: [true, 'Total amount is required'],
       min: [0, 'Total amount cannot be negative'],
     },
+    deliveryFee: {
+      type: Number,
+      default: 0,
+      min: [0, 'Delivery fee cannot be negative'],
+    },
+    deliveryAddress: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    phone: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     orderType: {
       type: String,
-      enum: ['Dine-in', 'Takeaway', 'Dine-In Table', 'Curbside', 'Priority'],
+      enum: ['Dine-in', 'Takeaway', 'Dine-In Table', 'Curbside', 'Priority', 'Delivery'],
       default: 'Dine-in',
     },
     tableNumber: {
@@ -110,7 +125,7 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: {
-        values: ['Pending', 'Preparing', 'Ready', 'Served', 'Cancelled'],
+        values: ['Pending', 'Preparing', 'Ready', 'On The Way', 'Served', 'Cancelled'],
         message: '{VALUE} is not a valid order status',
       },
       default: 'Pending',
