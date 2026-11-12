@@ -383,11 +383,13 @@ export default function SplashScreen({ navigation }) {
     };
 
     let cleanupTimer = null;
-    runSequence().then((clean) => {
-      if (typeof clean === 'function') {
-        cleanupTimer = clean;
-      }
-    });
+    runSequence()
+      .then((clean) => {
+        if (typeof clean === 'function') {
+          cleanupTimer = clean;
+        }
+      })
+      .catch(() => {});
 
     return () => {
       isCancelled = true;
