@@ -20,6 +20,7 @@ import { useOrders } from '../context/OrdersContext';
 import { brand } from '../config/brand';
 import { normalizePkPhone } from '../utils/phone';
 import { Input, PhoneInput, Switch } from '../components/ui';
+import LegalModal from '../components/LegalModal';
 
 const PRESET_DIETARY_OPTIONS = [
   { id: 'halal', label: 'Halal Only', icon: 'shield-checkmark-outline' },
@@ -53,6 +54,9 @@ export default function ProfileScreen({ navigation }) {
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+
+  // Legal Modal state ('privacy' | 'terms' | 'contact' | null)
+  const [legalModalType, setLegalModalType] = useState(null);
 
   // Active orders count for badge
   const activeOrdersCount = useMemo(() => {
@@ -299,7 +303,129 @@ export default function ProfileScreen({ navigation }) {
               </View>
             </View>
 
-            {/* APP VERSION & COPYRIGHT FOOTER */}
+            {/* LEGAL & SUPPORT (Guest View) */}
+            <View
+              style={[
+                styles.groupedRowsContainer,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.cardBorder,
+                  borderRadius: radius.card,
+                },
+                shadows.soft,
+              ]}
+            >
+              <TouchableOpacity
+                onPress={() => setLegalModalType('privacy')}
+                style={[styles.menuRow, { borderBottomColor: colors.cardBorder }]}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuRowLeft}>
+                  <View style={[styles.menuIconCircle, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+                    <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '600', fontSize: 14 }]}>
+                    Privacy Policy
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.mutedText} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setLegalModalType('terms')}
+                style={[styles.menuRow, { borderBottomColor: colors.cardBorder }]}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuRowLeft}>
+                  <View style={[styles.menuIconCircle, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+                    <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '600', fontSize: 14 }]}>
+                    Terms of Service
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.mutedText} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setLegalModalType('contact')}
+                style={styles.menuRow}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuRowLeft}>
+                  <View style={[styles.menuIconCircle, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+                    <Ionicons name="help-circle-outline" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '600', fontSize: 14 }]}>
+                    Contact & Concierge
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.mutedText} />
+              </TouchableOpacity>
+            </View>
+
+            {/* ─── LEGAL & CONCIERGE SUPPORT ─── */}
+        <View
+          style={[
+            styles.groupedRowsContainer,
+            {
+              backgroundColor: colors.surfaceSubtle,
+              borderColor: colors.cardBorder,
+              borderRadius: radius.card,
+            },
+            shadows.soft,
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => setLegalModalType('privacy')}
+            style={[styles.menuRow, { borderBottomColor: colors.cardBorder }]}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuRowLeft}>
+              <View style={[styles.menuIconCircle, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+                <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
+              </View>
+              <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '600', fontSize: 14 }]}>
+                Privacy Policy
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.mutedText} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setLegalModalType('terms')}
+            style={[styles.menuRow, { borderBottomColor: colors.cardBorder }]}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuRowLeft}>
+              <View style={[styles.menuIconCircle, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+                <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+              </View>
+              <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '600', fontSize: 14 }]}>
+                Terms of Service
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.mutedText} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setLegalModalType('contact')}
+            style={styles.menuRow}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuRowLeft}>
+              <View style={[styles.menuIconCircle, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+                <Ionicons name="help-circle-outline" size={18} color={colors.primary} />
+              </View>
+              <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '600', fontSize: 14 }]}>
+                Contact & Concierge Desk
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.mutedText} />
+          </TouchableOpacity>
+        </View>
+
+        {/* APP VERSION & COPYRIGHT FOOTER */}
             <View style={styles.versionFooter}>
               <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
                 {brand.name} • {brand.tagline}
@@ -637,6 +763,67 @@ export default function ProfileScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
+        {/* ─── LEGAL & CONCIERGE SUPPORT ─── */}
+        <View
+          style={[
+            styles.groupedRowsContainer,
+            {
+              backgroundColor: colors.surfaceSubtle,
+              borderColor: colors.cardBorder,
+              borderRadius: radius.card,
+            },
+            shadows.soft,
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => setLegalModalType('privacy')}
+            style={[styles.menuRow, { borderBottomColor: colors.cardBorder }]}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuRowLeft}>
+              <View style={[styles.menuIconCircle, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+                <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
+              </View>
+              <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '600', fontSize: 14 }]}>
+                Privacy Policy
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.mutedText} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setLegalModalType('terms')}
+            style={[styles.menuRow, { borderBottomColor: colors.cardBorder }]}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuRowLeft}>
+              <View style={[styles.menuIconCircle, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+                <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+              </View>
+              <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '600', fontSize: 14 }]}>
+                Terms of Service
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.mutedText} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setLegalModalType('contact')}
+            style={styles.menuRow}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuRowLeft}>
+              <View style={[styles.menuIconCircle, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+                <Ionicons name="help-circle-outline" size={18} color={colors.primary} />
+              </View>
+              <Text style={[typography.body, { color: colors.textPrimary, fontWeight: '600', fontSize: 14 }]}>
+                Contact & Concierge Desk
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.mutedText} />
+          </TouchableOpacity>
+        </View>
+
         {/* APP VERSION & COPYRIGHT FOOTER */}
         <View style={styles.versionFooter}>
           <Text style={[typography.caption, { color: colors.mutedText, fontSize: 11 }]}>
@@ -832,6 +1019,13 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* ─── LEGAL & SUPPORT MODAL ─── */}
+      <LegalModal
+        visible={!!legalModalType}
+        type={legalModalType}
+        onClose={() => setLegalModalType(null)}
+      />
     </View>
   );
 }

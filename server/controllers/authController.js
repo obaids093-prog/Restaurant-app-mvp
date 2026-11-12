@@ -419,7 +419,7 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// @desc    Delete user account permanently from database
+// @desc    Delete user account permanently from database with PII anonymization
 // @route   DELETE /api/auth/profile
 // @access  Private
 const deleteAccount = async (req, res) => {
@@ -440,7 +440,27 @@ const deleteAccount = async (req, res) => {
     // Revoke all tokens
     await tokenService.revokeAllUserTokens(userId);
 
-    // Delete user
+    // Anonymize user orders, reviews, and reservations to protect privacy while preserving accounting integrity
+    const Order = require('../models/Order');
+    const Review = require('../models/Review');
+    const Reservation = require('../models/Reservation');
+
+    await Promise.all([
+      Order.updateMany(
+        { user: userId },
+        { $set: { customerName: 'Deleted Customer', phone: '', notes: '' } }
+      ),
+      Review.updateMany(
+        { user: userId },
+        { $set: { userName: 'Deleted Customer', comment: '[Review removed upon account deletion]' } }
+      ),
+      Reservation.updateMany(
+        { user: userId },
+        { $set: { customerName: 'Deleted Customer', phone: '', specialRequests: '' } }
+      ),
+    ]);
+
+    // Delete user record
     const deletedUser = await User.findByIdAndDelete(userId);
     if (!deletedUser) {
       return res.status(404).json({ message: 'User account not found' });
@@ -448,7 +468,7 @@ const deleteAccount = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Your account has been permanently deleted from the database.',
+      message: 'Your account and personal data have been deleted successfully.',
     });
   } catch (error) {
     console.error('Delete Account Error:', error);
