@@ -77,12 +77,12 @@ export default function OrderPlacedScreen({ route, navigation }) {
   const orderItems = (items.length > 0 ? items : order.items) || [];
   const totalAmount = grandTotal || order.totalPrice || order.total || 0;
   const isDineIn = String(orderType).toLowerCase().includes('dine');
-  const receiptNumber = order?.receiptNumber || order?.digitalReceiptNumber || '';
+  const activeReceiptNumber = receiptNumber || order?.receiptNumber || order?.digitalReceiptNumber || '';
 
   const getPaymentSummaryText = () => {
     if (order?.paymentStatus === 'Paid') {
       const method = order?.paymentMethod?.toUpperCase() || 'ONLINE';
-      const receiptSuffix = receiptNumber ? ` • ${receiptNumber}` : '';
+      const receiptSuffix = activeReceiptNumber ? ` • ${activeReceiptNumber}` : '';
       return `✓ Paid (${method}${receiptSuffix})`;
     }
     if (order?.paymentMethod === 'cash') {
@@ -431,7 +431,7 @@ export default function OrderPlacedScreen({ route, navigation }) {
       <DigitalReceiptModal
         visible={isReceiptModalVisible}
         order={{ ...order, items: orderItems, totalAmount }}
-        receiptNumber={receiptNumber}
+        receiptNumber={activeReceiptNumber}
         onClose={() => setIsReceiptModalVisible(false)}
       />
     </View>
