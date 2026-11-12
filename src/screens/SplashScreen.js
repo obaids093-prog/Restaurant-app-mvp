@@ -382,15 +382,20 @@ export default function SplashScreen({ navigation }) {
       };
     };
 
-    const cleanupFn = runSequence();
+    let cleanupTimer = null;
+    runSequence().then((clean) => {
+      if (typeof clean === 'function') {
+        cleanupTimer = clean;
+      }
+    });
 
     return () => {
       isCancelled = true;
       if (animRef && typeof animRef.stop === 'function') {
         animRef.stop();
       }
-      if (typeof cleanupFn === 'function') {
-        cleanupFn();
+      if (typeof cleanupTimer === 'function') {
+        cleanupTimer();
       }
     };
   }, [
