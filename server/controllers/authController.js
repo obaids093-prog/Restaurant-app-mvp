@@ -14,8 +14,10 @@ const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const User = require('../models/User');
+const PasswordResetToken = require('../models/PasswordResetToken');
 const tokenService = require('../services/tokenService');
 const auditService = require('../services/auditService');
+const emailService = require('../services/emailService');
 
 // Safe, non-backtracking email regular expression (prevents ReDoS)
 const EMAIL_REGEX = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
@@ -864,6 +866,139 @@ const verifyPhoneOtp = async (req, res) => {
   }
 };
 
+// ── Password Reset ────────────────────────────────────────────
+const RESET_TOKEN_EXPIRY_MS = 30 * 60 * 1000; // 30 minutes
+
+// @desc    Request a password reset email
+// @route   POST /api/auth/forgot-password
+// @access  Public
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+
+    // Constant-time response: always return 200 regardless of whether the email exists.
+    // This prevents user-enumeration attacks.
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (user) {
+      // Invalidate any previous unused reset tokens for this user
+      await PasswordResetToken.updateMany(
+        { user: user._id, usedAt: null },
+        { $set: { usedAt: new Date() } }
+      );
+
+      // Generate cryptographically secure token
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
+
+      await PasswordResetToken.create({
+        user: user._id,
+        tokenHash,
+        expiresAt,
+      });
+
+      // Send reset email (console mode when SMTP is not configured)
+      try {
+        await emailService.sendPasswordResetEmail(cleanEmail, rawToken);
+      } catch (mailErr) {
+        console.error('Failed to send password reset email:', mailErr.message);
+      }
+    }
+
+    // Same response whether user exists or not
+    res.status(200).json({
+      success: true,
+      message: 'If an account with that email exists, a password reset link has been sent.',
+    });
+  } catch (error) {
+    console.error('Forgot Password Error:', error);
+    res.status(500).json({ message: 'Server error processing password reset request' });
+  }
+};
+
+// @desc    Reset password using token from email
+// @route   POST /api/auth/reset-password
+// @access  Public
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ message: 'Reset token is required' });
+    }
+
+    if (!newPassword || typeof newPassword !== 'string') {
+      return res.status(400).json({ message: 'New password is required' });
+    }
+
+    if (newPassword.length < 8 || newPassword.length > 128) {
+      return res.status(400).json({ message: 'Password must be between 8 and 128 characters' });
+    }
+
+    if (!/\d/.test(newPassword)) {
+      return res.status(400).json({ message: 'Password must contain at least one digit' });
+    }
+
+    if (isCommonPassword(newPassword)) {
+      return res.status(400).json({ message: 'Password is too common. Please choose a stronger password.' });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const resetDoc = await PasswordResetToken.findOne({
+      tokenHash,
+      usedAt: null,
+    });
+
+    if (!resetDoc) {
+      return res.status(400).json({ message: 'Invalid or expired reset token. Please request a new one.' });
+    }
+
+    if (resetDoc.expiresAt < new Date()) {
+      resetDoc.usedAt = new Date();
+      await resetDoc.save();
+      return res.status(400).json({ message: 'Reset token has expired. Please request a new one.' });
+    }
+
+    // Mark token as used (single-use enforcement)
+    resetDoc.usedAt = new Date();
+    await resetDoc.save();
+
+    // Update password
+    const user = await User.findById(resetDoc.user);
+    if (!user) {
+      return res.status(404).json({ message: 'User account not found' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    // Revoke all refresh tokens so old sessions are invalidated
+    await tokenService.revokeAllUserTokens(user._id);
+
+    // Invalidate any remaining unused reset tokens for this user
+    await PasswordResetToken.updateMany(
+      { user: user._id, usedAt: null },
+      { $set: { usedAt: new Date() } }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Password has been reset successfully. Please log in with your new password.',
+    });
+  } catch (error) {
+    console.error('Reset Password Error:', error);
+    res.status(500).json({ message: 'Server error resetting password' });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -877,6 +1012,8 @@ module.exports = {
   updateStaff,
   sendPhoneOtp,
   verifyPhoneOtp,
+  forgotPassword,
+  resetPassword,
   normalizePakPhone,
   _otpStore: otpStore,
   _loginAttemptsMap: loginAttemptsMap,

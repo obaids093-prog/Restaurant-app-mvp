@@ -24,6 +24,8 @@ const {
   updateStaff,
   sendPhoneOtp,
   verifyPhoneOtp,
+  forgotPassword,
+  resetPassword,
 } = require('../controllers/authController');
 const { protect, managerOnly } = require('../middleware/auth');
 const validate = require('../middleware/validate');
@@ -36,6 +38,8 @@ const {
   staffUpdateSchema,
   phoneSendOtpSchema,
   phoneVerifyOtpSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
   idParamSchema,
 } = require('../validators/schemas');
 
@@ -43,6 +47,10 @@ router.post('/register', validate({ body: registerSchema }), register);
 router.post('/login', validate({ body: loginSchema }), login);
 router.post('/refresh', validate({ body: refreshTokenSchema }), refreshAccessToken);
 router.post('/logout', logout);
+
+// Password reset
+router.post('/forgot-password', validate({ body: forgotPasswordSchema }), forgotPassword);
+router.post('/reset-password', validate({ body: resetPasswordSchema }), resetPassword);
 
 router.get('/me', protect, getMe);
 router.put('/profile', protect, validate({ body: updateProfileSchema }), updateProfile);

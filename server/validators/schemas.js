@@ -274,6 +274,28 @@ const inventoryRestockSchema = z
   })
   .strict();
 
+// ── Password Reset Schemas ───────────────────────────────────
+const forgotPasswordSchema = z
+  .object({
+    email: z
+      .string()
+      .trim()
+      .email('Please provide a valid email address')
+      .max(100, 'Please provide a valid email address under 100 characters'),
+  })
+  .strict();
+
+const resetPasswordSchema = z
+  .object({
+    token: z.string().trim().min(10, 'Reset token is required').max(512),
+    newPassword: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .max(128, 'Password must be under 128 characters')
+      .regex(/\d/, 'Password must contain at least one digit'),
+  })
+  .strict();
+
 module.exports = {
   objectIdSchema,
   idParamSchema,
@@ -302,4 +324,6 @@ module.exports = {
   loyaltyQuoteSchema,
   analyticsQuerySchema,
   inventoryRestockSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 };
