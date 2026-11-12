@@ -77,6 +77,19 @@ export default function OrderPlacedScreen({ route, navigation }) {
   const orderItems = (items.length > 0 ? items : order.items) || [];
   const totalAmount = grandTotal || order.totalPrice || order.total || 0;
   const isDineIn = String(orderType).toLowerCase().includes('dine');
+  const receiptNumber = order?.receiptNumber || order?.digitalReceiptNumber || '';
+
+  const getPaymentSummaryText = () => {
+    if (order?.paymentStatus === 'Paid') {
+      const method = order?.paymentMethod?.toUpperCase() || 'ONLINE';
+      const receiptSuffix = receiptNumber ? ` • ${receiptNumber}` : '';
+      return `✓ Paid (${method}${receiptSuffix})`;
+    }
+    if (order?.paymentMethod === 'cash') {
+      return 'Cash on Delivery';
+    }
+    return 'Pay at Table (Cash/Card)';
+  };
 
   const now = new Date();
   const readyMin = new Date(now.getTime() + 25 * 60000);
@@ -275,11 +288,7 @@ export default function OrderPlacedScreen({ route, navigation }) {
                   },
                 ]}
               >
-                {order?.paymentStatus === 'Paid'
-                  ? `✓ Paid (${order?.paymentMethod?.toUpperCase() || 'ONLINE'}${receiptNumber ? ` • ${receiptNumber}` : ''})`
-                  : order?.paymentMethod === 'cash'
-                  ? 'Cash on Delivery'
-                  : 'Pay at Table (Cash/Card)'}
+                {getPaymentSummaryText()}
               </Text>
             </View>
           </View>
