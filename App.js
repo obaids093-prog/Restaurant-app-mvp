@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
+
+// Keep the native splash screen visible while fonts and initial resources load
+SplashScreen.preventAutoHideAsync().catch(() => {});
 import {
   useFonts,
   Poppins_400Regular,
@@ -60,6 +64,12 @@ export default function App() {
     Poppins_700Bold,
     Poppins_800ExtraBold,
   });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded]);
 
   return (
     <SafeAreaProvider>
