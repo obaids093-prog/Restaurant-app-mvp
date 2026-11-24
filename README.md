@@ -24,6 +24,20 @@
 
 ---
 
+<p align="center">
+  <a href="https://youtu.be/pDaGuxSufg0">
+    <img src="https://img.shields.io/badge/▶_Watch_Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Demo Video" />
+  </a>
+</p>
+
+## 🎬 Demo Video
+
+[![AURA Restaurant App — Full Demo Walkthrough](https://img.youtube.com/vi/pDaGuxSufg0/maxresdefault.jpg)](https://youtu.be/pDaGuxSufg0)
+
+> Full walkthrough of the customer ordering flow, live kitchen tracking, manager dashboard, table reservation system, and QR dine-in experience.
+
+---
+
 ## 🌟 Executive Overview
 
 **AURA** is a high-performance, full-stack restaurant platform engineered for seamless customer dining, real-time kitchen operations, and intelligent business analytics. Designed around modern UX standards, strict role-based access control (RBAC), and an extensible white-label architecture, AURA enables multi-branch restaurant chains to deploy mobile dining, live order tracking, table reservations, loyalty rewards, and promotional campaigns from a single unified codebase.

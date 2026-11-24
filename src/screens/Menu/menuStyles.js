@@ -229,36 +229,39 @@ export const styles = StyleSheet.create({
   // Dedicated Greeting Section
   greetingSection: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 4,
+    paddingTop: 6,
     paddingBottom: 16,
   },
   greetingTextColumn: {
     flex: 1,
     paddingRight: 12,
+    minWidth: 0,
   },
   greetingPillRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 4,
     marginBottom: 4,
   },
   greetingSubtitle: {
-    fontSize: 12,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
+    fontSize: 13,
+    letterSpacing: 0.3,
+    textTransform: 'none',
+    flexShrink: 1,
   },
   greetingTitle: {
-    fontSize: 24,
+    fontSize: 22,
     letterSpacing: -0.4,
-    lineHeight: 30,
-    marginBottom: 2,
+    lineHeight: 28,
+    marginBottom: 3,
   },
   greetingTagline: {
     fontSize: 12,
-    lineHeight: 16,
+    lineHeight: 17,
   },
   avatarBadgeWrapper: {
     width: 46,
