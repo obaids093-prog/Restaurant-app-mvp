@@ -10,6 +10,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import apiClient from '../../api/client';
 import { useTheme } from '../../context/ThemeContext';
 import { styles } from './tableQRStyles';
@@ -22,6 +23,7 @@ const DEMO_BRANCHES = [
 ];
 
 export default function TableQRScannerScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { colors, isDark, shadows, typography, fonts } = useTheme();
 
   const [selectedBranch, setSelectedBranch] = useState('lhr_gulberg');
@@ -120,7 +122,11 @@ export default function TableQRScannerScreen({ navigation }) {
       <View
         style={[
           styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.cardBorder },
+          {
+            backgroundColor: colors.surface,
+            borderBottomColor: colors.cardBorder,
+            paddingTop: Math.max(insets.top, 24) + 6,
+          },
         ]}
       >
         <TouchableOpacity
