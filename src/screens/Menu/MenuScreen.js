@@ -439,10 +439,36 @@ export default function MenuScreen({ navigation }) {
     return 'Good evening';
   };
 
-  // User display name
+  const getGreetingIcon = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'sunny-outline';
+    if (hour < 17) return 'partly-sunny-outline';
+    return 'moon-outline';
+  };
+
+  // User display name & initials
   const customerFirstName = user?.name
     ? user.name.trim().split(' ')[0]
     : 'Valued Guest';
+
+  const userInitials = user?.name
+    ? user.name
+        .trim()
+        .split(' ')
+        .filter(Boolean)
+        .map((n) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : 'AU';
+
+  const hasActiveFilters =
+    selectedCategory !== 'All' ||
+    selectedSort !== 'default' ||
+    selectedPriceRange !== 'all' ||
+    availableOnly ||
+    specialsOnly ||
+    favouritesOnly;
 
   // Memoised 2-column Grid Item
   const renderItem = useCallback(
@@ -481,7 +507,11 @@ export default function MenuScreen({ navigation }) {
   if (isLoading && menuItems.length === 0) {
     return (
       <View style={[styles.stateContainer, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent
+      />
         <View
           style={[
             styles.loadingBox,
@@ -515,7 +545,11 @@ export default function MenuScreen({ navigation }) {
   if (error && menuItems.length === 0) {
     return (
       <View style={[styles.stateContainer, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent
+      />
         <View
           style={[
             styles.loadingBox,
@@ -567,92 +601,152 @@ export default function MenuScreen({ navigation }) {
   // ─── EXTENSIVE HEADER COMPONENT ───────────────────────────────────────────
   const listHeaderComponent = (
     <View style={styles.headerContainer}>
-      {/* Top Bar: Time-of-day Greeting & Heart/Filter/Bell Action Buttons */}
-      <View style={[styles.greetingRow, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.greetingTextColumn}>
-          <Text
-            style={[
-              styles.greetingSubtitle,
-              { color: colors.mutedText, fontFamily: fonts.medium },
-            ]}
-          >
-            {getGreeting()}
-          </Text>
-          <Text
-            style={[
-              styles.greetingTitle,
-              { color: colors.textPrimary, fontFamily: fonts.bold },
-            ]}
-            numberOfLines={1}
-          >
-            {user?.name || customerFirstName}
-          </Text>
+      {/* ── TOP LUXURY HEADER CARD ── */}
+      <View
+        style={[
+          styles.topCardContainer,
+          {
+            backgroundColor: isDark ? colors.card : '#FDFCFA',
+            borderBottomColor: colors.subtleBorder,
+            paddingTop: Math.max(insets.top, 24) + 6,
+          },
+        ]}
+      >
+        {/* Row 1: Location & Action Buttons */}
+        <View style={styles.topNavBar}>
+          <View style={styles.branchWrapper}>
+            <BranchChip compact />
+          </View>
+
+          <View style={styles.headerActionsGroup}>
+            {/* Table QR Code Scanner Button */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate('TableQRScanner')}
+              style={[
+                styles.headerActionBtn,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.subtleBorder,
+                },
+                shadows.cardLight,
+              ]}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Scan Table QR Code"
+            >
+              <Ionicons name="qr-code-outline" size={19} color={colors.textPrimary} />
+            </TouchableOpacity>
+
+            {/* Favourites Heart Toggle Button */}
+            <TouchableOpacity
+              onPress={() => setFavouritesOnly(!favouritesOnly)}
+              style={[
+                styles.headerActionBtn,
+                {
+                  backgroundColor: favouritesOnly
+                    ? colors.cancelledTint || '#FEE2E2'
+                    : colors.surface,
+                  borderColor: favouritesOnly
+                    ? colors.cancelled
+                    : colors.subtleBorder,
+                },
+                shadows.cardLight,
+              ]}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Toggle Favourites filter"
+            >
+              <Ionicons
+                name={favouritesOnly ? 'heart' : 'heart-outline'}
+                size={19}
+                color={favouritesOnly ? colors.cancelled : colors.textPrimary}
+              />
+            </TouchableOpacity>
+
+            {/* Notification Bell */}
+            <NotificationBell
+              size={19}
+              style={[
+                styles.headerActionBtn,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.subtleBorder,
+                },
+                shadows.cardLight,
+              ]}
+            />
+          </View>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <BranchChip compact />
+        {/* Row 2: Dedicated Full-Width Greeting Banner */}
+        <View style={styles.greetingSection}>
+          <View style={styles.greetingTextColumn}>
+            <View style={styles.greetingPillRow}>
+              <Ionicons
+                name={getGreetingIcon()}
+                size={14}
+                color={colors.primary}
+              />
+              <Text
+                style={[
+                  styles.greetingSubtitle,
+                  { color: colors.primary, fontFamily: fonts.semiBold },
+                ]}
+              >
+                {getGreeting()}
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.greetingTitle,
+                { color: colors.textPrimary, fontFamily: fonts.bold },
+              ]}
+              numberOfLines={1}
+            >
+              {user?.name || customerFirstName}
+            </Text>
+            <Text
+              style={[
+                styles.greetingTagline,
+                { color: colors.mutedText, fontFamily: fonts.regular },
+              ]}
+              numberOfLines={1}
+            >
+              Savor curated fine dining & artisanal culinary creations
+            </Text>
+          </View>
 
-          {/* Table QR Code Scanner Button */}
+          {/* User Profile Avatar / Monogram */}
           <TouchableOpacity
-            onPress={() => navigation.navigate('TableQRScanner')}
+            onPress={() => navigation.navigate('Profile')}
+            activeOpacity={0.85}
             style={[
-              styles.headerActionBtn,
+              styles.avatarBadgeWrapper,
               {
                 backgroundColor: colors.surface,
-                borderColor: colors.subtleBorder,
+                borderColor: colors.cardBorder,
               },
+              shadows.cardLight,
             ]}
-            activeOpacity={0.8}
             accessibilityRole="button"
-            accessibilityLabel="Scan Table QR Code"
+            accessibilityLabel="View Profile"
           >
-            <Ionicons name="qr-code-outline" size={20} color={colors.textPrimary} />
+            <View
+              style={[
+                styles.avatarInnerCircle,
+                { backgroundColor: colors.primaryTint },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.avatarText,
+                  { color: colors.primary, fontFamily: fonts.bold },
+                ]}
+              >
+                {userInitials}
+              </Text>
+            </View>
           </TouchableOpacity>
-
-          {/* Favourites Heart Toggle Button */}
-          <TouchableOpacity
-            onPress={() => setFavouritesOnly(!favouritesOnly)}
-            style={[
-              styles.headerActionBtn,
-              {
-                backgroundColor: favouritesOnly
-                  ? colors.cancelledTint || '#FEE2E2'
-                  : colors.surface,
-                borderColor: favouritesOnly
-                  ? colors.cancelled
-                  : colors.subtleBorder,
-              },
-            ]}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Toggle Favourites filter"
-          >
-            <Ionicons
-              name={favouritesOnly ? 'heart' : 'heart-outline'}
-              size={20}
-              color={favouritesOnly ? colors.cancelled : colors.textPrimary}
-            />
-          </TouchableOpacity>
-
-          {/* Filter Sheet Trigger Button */}
-          <TouchableOpacity
-            onPress={openFilterSheet}
-            style={[
-              styles.headerActionBtn,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.subtleBorder,
-              },
-            ]}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Open Filters"
-          >
-            <Ionicons name="options-outline" size={20} color={colors.textPrimary} />
-          </TouchableOpacity>
-
-          {/* Notification Bell */}
-          <NotificationBell />
         </View>
       </View>
 
@@ -720,49 +814,81 @@ export default function MenuScreen({ navigation }) {
         </TouchableOpacity>
       )}
 
-      {/* Search Bar */}
-      <View
-        style={[
-          styles.searchBarWrapper,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.subtleBorder,
-          },
-          shadows.cardLight,
-        ]}
-      >
-        <Ionicons
-          name="search"
-          size={18}
-          color={colors.mutedText}
-          style={styles.searchLeadingIcon}
-        />
-
-        <TextInput
-          ref={searchInputRef}
+      {/* Search & Filter Bar */}
+      <View style={styles.searchFilterRow}>
+        <View
           style={[
-            styles.searchInput,
+            styles.searchBarWrapper,
             {
-              color: colors.textPrimary,
-              fontFamily: fonts.regular,
+              backgroundColor: colors.surface,
+              borderColor: colors.subtleBorder,
             },
+            shadows.cardLight,
           ]}
-          placeholder="Search dishes..."
-          placeholderTextColor={colors.mutedText}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          returnKeyType="search"
-        />
+        >
+          <Ionicons
+            name="search"
+            size={18}
+            color={colors.primary}
+            style={styles.searchLeadingIcon}
+          />
 
-        {searchQuery.length > 0 && (
-          <TouchableOpacity
-            onPress={() => setSearchQuery('')}
-            style={styles.searchActionBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="close-circle" size={18} color={colors.mutedText} />
-          </TouchableOpacity>
-        )}
+          <TextInput
+            ref={searchInputRef}
+            style={[
+              styles.searchInput,
+              {
+                color: colors.textPrimary,
+                fontFamily: fonts.regular,
+              },
+            ]}
+            placeholder="Search dishes, tastes, ingredients..."
+            placeholderTextColor={colors.mutedText}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+          />
+
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              style={styles.searchActionBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close-circle" size={18} color={colors.mutedText} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Filter Sheet Trigger Button beside search bar */}
+        <TouchableOpacity
+          onPress={openFilterSheet}
+          style={[
+            styles.filterTriggerBtn,
+            {
+              backgroundColor: hasActiveFilters ? colors.primary : colors.surface,
+              borderColor: hasActiveFilters ? colors.primary : colors.subtleBorder,
+            },
+            shadows.cardLight,
+          ]}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Open Filters"
+        >
+          <Ionicons
+            name="options-outline"
+            size={20}
+            color={hasActiveFilters ? '#FFFFFF' : colors.textPrimary}
+          />
+          {hasActiveFilters && (
+            <View
+              style={[
+                styles.filterActiveDot,
+                { backgroundColor: '#FFFFFF' },
+              ]}
+            />
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Pinned Category Chips with Icons */}
@@ -875,7 +1001,11 @@ export default function MenuScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent
+      />
 
       <DishGrid
         flatListRef={flatListRef}

@@ -195,51 +195,89 @@ export const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  // Greeting Row
-  greetingRow: {
+  // Top Nav & Header Container
+  topCardContainer: {
+    borderBottomWidth: 1,
+    marginBottom: 16,
+  },
+  topNavBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingBottom: 10,
+  },
+  branchWrapper: {
+    flex: 1,
+    marginRight: 10,
+    alignItems: 'flex-start',
+  },
+  headerActionsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerActionBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Dedicated Greeting Section
+  greetingSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 16,
   },
   greetingTextColumn: {
     flex: 1,
+    paddingRight: 12,
+  },
+  greetingPillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
   },
   greetingSubtitle: {
     fontSize: 12,
-    letterSpacing: 0.2,
-    marginBottom: 2,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   greetingTitle: {
-    fontSize: 22,
+    fontSize: 24,
     letterSpacing: -0.4,
+    lineHeight: 30,
+    marginBottom: 2,
   },
-  headerActionBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  greetingTagline: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  avatarBadgeWrapper: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     borderWidth: 1,
+    padding: 3,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  profileAvatarBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 1,
+  avatarInnerCircle: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitials: {
-    fontSize: 13,
+  avatarText: {
+    fontSize: 14,
     letterSpacing: 0.5,
   },
 
@@ -373,16 +411,39 @@ export const styles = StyleSheet.create({
     borderRadius: 3,
   },
 
-  // Search Bar
-  searchBarWrapper: {
+  // Search & Filter Row
+  searchFilterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 16,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    gap: 10,
+  },
+  searchBarWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 14,
     height: 48,
     borderRadius: 24,
     borderWidth: 1,
-    marginBottom: 16,
+  },
+  filterTriggerBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  filterActiveDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   overlappingSearchBar: {
     zIndex: 10,
