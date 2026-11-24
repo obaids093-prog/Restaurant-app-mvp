@@ -1,0 +1,17 @@
+node_modules/
+server/
+.git/
+.expo/
+dist/
+web-build/
+*.mp4
+designs/
+docs/
+.vscode/
+.gemini/
+.agent/
+.agents/
+.gsd/
+CS375*
+*.docx
+
